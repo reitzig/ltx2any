@@ -12,8 +12,12 @@ Yet another LaTeX build wrapper, with one or two nifty features:
  * Support for `bibtex`, `makeindex`, TikZ externalization and `gnuplot`.
  * Compiles into PDF.
 
+This is still *prerelease* code. It is by no means considered nicely written, 
+bug-free or reliable. Unexpected errors may even crash the whole script. Take care!
+
 == Requirements ==
 
+ * Ruby 1.8.7 or higher
  * Ruby gem [listen](https://github.com/guard/listen).
 
 == Basic Use ==
@@ -23,6 +27,7 @@ Once `ltx2any` is in your PATH, run `ltx2any <file>.tex`. Find out about availab
 == To Do ==
  
  * Make target options accessible for targets
+ * De-spaghettify code (mainly `ltx2any.rb`)
  * Refactor and/or document functions, constants, ...
  * Is number of target runs a target-specific feature?
  * Offer cleanall which also removes log and result
@@ -35,3 +40,4 @@ Once `ltx2any` is in your PATH, run `ltx2any <file>.tex`. Find out about availab
    with those options (forget afterwards)
  * Check and forward warnings and errors from extensions
  * How-To for writing extensions (and targets)
+ * Start scripts for other OS
