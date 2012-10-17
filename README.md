@@ -15,16 +15,16 @@ Yet another LaTeX build wrapper, with one or two nifty features:
 This is still *prerelease* code. It is by no means considered nicely written, 
 bug-free or reliable. Unexpected errors may even crash the whole script. Take care!
 
-## Requirements ##
+### Requirements ###
 
  * Ruby 1.8.7 or higher
  * Ruby gem [listen](https://github.com/guard/listen).
 
-## Basic Use ##
+### Basic Use ###
 
 Once `ltx2any` is in your PATH, run `ltx2any <file>.tex`. Find out about available parameters by running `ltx2any --help`.
 
-## To Do ##
+### To Do ###
  
  * Make target options accessible for targets
  * De-spaghettify code (mainly `ltx2any.rb`)
