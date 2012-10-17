@@ -1,21 +1,22 @@
-# TODO description
-# TODO list of prerequisites
-# TODO license
+# Copyright 2010-2012, Raphael Reitzig
+# <code@verrech.net>
+#
+# This file is part of ltx2any.
+#
+# ltx2any is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# ltx2any is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-# TODO make target options accessible for targets
-# TODO refactor and/or document functions, constants, ...
-# TODO is number of target runs a target-specific feature?
-
-# TODO offer cleanall which removes tmp dir, log, result
-# TODO target for spell-/grammar-/stylechecker (cf http://dsl.org/cookbook/cookbook_15.html )
-#        default: no. options: log to file, interactive
-# TODO Integrate lacheck or similar
-# TODO Check out tex daemon(s) to speed up compilation
-# TODO Add preamble precompilation
-# TODO When waiting for changes, allow [options] + ENTER to trigger rebuilding
-#      with those options (forget afterwards)
-
-# Some output strings
+# Some frontend strings
 name      = "ltx2any"
 shortcode = "[#{name}]"
 running   = "running"
