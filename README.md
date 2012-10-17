@@ -31,7 +31,7 @@ Once `ltx2any` is in your PATH, run `ltx2any <file>.tex`. Find out about availab
  * Refactor and/or document functions, constants, ...
  * Is number of target runs a target-specific feature?
  * Offer cleanall which also removes log and result
- * Add extension for spell-/grammar-/stylechecker (see e.g. [here](http://dsl.org/cookbook/cookbook_15.html)  
+ * Add extension for spell-/grammar-/stylechecker (see e.g. [here](http://dsl.org/cookbook/cookbook_15.html)) 
    default: no spellcheck. Options: log findings to file; interactive
  * Integrate lacheck or similar
  * Check out tex daemon(s) to speed up compilation
