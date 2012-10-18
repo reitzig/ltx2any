@@ -263,9 +263,18 @@ begin
     start_time = Time.now
 
     # Copy all files to tmp directory (some LaTeX packages fail to work with output dir)
-    Dir.entries(".").delete_if { |f| f == "." || f == ".." || f == $params["tmpdir"] || f == $params["log"] }.each { |f|
-      FileUtils::rm_rf("#{$params["tmpdir"]}/#{f}")
-      FileUtils::cp_r(f,"./#{$params["tmpdir"]}/")
+    exceptions = [".", "..", $params["tmpdir"], "./#{$params["tmpdir"]}", $params["log"]]
+    Dir.entries(".").delete_if { |f| exceptions.include?(f) }.each { |f|
+      # Avoid trouble with symlink loops
+      if ( File.symlink?(f) )
+        if ( !File.exists?("#{$params["tmpdir"]}/#{f}") )
+          File.symlink("../#{f}", "#{$params["tmpdir"]}/#{f}")
+        end
+      else
+        FileUtils::rm_rf("#{$params["tmpdir"]}/#{f}")
+        puts "#{f} #{File.symlink?(f)}"
+        FileUtils::cp_r(f,"./#{$params["tmpdir"]}/")
+      end
     }
 
     # Delete former results in order not to pretend success
