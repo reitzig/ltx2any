@@ -272,7 +272,6 @@ begin
         end
       else
         FileUtils::rm_rf("#{$params["tmpdir"]}/#{f}")
-        puts "#{f} #{File.symlink?(f)}"
         FileUtils::cp_r(f,"./#{$params["tmpdir"]}/")
       end
     }
