@@ -247,9 +247,9 @@ begin
     end
     @changetime = Time.now
     @listener = Listen.to('.') \
-                      .ignore(/#{Regexp.escape($params['tmpdir'])}/, 
-                              /#{Regexp.escape($params["log"])}/, 
-                              /#{Regexp.escape("#{$jobname}.#{target.extension}")}/ \
+                      .ignore(/(\.\/)?#{Regexp.escape($params['tmpdir'])}/, 
+                              /(\.\/)?#{Regexp.escape($params["log"])}/, 
+                              /(\.\/)?#{Regexp.escape("#{$jobname}.#{target.extension}")}/ \
                              ) \
                       .latency(0.5) \
                       .change(&callback)
@@ -263,7 +263,9 @@ begin
     start_time = Time.now
 
     # Copy all files to tmp directory (some LaTeX packages fail to work with output dir)
-    exceptions = [".", "..", $params["tmpdir"], "./#{$params["tmpdir"]}", $params["log"]]
+    exceptions = [".", "..", $params["tmpdir"], $params["log"]]
+    exceptions = exceptions + exceptions.map { |s| "./#{s}" }
+
     Dir.entries(".").delete_if { |f| exceptions.include?(f) }.each { |f|
       # Avoid trouble with symlink loops
       if ( File.symlink?(f) )
