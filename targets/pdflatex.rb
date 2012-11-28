@@ -54,7 +54,13 @@ $tgt = Target.new(
     parent.heap[0] = parent.heap[1] == newHash
     parent.heap[1] = newHash
 
-    # Implement error/warning detection
+    # Implement error/warning detection: 
+    # Errors: * `^file:line: msg$`
+    #         * ``
+    # Warnings: * `^(Under|Over)full ... at lines <line>$
+    #           * `Warning` --> line? paragraph?
+    #
+    # Beachte: ^(\) )?(<file> ... ) bei eingebundenen Dateien
     return [true, log.join("")]
   }
 )
