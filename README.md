@@ -39,8 +39,8 @@ $> ltx2any plain_bibtex
 [ltx2any] Took 0 min  5 sec
 ```
 
-Note that ltx2any figured out the necessary number of runs and external programs 
-out: because of some references, three runs of `pdflatex` are needed (and we 
+Note that ltx2any figured out the necessary number of runs and external programs: 
+because of some references, three runs of `pdflatex` are needed (and we 
 need a fourth to realise that the PDF has converged). Rerun the command and see 
 how this automatism speeds up subsequent runs!
 
@@ -55,6 +55,11 @@ how this automatism speeds up subsequent runs!
  * Is number of target runs a target-specific feature?
  * Offer cleanall which also removes log and result
  * Compatibility of `-c` and `-d`
+ * Put a hidden file in the tmp folder. Check all files in the current directories
+   for that filename and don't copy and listen to changes in those (i.e. other
+   temp folders). Background: currently, multiple `-d` instances running in 
+   the same folder mutually include their temp folders in their runs; this leads
+   to memory and runtime explosion.
  * Add extension for spell-/grammar-/stylechecker (see e.g. [here](http://dsl.org/cookbook/cookbook_15.html)) 
    default: no spellcheck. Options: log findings to file; interactive
  * Integrate lacheck or similar

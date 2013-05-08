@@ -1,5 +1,6 @@
-# Copyright 2010-2012, Raphael Reitzig
+# Copyright 2010-2013, Raphael Reitzig
 # <code@verrech.net>
+# Version 2.0 beta
 #
 # This file is part of ltx2any.
 #
@@ -256,117 +257,119 @@ begin
     @listener.start(false)
   end
 
-  begin
-    # Reset
-    target.heap = []
-    @summary = ""
-    start_time = Time.now
+  begin # demon loop
+    begin # inner block that can be cancelled by user
+      # Reset
+      target.heap = []
+      @summary = ""
+      start_time = Time.now
 
-    # Copy all files to tmp directory (some LaTeX packages fail to work with output dir)
-    exceptions = [".", "..", $params["tmpdir"], $params["log"]]
-    exceptions = exceptions + exceptions.map { |s| "./#{s}" }
+      # Copy all files to tmp directory (some LaTeX packages fail to work with output dir)
+      exceptions = [".", "..", $params["tmpdir"], $params["log"]]
+      exceptions = exceptions + exceptions.map { |s| "./#{s}" }
 
-    Dir.entries(".").delete_if { |f| exceptions.include?(f) }.each { |f|
-      # Avoid trouble with symlink loops
-      if ( File.symlink?(f) )
-        if ( !File.exists?("#{$params["tmpdir"]}/#{f}") )
-          File.symlink("../#{f}", "#{$params["tmpdir"]}/#{f}")
-        end
-      else
-        FileUtils::rm_rf("#{$params["tmpdir"]}/#{f}")
-        FileUtils::cp_r(f,"./#{$params["tmpdir"]}/")
-      end
-    }
-
-    # Delete former results in order not to pretend success
-    if ( File.exist?("#{$params["tmpdir"]}/#{$jobname}.#{target.extension}") )
-      FileUtils::rm("#{$params["tmpdir"]}/#{$jobname}.#{target.extension}")
-    end
-
-    # Move into temporary directory
-    Dir.chdir($params["tmpdir"])
-
-    # First run of LaTeX compiler
-    print "#{shortcode} #{target.name}(1) #{running} ..."
-    STDOUT.flush
-    r = target.exec
-    puts " #{if r[0] then done else error end}"
-    STDOUT.flush
-
-    # Save the first log if it is the last one (should be before the extensions)
-    if ( $params["ltxruns"] ==  1 )
-      startSection(target.name)
-      log(r[1])
-      endSection(target.name)
-    end
-
-    # Read hashes
-    $hashes = {}
-    hashfile = "#{$params["hashes"]}"
-    if ( File.exist?(hashfile) )
-      File.open(hashfile, "r") { |f|
-        while ( l = f.gets )
-          l = l.strip.split(",")
-          $hashes[l[0]] = l[1]
+      Dir.entries(".").delete_if { |f| exceptions.include?(f) }.each { |f|
+        # Avoid trouble with symlink loops
+        if ( File.symlink?(f) )
+          if ( !File.exists?("#{$params["tmpdir"]}/#{f}") )
+            File.symlink("../#{f}", "#{$params["tmpdir"]}/#{f}")
+          end
+        else
+          FileUtils::rm_rf("#{$params["tmpdir"]}/#{f}")
+          FileUtils::cp_r(f,"./#{$params["tmpdir"]}/")
         end
       }
-    end
 
-    # Run all extensions in order
-    extensions.each { |e|
-      if ( e.do?() )
-        startSection(e.name)
-        print "#{shortcode} #{e.name} #{running} "
-        STDOUT.flush
-        r = e.exec()
-        log(r[1])
-        puts " #{if r[0] then done else error end}"
-        STDOUT.flush
-        endSection(e.name)
+      # Delete former results in order not to pretend success
+      if ( File.exist?("#{$params["tmpdir"]}/#{$jobname}.#{target.extension}") )
+        FileUtils::rm("#{$params["tmpdir"]}/#{$jobname}.#{target.extension}")
       end
-    }
 
-    # Run LaTeX compiler specified number of times or target says it's done
-    run = 2
-    while (   ($params["ltxruns"] > 0 && run <= $params["ltxruns"]) || ($params["ltxruns"] <= 0 && target.do?) )
-      print "#{shortcode} #{target.name}(#{run}) #{running} ..."
+      # Move into temporary directory
+      Dir.chdir($params["tmpdir"])
+
+      # First run of LaTeX compiler
+      print "#{shortcode} #{target.name}(1) #{running} ..."
       STDOUT.flush
       r = target.exec
       puts " #{if r[0] then done else error end}"
       STDOUT.flush
-      run += 1
-    end
 
-    # Save the last log if we did not save it already
-    if ( $params["ltxruns"] !=  1 )
-      startSection(target.name)
-      log(r[1])
-      endSection(target.name)
-    end
+      # Save the first log if it is the last one (should be before the extensions)
+      if ( $params["ltxruns"] ==  1 )
+        startSection(target.name)
+        log(r[1])
+        endSection(target.name)
+      end
 
-    # Write new hashes
-    File.open(hashfile, "w") { |file|
-      Dir.entries(".").sort.each { |f|
-        if ( File::file?(f) )
-          file.write(f + "," + filehash(f) + "\n")
+      # Read hashes
+      $hashes = {}
+      hashfile = "#{$params["hashes"]}"
+      if ( File.exist?(hashfile) )
+        File.open(hashfile, "r") { |f|
+          while ( l = f.gets )
+            l = l.strip.split(",")
+            $hashes[l[0]] = l[1]
+          end
+        }
+      end
+
+      # Run all extensions in order
+      extensions.each { |e|
+        if ( e.do?() )
+          startSection(e.name)
+          print "#{shortcode} #{e.name} #{running} "
+          STDOUT.flush
+          r = e.exec()
+          log(r[1])
+          puts " #{if r[0] then done else error end}"
+          STDOUT.flush
+          endSection(e.name)
         end
       }
-    }
 
-    # Return from temporary directory
-    Dir.chdir("..")
+      # Run LaTeX compiler specified number of times or target says it's done
+      run = 2
+      while (   ($params["ltxruns"] > 0 && run <= $params["ltxruns"]) || ($params["ltxruns"] <= 0 && target.do?) )
+        print "#{shortcode} #{target.name}(#{run}) #{running} ..."
+        STDOUT.flush
+        r = target.exec
+        puts " #{if r[0] then done else error end}"
+        STDOUT.flush
+        run += 1
+      end
 
-    # Pick up output if present
-    if ( File.exist?("#{$params["tmpdir"]}/#{$jobname}.#{target.extension}") )
-      FileUtils::cp("#{$params["tmpdir"]}/#{$jobname}.#{target.extension}","./")
-      puts "#{shortcode} Output generated at #{$jobname}.#{target.extension}"
-    else
-      puts "#{shortcode} No output generated due to errors"
-    end
+      # Save the last log if we did not save it already
+      if ( $params["ltxruns"] !=  1 )
+        startSection(target.name)
+        log(r[1])
+        endSection(target.name)
+      end
 
-    # Remove temps if so desired
-    if ( $params["clean"] )
-      FileUtils::rm_rf($params["tmpdir"])
+      # Write new hashes
+      File.open(hashfile, "w") { |file|
+        Dir.entries(".").sort.each { |f|
+          if ( File::file?(f) )
+            file.write(f + "," + filehash(f) + "\n")
+          end
+        }
+      }
+      
+      # Pick up output if present
+      if ( File.exist?("#{$jobname}.#{target.extension}") )
+        FileUtils::cp("#{$jobname}.#{target.extension}","../")
+        puts "#{shortcode} Output generated at #{$jobname}.#{target.extension}"
+      else
+        puts "#{shortcode} No output generated due to errors"
+      end
+      
+      runtime = Time.now - start_time
+      puts "#{shortcode} Took #{sprintf("%d min ", runtime / 60)} #{sprintf("%d sec", runtime % 60)}"
+    rescue Interrupt # User cancelled current run
+      puts "\n#{shortcode} Cancelled"
+    ensure 
+      # Return from temporary directory
+      Dir.chdir("..")
     end
 
     # Write log
@@ -375,20 +378,28 @@ begin
       puts "#{shortcode} Log file generated at #{$params["log"]}"
     end
 
-    runtime = Time.now - start_time
-    puts "#{shortcode} Took #{sprintf("%d min ", runtime / 60)} #{sprintf("%d sec", runtime % 60)}"
-
     if ( $params['daemon'] )
       # Wait until sources changes
-      puts "#{shortcode} Waiting for changes ..."
+      puts "#{shortcode} Waiting for changes... (^c to terminate)"
       while ( @changetime <= start_time || Time.now - @changetime < 2 )
         sleep(0.5)
       end
     end
   end while ( $params['daemon'] )
 rescue Interrupt
-  puts "\n#{shortcode} Cancelled"
+  puts "\n#{shortcode} Shutdown"
+rescue Exception => e
+  puts "\n#{shortcode} ERROR: #{e.message} (see #{$jobname}.err for details)"
+  File.open("#{$jobname}.err", "w") { |file| 
+    file.write("#{e.message}\n\n#{e.backtrace.join("\n")}") 
+  }
+  # Exit immediately. Don't clean up, logs may be necessary for debugging.
+  Kernel.exit!(FALSE) 
 end
 
+# Remove temps if so desired.
+if ( $params["clean"] )
+  FileUtils::rm_rf($params["tmpdir"])
+end
 
 
