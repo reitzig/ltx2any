@@ -53,8 +53,6 @@ how this automatism speeds up subsequent runs!
    should also be listened to.
  * `bibtex` extension should not run if unnecessary
  * Is number of target runs a target-specific feature?
- * Offer cleanall which also removes log and result
- * Compatibility of `-c` and `-d`
  * Put a hidden file in the tmp folder. Check all files in the current directories
    for that filename and don't copy and listen to changes in those (i.e. other
    temp folders). Background: currently, multiple `-d` instances running in 
@@ -65,14 +63,9 @@ how this automatism speeds up subsequent runs!
  * Integrate lacheck or similar
  * Check out tex daemon(s) to speed up compilation
  * Add preamble precompilation
- * When waiting for changes, allow [options] + ENTER to trigger rebuilding
-   with those options (forget afterwards)
  * Check and forward warnings and errors from extensions
  * Check log(s) for errors and warnings and report summary/counts
- * Fix crash when `pdflatex` doesn't even create an aux file
  * How-To for writing extensions (and targets)
  * Make TikZ externalization extension cleaner (e.g. remove unnecessary files, 
    report errors, ignore todonotes if possible (?))
- * Make CTRL+C cancel only current run when  in `-d` mode; when waiting it can
-   shutdown the program.
  * Start scripts for other OS
