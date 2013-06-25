@@ -27,13 +27,16 @@ $ext = Extension.new(
 
   lambda {
     found = false
-    File.open("#{$jobname}.aux", "r") { |file|
-      while ( line = file.gets )
-        if ( !(/^\\bibdata\{.+?\}$/ !~ line) )
-          found = true
+    
+    if ( File.exist?("#{$jobname}.aux") )
+      File.open("#{$jobname}.aux", "r") { |file|
+        while ( line = file.gets )
+          if ( !(/^\\bibdata\{.+?\}$/ !~ line) )
+            found = true
+          end
         end
-      end
-    }
+      }
+    end
 
     if ( found )
       # check wether !File.exist?("#{$jobname}.bbl")

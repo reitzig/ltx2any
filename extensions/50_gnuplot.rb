@@ -37,7 +37,7 @@ $ext = Extension.new(
     # * jobname -- name of the main LaTeX file (without file ending)
     gnuplot = '"gnuplot #{f} 2>&1"'
 
-    # Filter out non-gnuplot fieles and such that did not change since last run
+    # Filter out non-gnuplot files and such that did not change since last run
     gnuplot_files = Dir.entries(".").delete_if { |f|
       (/\.gnuplot$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
     }

@@ -44,7 +44,6 @@ $tgt = Target.new(
 
     f = IO::popen(eval(pdflatex))
     log = f.readlines
-    # TODO fix equality check!
 
     newHash = -1
     if ( File.exist?("#{$jobname}.#{parent.extension}") )
