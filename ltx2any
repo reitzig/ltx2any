@@ -22,4 +22,4 @@ if([ -h "${SCRIPT_PATH}" ]) then
   while([ -h "${SCRIPT_PATH}" ]) do SCRIPT_PATH=`readlink "${SCRIPT_PATH}"`; done
 fi
 
-ruby `dirname ${SCRIPT_PATH}`/ltx2any.rb $@
+ruby `dirname ${SCRIPT_PATH}`/ltx2any.rb "$@"

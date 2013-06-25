@@ -389,10 +389,12 @@ begin
 rescue Interrupt
   puts "\n#{shortcode} Shutdown"
 rescue Exception => e
-  puts "\n#{shortcode} ERROR: #{e.message} (see #{$jobname}.err for details)"
-  File.open("#{$jobname}.err", "w") { |file| 
-    file.write("#{e.message}\n\n#{e.backtrace.join("\n")}") 
-  }
+  if ( $jobname != nil )
+    puts "\n#{shortcode} ERROR: #{e.message} (see #{$jobname}.err for details)"
+    File.open("#{$jobname}.err", "w") { |file| 
+      file.write("#{e.message}\n\n#{e.backtrace.join("\n")}") 
+    }
+  end
   # Exit immediately. Don't clean up, logs may be necessary for debugging.
   Kernel.exit!(FALSE) 
 end
