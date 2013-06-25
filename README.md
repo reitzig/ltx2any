@@ -49,22 +49,12 @@ how this automatism speeds up subsequent runs!
  * Make target options accessible for targets
  * De-spaghettify code (mainly `ltx2any.rb`)
  * Refactor and/or document functions, constants, ...
- * Files reachable via symlink that are newly created during run with `-d` 
-   should also be listened to.
  * `bibtex` extension should not run if unnecessary
  * Is number of target runs a target-specific feature?
- * Put a hidden file in the tmp folder. Check all files in the current directories
-   for that filename and don't copy and listen to changes in those (i.e. other
-   temp folders). Background: currently, multiple `-d` instances running in 
-   the same folder mutually include their temp folders in their runs; this leads
-   to memory and runtime explosion.
  * Add extension for spell-/grammar-/stylechecker (see e.g. [here](http://dsl.org/cookbook/cookbook_15.html)) 
    default: no spellcheck. Options: log findings to file; interactive
- * Integrate lacheck or similar
  * Check out tex daemon(s) to speed up compilation
  * Add preamble precompilation
- * Check and forward warnings and errors from extensions
- * Check log(s) for errors and warnings and report summary/counts
  * How-To for writing extensions (and targets)
  * Make TikZ externalization extension cleaner (e.g. remove unnecessary files, 
    report errors, ignore todonotes if possible (?))
