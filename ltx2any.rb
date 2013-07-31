@@ -254,7 +254,7 @@ begin
                              ) \
                       .latency(0.5) \
                       .change(&callback)
-    @listener.start(false)
+    @listener.start
   end
 
   begin # demon loop
