@@ -259,12 +259,14 @@ begin
     return tobeignored
   end
   
+  # Collect all existing ignore files
   Dir.entries(".") \
      .select { |f| /(\.\/)?#{Regexp.escape(ignorefile)}[^\/]+/ =~ f } \
      .each { |f|
     ignoremore(f)
   }
   
+  # Setup daemon mode
   if ( $params['daemon'] )
     # Setup file listeners
     require 'rubygems'
