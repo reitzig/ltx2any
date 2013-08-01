@@ -323,8 +323,7 @@ begin
       start_time = Time.now
 
       # Copy all files to tmp directory (some LaTeX packages fail to work with output dir)
-      exceptions = [".", "..", $params["tmpdir"], $params["log"]] # TODO use $ignoredfiles
-      exceptions = exceptions + exceptions.map { |s| "./#{s}" }
+      exceptions = $ignoredfiles + $ignoredfiles.map { |s| "./#{s}" } + [".", ".."]
 
       Dir.entries(".").delete_if { |f| exceptions.include?(f) }.each { |f|
         # Avoid trouble with symlink loops
