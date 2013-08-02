@@ -16,42 +16,41 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-$tgt = Target.new(
-  "pdflatex",
+class XeLaTeX < Engine
 
-  "pdf",
+  def initialize
+    super
+    
+    @name = "xelatex"
+    @extension = "pdf"
+    @description = "Uses xelatex to create a PDF"
+  end
+  
+  def do?
+    !@heap[0]
+  end
 
-  "Uses pdflatex to create a PDF",
-
-  {},
-
-  {},
-
-  lambda { |parent|
-    !parent.heap[0]
-  },
-
-  lambda { |parent|
-    if ( parent.heap.size < 2 )
-      parent.heap = [false, ""]
+  def exec()
+    if ( @heap.size < 2 )
+      @heap = [false, ""]
     end
 
     # Command for the main LaTeX compilation work.
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
-    # * tmpdir  -- the output directory
-    pdflatex = '"pdflatex -file-line-error -interaction=nonstopmode #{$jobfile}"'
+    xelatex = '"xelatex -file-line-error -interaction=nonstopmode #{$jobfile}"'
 
-    f = IO::popen(eval(pdflatex))
+    f = IO::popen(eval(xelatex))
     log = f.readlines
 
     newHash = -1
-    if ( File.exist?("#{$jobname}.#{parent.extension}") )
-      newHash = `cat #{$jobname}.#{parent.extension} | grep -a -v "/CreationDate\\|/ModDate\\|/ID" | md5sum`.strip
+    if ( File.exist?("#{$jobname}.#{extension}") )
+      newHash = `cat -A #{$jobname}.#{extension} | awk '/CIDFontType0C|Type1C/ {exit} {print}' | md5sum`.strip
     end
+    # TODO This is only a hack! What else can be embedded and changing?
 
-    parent.heap[0] = parent.heap[1] == newHash
-    parent.heap[1] = newHash
+    @heap[0] = @heap[1] == newHash
+    @heap[1] = newHash
 
     # Implement error/warning detection: 
     # Errors: * `^file:line: msg$`
@@ -61,5 +60,7 @@ $tgt = Target.new(
     #
     # Beachte: ^(\) )?(<file> ... ) bei eingebundenen Dateien
     return [true, log.join("")]
-  }
-)
+  end
+end
+
+$tgt = XeLaTeX.new

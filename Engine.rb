@@ -16,29 +16,33 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-class Target
-  attr_accessor :name, :extension, :description, :codes, :params, :heap
-
-  def initialize(name, extension, description, codes, params, do_lambda, exec_lambda)
-    @name = name
-    @extension = extension
-    @description = description
-    @codes = codes
-    @params = params
-    @do_lambda = do_lambda
-    @exec_lambda = exec_lambda
+class Engine
+  def initialize
+    @name = "Dummy Name"
+    @extension = "dummy"
+    @description = "Dummy Description"
+    @codes = {}
+    @params = {}
     @heap = []
   end
 
-  def do?()
-    @do_lambda.call(self)
-  end
+  public
+    def do?()
+      false
+    end
 
-  def exec()
-    @exec_lambda.call(self)
-  end
+    def exec()
+      return [true, "No execution code, need to overwrite!"]
+    end
 
-  def to_s
-    @name
-  end
+    def to_s
+      @name
+    end
+  
+  
+    attr_reader :name, :extension, :description, :codes, :params, :heap
+    attr_writer :heap
+    
+  protected
+    attr_writer :name, :extension, :description, :codes, :params
 end

@@ -38,7 +38,7 @@ begin
                               "\t\tsmaller than 1 will cause it to run until the\n" +
                               "\t\tresulting file no longer changes."],
     "c" => [nil, "clean",         "If set, all intermediate results are deleted."],
-    "o" => ["string", "target",   "The output target format. Call with --targets for a list."],
+    "e" => ["string", "engine",   "The output engine. Call with --engines for a list."],
     "d" => [nil, "daemon", "Reruns ltx2any automatically when files change."]
   }
 
@@ -49,7 +49,7 @@ begin
     "hashes"    => ".hashes",
     "ltxruns"   => 0,
     "clean"     => false,
-    "target"    => "pdflatex",
+    "engine"    => "pdflatex",
     "daemon"    => false
   }
 
@@ -81,18 +81,30 @@ begin
     end
   }
 
-  # Load all targets
-  require "#{File.dirname(__FILE__)}/Target.rb"
-  targets = []
+  # Load all engines
+  require "#{File.dirname(__FILE__)}/Engine.rb"
+  engines = []
   $tgt = nil
-  Dir[File.dirname(__FILE__) + '/targets/*.rb'].sort.each { |f|
+  Dir[File.dirname(__FILE__) + '/engines/*.rb'].sort.each { |f|
     load(f)
 
-    if ( $tgt != nil && $tgt.kind_of?(Target) )
-      targets.push($tgt)
+    if ( $tgt != nil && $tgt.kind_of?(Engine) )
+      engines.push($tgt)
     end
 
     $tgt = nil
+  }
+  
+  # Read additional parameters and their defaults from engines but always
+  # keep present values.
+  engines.each { |e|
+    # Add extension information
+    if ( e.codes != nil )
+      codes = e.codes.merge(codes)
+    end
+    if ( e.params != nil )
+      $params = e.params.merge($params)
+    end
   }
 
   # process command line parameters
@@ -100,7 +112,7 @@ begin
     puts "\nUsage: "
     puts "  #{name} [options] inputfile\tNormal execution (see below)"
     puts "  #{name} --extensions\t\tList of extensions"
-    puts "  #{name} --targets\t\tList of target formats"
+    puts "  #{name} --engines\t\tList of target engines"
     puts "  #{name} --help\t\tThis message"
 
     puts "\nOptions:"
@@ -115,10 +127,12 @@ begin
       puts "  #{e.name}\t#{e.description}"
     }
     Process.exit
-  elsif ( ARGV[0] == "--targets" )
-    puts "Installed targets:"
-    targets.each { |t|
-      puts "  #{t.name}\t#{t.description}"
+  elsif ( ARGV[0] == "--engines" )
+    puts "Installed engines:"
+    engines.each { |t|
+      if ( `which #{t.name}` != "" )
+        puts "  #{t.name}\t#{t.description}"
+      end
     }
     Process.exit
   else
@@ -187,16 +201,19 @@ begin
   # Kill command line parameters in order to discourage abuse by extensions
   ARGV.clear
 
-  # Find used target
-  target = nil
-  targets.each { |t|
-    if ( t.name == $params["target"] )
-      target = t
+  # Find used engine
+  engine = nil
+  engines.each { |t|
+    if ( t.name == $params["engine"] )
+      engine = t
       break
     end
   }
-  if ( target == nil )
-    puts "#{shortcode} No such target: #{$params["target"]}. Use --targets to list availabe targets."
+  if ( engine == nil )
+    puts "#{shortcode} No such engine: #{$params["engine"]}. Use --engines to list availabe engines."
+    Process.exit
+  elsif ( `which #{engine}` == "" )
+    puts "#{shortcode} Engine not available. Please install #{$params["engine"]} and make sure it is in the executable path."
     Process.exit
   end
 
@@ -208,7 +225,7 @@ begin
     Process.exit
   end
 
-  # Hash function that can be used by targets and extensions
+  # Hash function that can be used by engines and extensions
   require 'digest'
   def filehash(f)
     Digest::MD5.file(f).to_s
@@ -238,7 +255,7 @@ begin
 
   $ignoredfiles = ["#{ignorefile}#{$jobname}",
                    "#{$params['tmpdir']}", 
-                   "#{$jobname}.#{target.extension}",
+                   "#{$jobname}.#{engine.extension}",
                    "#{$params["log"]}",
                    "#{$jobname}.err",
                    ".listen_test"] # That is some artifact of listen -.-
@@ -318,7 +335,7 @@ begin
   begin # demon loop
     begin # inner block that can be cancelled by user
       # Reset
-      target.heap = []
+      engine.heap = []
       @summary = ""
       start_time = Time.now
 
@@ -338,25 +355,25 @@ begin
       }
 
       # Delete former results in order not to pretend success
-      if ( File.exist?("#{$params["tmpdir"]}/#{$jobname}.#{target.extension}") )
-        FileUtils::rm("#{$params["tmpdir"]}/#{$jobname}.#{target.extension}")
+      if ( File.exist?("#{$params["tmpdir"]}/#{$jobname}.#{engine.extension}") )
+        FileUtils::rm("#{$params["tmpdir"]}/#{$jobname}.#{engine.extension}")
       end
 
       # Move into temporary directory
       Dir.chdir($params["tmpdir"])
 
       # First run of LaTeX compiler
-      print "#{shortcode} #{target.name}(1) #{running} ..."
+      print "#{shortcode} #{engine.name}(1) #{running} ..."
       STDOUT.flush
-      r = target.exec
+      r = engine.exec
       puts " #{if r[0] then done else error end}"
       STDOUT.flush
 
       # Save the first log if it is the last one (should be before the extensions)
       if ( $params["ltxruns"] ==  1 )
-        startSection(target.name)
+        startSection(engine.name)
         log(r[1])
-        endSection(target.name)
+        endSection(engine.name)
       end
 
       # Read hashes
@@ -385,12 +402,12 @@ begin
         end
       }
 
-      # Run LaTeX compiler specified number of times or target says it's done
+      # Run LaTeX compiler specified number of times or engine says it's done
       run = 2
-      while (   ($params["ltxruns"] > 0 && run <= $params["ltxruns"]) || ($params["ltxruns"] <= 0 && target.do?) )
-        print "#{shortcode} #{target.name}(#{run}) #{running} ..."
+      while (   ($params["ltxruns"] > 0 && run <= $params["ltxruns"]) || ($params["ltxruns"] <= 0 && engine.do?) )
+        print "#{shortcode} #{engine.name}(#{run}) #{running} ..."
         STDOUT.flush
-        r = target.exec
+        r = engine.exec
         puts " #{if r[0] then done else error end}"
         STDOUT.flush
         run += 1
@@ -398,9 +415,9 @@ begin
 
       # Save the last log if we did not save it already
       if ( $params["ltxruns"] !=  1 )
-        startSection(target.name)
+        startSection(engine.name)
         log(r[1])
-        endSection(target.name)
+        endSection(engine.name)
       end
 
       # Write new hashes
@@ -413,9 +430,9 @@ begin
       }
       
       # Pick up output if present
-      if ( File.exist?("#{$jobname}.#{target.extension}") )
-        FileUtils::cp("#{$jobname}.#{target.extension}","../")
-        puts "#{shortcode} Output generated at #{$jobname}.#{target.extension}"
+      if ( File.exist?("#{$jobname}.#{engine.extension}") )
+        FileUtils::cp("#{$jobname}.#{engine.extension}","../")
+        puts "#{shortcode} Output generated at #{$jobname}.#{engine.extension}"
       else
         puts "#{shortcode} No output generated due to errors"
       end
