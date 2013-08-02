@@ -131,7 +131,11 @@ begin
     puts "Installed engines:"
     engines.each { |t|
       if ( `which #{t.name}` != "" )
-        puts "  #{t.name}\t#{t.description}"
+        print "  #{t.name}\t#{t.description}"
+        if ( t.name == $params["engine"] )
+          print " (default)"
+        end
+        puts ""
       end
     }
     Process.exit
