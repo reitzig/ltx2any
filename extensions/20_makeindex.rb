@@ -34,8 +34,8 @@ class MakeIndex < Extension
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
     # * mistyle -- name of the makeindex style file (with file ending)
-    makeindex = { "default" => '"makeindex -q #{$jobname}"',
-                  "styled"  => '"makeindex -q -s #{mistyle} #{$jobname}"'}
+    makeindex = { "default" => '"makeindex -q \"#{$jobname}\""',
+                  "styled"  => '"makeindex -q -s \"#{mistyle}\" \"#{$jobname}\""'}
     progress(3)
   
     version = "default"

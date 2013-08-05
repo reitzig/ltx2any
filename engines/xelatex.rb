@@ -38,14 +38,14 @@ class XeLaTeX < Engine
     # Command for the main LaTeX compilation work.
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
-    xelatex = '"xelatex -file-line-error -interaction=nonstopmode #{$jobfile}"'
+    xelatex = '"xelatex -file-line-error -interaction=nonstopmode \"#{$jobfile}\""'
 
     f = IO::popen(eval(xelatex))
     log = f.readlines
 
     newHash = -1
     if ( File.exist?("#{$jobname}.#{extension}") )
-      newHash = `cat -A #{$jobname}.#{extension} | awk '/CIDFontType0C|Type1C/ {exit} {print}' | md5sum`.strip
+      newHash = `cat -A "#{$jobname}.#{extension}" | awk '/CIDFontType0C|Type1C/ {exit} {print}' | md5sum`.strip
     end
     # TODO This is only a hack! What else can be embedded and changing?
 

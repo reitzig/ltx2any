@@ -81,7 +81,7 @@ class BibTeX < Extension
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
-    bibtex = '"bibtex #{$jobname}"'
+    bibtex = '"bibtex \"#{$jobname}\""'
     progress(3)
 
     f = IO::popen(eval(bibtex))

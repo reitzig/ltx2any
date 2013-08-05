@@ -35,7 +35,7 @@ class Gnuplot < Extension
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
-    gnuplot = '"gnuplot #{f} 2>&1"'
+    gnuplot = '"gnuplot \"#{f}\" 2>&1"'
 
     # Filter out non-gnuplot files and such that did not change since last run
     gnuplot_files = Dir.entries(".").delete_if { |f|

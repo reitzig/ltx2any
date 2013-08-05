@@ -38,14 +38,14 @@ class PdfLaTeX < Engine
     # Command for the main LaTeX compilation work.
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
-    pdflatex = '"pdflatex -file-line-error -interaction=nonstopmode #{$jobfile}"'
+    pdflatex = '"pdflatex -file-line-error -interaction=nonstopmode \"#{$jobfile}\""'
 
     f = IO::popen(eval(pdflatex))
     log = f.readlines
 
     newHash = -1
     if ( File.exist?("#{$jobname}.#{extension}") )
-      newHash = `cat #{$jobname}.#{extension} | grep -a -v "/CreationDate\\|/ModDate\\|/ID" | md5sum`.strip
+      newHash = `cat "#{$jobname}.#{extension}" | grep -a -v "/CreationDate\\|/ModDate\\|/ID" | md5sum`.strip
     end
 
     @heap[0] = @heap[1] == newHash

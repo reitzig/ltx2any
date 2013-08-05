@@ -81,7 +81,7 @@ class Pandoc < Engine
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
     # * tmpdir  -- the output directory
-    pandoc = '"pandoc -f latex -t #{$params["targetformat"]} -o #{$jobname}.#{extension} #{$jobfile}"'
+    pandoc = '"pandoc -f latex -t #{$params["targetformat"]} -o \"#{$jobname}.#{extension}\" #{$jobfile}"'
 
     f = IO::popen(eval(pandoc))
     log = f.readlines
