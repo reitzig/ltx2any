@@ -394,12 +394,15 @@ begin
 
       # Run all extensions in order
       extensions.each { |e|
-        if ( e.do?() )
+        if ( e.do? )
           startSection(e.name)
           print "#{shortcode} #{e.name} #{running} "
           STDOUT.flush
           r = e.exec()
-          log(r[1])
+          log(if r[1].strip == "" 
+              then "No output, so apparently everything went fine!" 
+              else r[1] 
+              end)
           puts " #{if r[0] then done else error end}"
           STDOUT.flush
           endSection(e.name)
@@ -438,7 +441,7 @@ begin
         FileUtils::cp("#{$jobname}.#{engine.extension}","../")
         puts "#{shortcode} Output generated at #{$jobname}.#{engine.extension}"
       else
-        puts "#{shortcode} No output generated due to errors"
+        puts "#{shortcode} No output generated. Check log for errors!"
       end
       
       runtime = Time.now - start_time
