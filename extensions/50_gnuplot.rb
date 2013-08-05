@@ -16,22 +16,22 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-$ext = Extension.new(
-  "gnuplot",
+class Gnuplot < Extension
+  def initialize
+    super
+    
+    @name = "gnuplot"
+    @description = "Executes generated gnuplot files"
+  end
 
-  "Renders generated gnuplot files",
-
-  {},
-
-  {},
-
-  lambda {
+  def do?
+    # Check whether there are any _.gnuplot files that have changed
     !Dir.entries(".").delete_if { |f|
       (/\.gnuplot$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
     }.empty?
-  },
+  end
 
-  lambda {
+  def exec()
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
@@ -63,5 +63,9 @@ $ext = Extension.new(
     }
 
     # TODO check for errors/warnings
+    # TODO: make nicer output! Eg: [5/10]
     return [true,log]
-  })
+  end
+end
+
+$ext = Gnuplot.new

@@ -16,18 +16,21 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-$ext = Extension.new(
-  "tikzext",
+class TikZExt < Extension
+  def initialize
+    super
+    
+    @name = "tikzext"
+    @description = "Compiles externalized TikZ images"
+    @codes = { "ir" => [nil, "imagerebuild", "If set, externalised TikZ images are rebuilt."]}
+    @params = { "imagerebuild" => false }
+  end
 
-  "Compiles externalized TikZ images",
+  def do?
+    File.exist?("#{$jobname}.figlist")
+  end
 
-  { "ir" => [nil, "imagerebuild", "If set, externalised TikZ images are rebuilt."]},
-
-  { "imagerebuild" => false },
-
-  lambda { File.exist?("#{$jobname}.figlist") },
-
-  lambda {
+  def exec()
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
@@ -48,12 +51,13 @@ $ext = Extension.new(
         io = IO::popen(eval(pdflatex))
         output = io.readlines.join("").strip
 
-        if ( !File.exist?("#{fig}.pdf") )
-          log << "Error on #{fig}. See #{fig}.log \n"
+        if ( !File.exist?("#{fig}.pdf") ) 
+          log << "Fatal error on #{fig}. See #{fig}.log \n"
         end
       end
 
       # Output up to ten dots
+      # TODO: make nicer output! Eg: [5/10]
       if ( c % [1, (number / 10)].max == 0 )
         progress()
       end
@@ -62,7 +66,7 @@ $ext = Extension.new(
 
     # TODO check for errors/warnings
     return [true,log]
-  })
+  end
+end
 
-
-
+$ext = TikZExt.new

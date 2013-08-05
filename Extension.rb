@@ -16,27 +16,29 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-class Extension
-  attr_accessor :name, :description, :codes, :params
-  
-  def initialize(name, description, codes, params, do_lambda, exec_lambda)
-    @name = name
-    @description = description
-    @codes = codes
-    @params = params
-    @do_lambda = do_lambda
-    @exec_lambda = exec_lambda 
+class Extension  
+  def initialize
+    @name = "Dummy name"
+    @description = "Dummy description"
+    @codes = {}
+    @params = {}
   end
   
-  def do?()
-    @do_lambda.call
-  end
+  public
+    def do?()
+      false
+    end
 
-  def exec()
-    @exec_lambda.call
-  end
+    def exec()
+      return [true, "No execution code, need to overwrite!"]
+    end
 
-  def to_s
-    @name
-  end
+    def to_s
+      @name
+    end
+    
+    attr_accessor :name, :description, :codes, :params
+    
+  protected
+    attr_writer :name, :description, :codes, :params
 end

@@ -16,27 +16,26 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-$ext = Extension.new(
-  "makeindex",
+class MakeIndex < Extension
+  def initialize
+    super
+    
+    @name = "makeindex"
+    @description = "Creates an index"
+  end
 
-  "Creates an index",
-
-  {},
-
-  {},
-
-  lambda {
+  def do?
     File.exist?("#{$jobname}.idx")
-  },
+  end
 
-  lambda {
+  def exec()
     # Command to create the index if necessary. Provide two versions,
     # one without and one with stylefile
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
     # * mistyle -- name of the makeindex style file (with file ending)
-    makeindex = { "default" => '"makeindex #{$jobname}"',
-                  "styled"  => '"makeindex -s #{mistyle} #{$jobname}"'}
+    makeindex = { "default" => '"makeindex -q #{$jobname}"',
+                  "styled"  => '"makeindex -q -s #{mistyle} #{$jobname}"'}
     progress(3)
   
     version = "default"
@@ -49,7 +48,6 @@ $ext = Extension.new(
     f = IO::popen(eval(makeindex[version]))
     log = f.readlines
 
-    log << "\n\nFrom log file:\n\n"
     File.open("#{$jobname}.ilg", "r") { |file|
       while ( line = file.gets )
         log << line
@@ -57,6 +55,8 @@ $ext = Extension.new(
     }
 
     # TODO implement error/warning recognition
-    # TODO build test case, validate
     return [true, log.join("")]
-  })
+  end
+end
+
+$ext = MakeIndex.new

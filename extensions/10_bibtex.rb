@@ -16,16 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-$ext = Extension.new(
-  "bibtex",
+class BibTeX < Extension
+  def initialize
+    super
+    
+    @name = "bibtex"
+    @description = "Creates bibliography"
+  end
 
-  "Creates bibliography",
-
-  {},
-
-  {},
-
-  lambda {
+  def do?
     found = false
     
     if ( File.exist?("#{$jobname}.aux") )
@@ -40,14 +39,14 @@ $ext = Extension.new(
 
     if ( found )
       # check wether !File.exist?("#{$jobname}.bbl")
-      # check wether `cat mathesis.aux | grep -e '^\\\\bib'` has changed
+      # check wether `cat _.aux | grep -e '^\\\\bib'` has changed
       # check wether ?.bib has changed
     end
 
     return found
-  },
+  end
 
-  lambda {
+  def exec()
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
@@ -59,4 +58,7 @@ $ext = Extension.new(
 
     # TODO check for errors/warnings
     return [true,log.join("")]
-  })
+  end
+end
+  
+$ext = BibTeX.new
