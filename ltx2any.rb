@@ -1,6 +1,6 @@
 # Copyright 2010-2013, Raphael Reitzig
 # <code@verrech.net>
-# Version 2.0 beta
+# Version 1.0 beta
 #
 # This file is part of ltx2any.
 #

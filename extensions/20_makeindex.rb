@@ -1,4 +1,4 @@
-# Copyright 2010-2012, Raphael Reitzig
+# Copyright 2010-2013, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
