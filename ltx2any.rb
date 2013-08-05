@@ -287,19 +287,38 @@ begin
     ignoremore(f)
   }
   
+  
+  # Load listen gem and deal with errors
+  # TODO move gem-loading/checking code somewhere central so
+  #      extensions and engines may use it?
+  if ( $params['daemon'] )
+    require 'rubygems'
+  
+    begin
+      gem "listen", ">=1.2.0"
+      require 'listen'
+    rescue Gem::LoadError
+      $params['daemon'] = false
+      print "#{shortcode} Daemon mode requires gem 'listen'"
+      
+      begin
+        gem "listen"
+        puts " 1.2.0 or higher."
+      rescue Gem::LoadError
+        puts "."
+      end
+      
+      puts (" " * shortcode.length) + 
+           " Please install the latest version with 'gem install listen'."
+    end
+  end
+  
   # Setup daemon mode
   if ( $params['daemon'] )
-    # Setup file listeners
-    require 'rubygems'
-    require 'listen'
-
     # Main listener: this one checks job files for changes and prompts recompilation.
     #                (indirectly: The Loop below checks $changetime.)
     $jobfilecallback = Proc.new do |modified, added, removed|
       $changetime = Time.now
-      #puts modified.to_s
-      #puts added.to_s
-      #puts removed.to_s
     end
     
     $jobfilelistener = Listen.to('.') \
