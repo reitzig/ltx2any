@@ -54,7 +54,7 @@ begin
   }
 
   # Load all extensions
-  require "#{File.dirname(__FILE__)}/Extension.rb"
+  require "#{File.dirname(__FILE__)}/lib/Extension.rb"
   extensions = []
   $ext = nil
   Dir[File.dirname(__FILE__) + '/extensions/*.rb'].sort.each { |f|
@@ -82,7 +82,7 @@ begin
   }
 
   # Load all engines
-  require "#{File.dirname(__FILE__)}/Engine.rb"
+  require "#{File.dirname(__FILE__)}/lib/Engine.rb"
   engines = []
   $tgt = nil
   Dir[File.dirname(__FILE__) + '/engines/*.rb'].sort.each { |f|
