@@ -22,28 +22,59 @@ class BibTeX < Extension
     
     @name = "bibtex"
     @description = "Creates bibliography"
+    
+    # For checking whether bibtex has to rerun, we need to keep the 
+    # relevant parts of the _.aux file handy.
+    @grepfile = "bibtex_aux_grep"
   end
 
   def do?
-    found = false
-    
+    # Collect used bibdata files and style file
+    stylefile = []
+    bibdata = []
+    grepdata = []
     if ( File.exist?("#{$jobname}.aux") )
       File.open("#{$jobname}.aux", "r") { |file|
         while ( line = file.gets )
-          if ( !(/^\\bibdata\{.+?\}$/ !~ line) )
-            found = true
-          end
+          if ( /^\\bibdata\{(.+?)\}$/ =~ line )
+            bibdata.push "#{$~[1]}.bib"
+            grepdata.push line.strip 
+          elsif ( /^\\bibstyle\{(.+?)\}$/ =~ line )
+            stylefile.push "#{$~[1]}.bst"
+            grepdata.push line.strip 
+          elsif ( /^\\(bibcite|citation)/ =~ line )
+            grepdata.push line.strip 
+          end            
         end
       }
+    end 
+      
+    # Write relevant part of the _.aux file into a separate file for hashing
+    File.open(@grepfile, "w") { |f|
+      f.write grepdata.join("\n")
+    }
+      
+    # Check whether bibtex is necessary at all
+    usesbib = bibdata.size > 0
+    
+    # Check whether a (re)run is needed
+    needsrerun = !File.exist?("#{$jobname}.bbl") # Is result still there?
+    # Check more closely
+    if ( usesbib && !needsrerun )
+      fileschanged = false
+      
+      # Any changes in style or library?
+      (stylefile + bibdata).each { |f|
+        fileschanged ||= !$hashes.has_key?(f) || filehash(f) != $hashes[f]
+      }
+      
+      # Any relevant changes in the main document?
+      documentchanged = !$hashes.has_key?(@grepfile) || filehash(@grepfile) != $hashes[@grepfile]
+
+      needsrerun = fileschanged || documentchanged
     end
 
-    if ( found )
-      # check wether !File.exist?("#{$jobname}.bbl")
-      # check wether `cat _.aux | grep -e '^\\\\bib'` has changed
-      # check wether ?.bib has changed
-    end
-
-    return found
+    return usesbib && needsrerun
   end
 
   def exec()
