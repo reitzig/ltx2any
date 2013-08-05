@@ -42,29 +42,56 @@ class Gnuplot < Extension
       (/\.gnuplot$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
     }
 
-    # Run gnuplot
-    # TODO parallelise
+    # Run gnuplot for each remaining file
     log = ""
     c = 1
-    gnuplot_files.each { |f|
-      io = IO::popen(eval(gnuplot))
-      output = io.readlines.join("").strip
-
-      if ( output != "" )
-        log << "# #\n# #{f}\n\n"
-        log << output + "\n\n"
-      end
-
-      # Output up to ten dots
-      if ( c % [1, (gnuplot_files.size / 10)].max == 0 )
-        progress()
-      end
-      c += 1
-    }
+    begin # TODO move gem checking/loading to a central place?
+      gem "parallel"
+      require 'parallel'
+      
+      log = Parallel.map(gnuplot_files) { |f|
+        ilog = compile(gnuplot, f)
+        # Output up to ten dots
+        # TODO: make nicer output! Eg: [5/10]
+        if ( c % [1, (gnuplot_files.size / 10)].max == 0 )
+          progress()
+        end
+        c += 1
+        ilog
+      }.join
+    rescue Gem::LoadError
+      log << "Hint: install gem 'parallel' to speed up jobs with many plots.\n\n"
+      
+      gnuplot_files.each { |f|
+        log << compile(gnuplot, f)
+        # Output up to ten dots
+        # TODO: make nicer output! Eg: [5/10]
+        if ( c % [1, (gnuplot_files.size / 10)].max == 0 )
+          progress()
+        end
+        c += 1
+      }
+    end
 
     # TODO check for errors/warnings
-    # TODO: make nicer output! Eg: [5/10]
-    return [true,log]
+    return [true, log]
+  end
+  
+  def compile(cmd, f)
+    log = ""
+    
+    io = IO::popen(eval(cmd))
+    output = io.readlines.join("").strip
+
+    log << "# #\n# #{f}\n\n"
+    if ( output != "" )
+      log << output
+    else
+      log << "No output from gnuplot, so apparently everything went fine!"
+    end
+    log << "\n\n"
+    
+    return log
   end
 end
 

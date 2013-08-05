@@ -36,36 +36,61 @@ class TikZExt < Extension
     # * jobname -- name of the main LaTeX file (without file ending)
     pdflatex = '"pdflatex -shell-escape -file-line-error -interaction=batchmode -jobname \"#{fig}\" \"\\\def\\\tikzexternalrealjob{#{$jobname}}\\\input{#{$jobname}}\" 2>&1"'
 
-    # TODO detect changes in **/*.tikz --> delete according PDF (?)
-
-    log = ""
-    number = Integer(`wc -l #{} #{$jobname}.figlist`.split(" ")[0].strip)
-    c = 1
-
-    # Run pdflatex for each figure
-    # TODO parallelise
+    figures = []
     IO.foreach("#{$jobname}.figlist") { |fig|
-      fig = fig.strip
-
-      if ( $params["imagerebuild"] || !File.exist?("#{fig}.pdf") )
-        io = IO::popen(eval(pdflatex))
-        output = io.readlines.join("").strip
-
-        if ( !File.exist?("#{fig}.pdf") ) 
-          log << "Fatal error on #{fig}. See #{fig}.log \n"
-        end
+      if ( fig.strip != "" )
+       figures.push(fig.strip)
       end
-
-      # Output up to ten dots
-      # TODO: make nicer output! Eg: [5/10]
-      if ( c % [1, (number / 10)].max == 0 )
-        progress()
-      end
-      c += 1
     }
-
+     
+    # Run pdflatex for each figure
+    log = ""
+    c = 1
+    begin # TODO move gem checking/loading to a central place?
+      gem "parallel"
+      require 'parallel'
+      
+      log = Parallel.map(figures) { |fig|
+        ilog = compile(pdflatex, fig)
+        # Output up to ten dots
+        # TODO: make nicer output! Eg: [5/10]
+        if ( c % [1, (figures.size / 10)].max == 0 )
+          progress()
+        end
+        c += 1
+        ilog
+      }.join
+    rescue Gem::LoadError
+      log << "Hint: install gem 'parallel' to speed up jobs with many externalized figures.\n\n"
+      
+      figures.each { |fig|
+        log << compile(pdflatex, fig)
+        # Output up to ten dots
+        # TODO: make nicer output! Eg: [5/10]
+        if ( c % [1, (figures.size / 10)].max == 0 )
+          progress()
+        end
+        c += 1
+      }
+    end
+  
     # TODO check for errors/warnings
-    return [true,log]
+    return [true, log]
+  end
+  
+  def compile(cmd, fig)
+    log = ""
+    
+    if ( $params["imagerebuild"] || !File.exist?("#{fig}.pdf") )
+      io = IO::popen(eval(cmd))
+      output = io.readlines.join("").strip
+
+      if ( !File.exist?("#{fig}.pdf") ) 
+        log << "Fatal error on #{fig}. See #{$params["tmpdir"]}/#{fig}.log for details.\n"
+      end
+    end
+    
+    return log
   end
 end
 

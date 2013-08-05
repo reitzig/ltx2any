@@ -4,8 +4,11 @@ ltx2any
 Yet another LaTeX build wrapper, with one or two nifty features:
 
  * Automatically compiles as often as necessary.
- * Executes additional programs as necessary and aggregates their output.
+ * Executes additional programs as necessary and aggregates their output into
+   a single log file.
  * Does not require user intervention or annotations to do either of the above.
+ * Work-intensive extensions (e.g. TikZ externalization) work in parallel to
+   speedup compilation on multi-core machines.
  * Can run as daemon, listening for file changes which prompt recompilation.
  * Adding additional phases is easy due to modular design.
  * Keeps your main directory clean by default.
@@ -16,6 +19,9 @@ We currently have support for the following implemented:
  * Engines `pdflatex`, `xelatex` and `lualatex` for PDF targets.
  * Engine `pandoc` which supports many target formats, including EPUB and ODT.
  * Extensions for `bibtex`, `makeindex`, TikZ externalization and `gnuplot`.
+ 
+Pull requests with new engines or extensions are appreciated. Please make sure
+to adhere to the specs (upcoming) and include test cases.
 
 **Note:** This is still *prerelease* code. It is by no means considered nicely written, 
 bug-free or reliable. Take care!
@@ -23,8 +29,8 @@ bug-free or reliable. Take care!
 ### Requirements ###
 
  * Ruby 1.9.x or higher
- * Ruby gem [listen](https://github.com/guard/listen)
- * LaTeX engines and secondary tools according to user profile.
+ * Ruby gem [listen](https://github.com/guard/listen) for daemon mode.
+ * LaTeX engines and secondary tools as needed.
 
 ### Basic Use ###
 
@@ -59,7 +65,6 @@ current default is `pdflatex` though that is easily changed.
  * Make target options accessible for targets
  * De-spaghettify code (mainly `ltx2any.rb`)
  * Refactor and/or document functions, constants, ...
- * `bibtex` extension should not run (again) if unnecessary.
  * Check out tex daemon(s) to speed up compilation
  * Add support for preamble precompilation.
  * How-To for writing extensions (and targets).
