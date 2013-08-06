@@ -75,7 +75,7 @@ class TikZExt < Extension
     end
   
     # TODO check for errors/warnings
-    return [true, log]
+    return [true, [], log]
   end
   
   def compile(cmd, fig)

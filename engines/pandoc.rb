@@ -67,33 +67,27 @@ class Pandoc < Engine
   end
 
   def do?
-    false
+    false # Pandoc does never have to be run repeatedly
   end
 
   def exec()
-    if ( $params["targetformat"] == nil )
-      return [false, "Specify a target format by adding '-format [format]' as parameter."]
+    if ( $params["targetformat"] == nil ) # TODO implement message objects
+      return [false, ["not yet implemented"], "Specify a target format by adding '-format [format]' as parameter."]
     elsif ( @format2ending[$params["targetformat"]] == nil )
-      return [false, "Pandoc does not know target format #{$params["targetformat"]}"]
+      return [false, ["not yet implemented"], "Pandoc does not know target format #{$params["targetformat"]}"]
     end
     
     # Command for the main LaTeX compilation work.
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
     # * tmpdir  -- the output directory
-    pandoc = '"pandoc -f latex -t #{$params["targetformat"]} -o \"#{$jobname}.#{extension}\" #{$jobfile}"'
+    pandoc = '"pandoc -f latex -t #{$params["targetformat"]} -o \"#{$jobname}.#{extension}\" #{$jobfile} 2>&1"'
 
     f = IO::popen(eval(pandoc))
     log = f.readlines
   
-    # Implement error/warning detection: 
-    # Errors: * `^file:line: msg$`
-    #         * ``
-    # Warnings: * `^(Under|Over)full ... at lines <line>$
-    #           * `Warning` --> line? paragraph?
-    #
-    # Beachte: ^(\) )?(<file> ... ) bei eingebundenen Dateien
-    return [true, log.join("")]
+    # TODO implement log parser
+    return [File.exist?("#{$jobname}.#{extension}"), ["not yet implemented"], log.join("")]
   end
 end
 

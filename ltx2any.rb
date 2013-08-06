@@ -17,6 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+require 'fileutils'
+Dir[File.dirname(__FILE__) + '/lib/*.rb'].each { |f| require f }
+
 # Some frontend strings
 name      = "ltx2any"
 shortcode = "[#{name}]"
@@ -28,7 +31,6 @@ ignorefile = ".#{name}ignore_"
 
 begin
   puts "#{shortcode} Initialising ..."
-  require 'fileutils'
 
   # Parameter codes, type, names and descriptions
   codes = {
@@ -54,7 +56,6 @@ begin
   }
 
   # Load all extensions
-  require "#{File.dirname(__FILE__)}/lib/Extension.rb"
   extensions = []
   $ext = nil
   Dir[File.dirname(__FILE__) + '/extensions/*.rb'].sort.each { |f|
@@ -82,7 +83,6 @@ begin
   }
 
   # Load all engines
-  require "#{File.dirname(__FILE__)}/lib/Engine.rb"
   engines = []
   $tgt = nil
   Dir[File.dirname(__FILE__) + '/engines/*.rb'].sort.each { |f|
@@ -235,24 +235,7 @@ begin
     Digest::MD5.file(f).to_s
   end
 
-  # Some helper functions
-  def log(l)
-    @summary << l
-  end
-
-  def startSection(name)
-    @summary << "\n\n# # # # #\n"
-    @summary << "# Running #{name}"
-    @summary << "\n# # # # #\n\n"
-  end
-
-  def endSection(name)
-    @summary << "\n\n# # # # #\n"
-    @summary << "# Finished #{name}"
-    @summary << "\n# # # # #\n\n"
-  end
-
-  def progress(steps=1)
+  def progress(steps=1) # TODO improve
     print "." * steps
     STDOUT.flush
   end
@@ -359,7 +342,7 @@ begin
     begin # inner block that can be cancelled by user
       # Reset
       engine.heap = []
-      @summary = ""
+      log = Log.new($jobname)
       start_time = Time.now
 
       # Copy all files to tmp directory (some LaTeX packages fail to work with output dir)
@@ -394,9 +377,7 @@ begin
 
       # Save the first log if it is the last one (should be before the extensions)
       if ( $params["ltxruns"] ==  1 )
-        startSection(engine.name)
-        log(r[1])
-        endSection(engine.name)
+        log.add_messages(engine.name, :engine, r[1], r[2])
       end
 
       # Read hashes
@@ -410,27 +391,25 @@ begin
           end
         }
       end
-
+      
+      # TODO abort if first run had fatal error?
+      
       # Run all extensions in order
       extensions.each { |e|
         if ( e.do? )
-          startSection(e.name)
           print "#{shortcode} #{e.name} #{running} "
           STDOUT.flush
           r = e.exec()
-          log(if r[1].strip == "" 
-              then "No output, so apparently everything went fine!" 
-              else r[1] 
-              end)
           puts " #{if r[0] then done else error end}"
           STDOUT.flush
-          endSection(e.name)
+          log.add_messages(e.name, :extension, r[1], r[2])
         end
       }
 
       # Run LaTeX compiler specified number of times or engine says it's done
       run = 2
-      while (   ($params["ltxruns"] > 0 && run <= $params["ltxruns"]) || ($params["ltxruns"] <= 0 && engine.do?) )
+      while (  ($params["ltxruns"] > 0 && run <= $params["ltxruns"]) ||
+               ($params["ltxruns"] <= 0 && engine.do?) )
         print "#{shortcode} #{engine.name}(#{run}) #{running} ..."
         STDOUT.flush
         r = engine.exec
@@ -441,9 +420,7 @@ begin
 
       # Save the last log if we did not save it already
       if ( $params["ltxruns"] !=  1 )
-        startSection(engine.name)
-        log(r[1])
-        endSection(engine.name)
+        log.add_messages(engine.name, :engine, r[1], r[2])
       end
 
       # Write new hashes
@@ -465,17 +442,32 @@ begin
       
       runtime = Time.now - start_time
       puts "#{shortcode} Took #{sprintf("%d min ", runtime / 60)} #{sprintf("%d sec", runtime % 60)}"
+      
+      # Write log
+      if ( !log.empty? )
+        # TODO make dependent on parameters
+        # Only build PDF if user requests; build the others always
+        # copy MD version by default, PDF if requested
+        print "#{shortcode} Assembling log files ... "
+        log.to_s("#{$params["log"]}.raw", true)
+        log.to_s("#{$params["log"]}.txt")
+        log.to_md("#{$params["log"]}.md")
+        begin
+          log.to_pdf("#{$params["log"]}.pdf")
+        rescue RuntimeError => e
+          puts "#{shortcode} Failed to build PDF log:\n" +
+               (" " * shortcode.length) + " " + e.message
+        end
+        
+        FileUtils::cp("#{$params["log"]}.md", "../#{$params["log"]}")
+        puts "done"
+        puts "#{shortcode} Log file generated at #{$params["log"]}"
+      end
     rescue Interrupt # User cancelled current run
       puts "\n#{shortcode} Cancelled"
     ensure 
       # Return from temporary directory
       Dir.chdir("..")
-    end
-
-    # Write log
-    if ( @summary != "" )
-      File.open($params["log"], "w") { |file| file.write(@summary) }
-      puts "#{shortcode} Log file generated at #{$params["log"]}"
     end
 
     if ( $params['daemon'] )

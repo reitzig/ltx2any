@@ -74,7 +74,7 @@ class Gnuplot < Extension
     end
 
     # TODO check for errors/warnings
-    return [true, log]
+    return [true, [], log]
   end
   
   def compile(cmd, f)

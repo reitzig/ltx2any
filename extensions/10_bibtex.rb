@@ -88,7 +88,7 @@ class BibTeX < Extension
     log = f.readlines
 
     # TODO check for errors/warnings
-    return [true,log.join("")]
+    return [true, [], log.join("")]
   end
 end
   

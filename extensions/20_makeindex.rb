@@ -55,7 +55,7 @@ class MakeIndex < Extension
     }
 
     # TODO implement error/warning recognition
-    return [true, log.join("")]
+    return [true, [], log.join("")]
   end
 end
 

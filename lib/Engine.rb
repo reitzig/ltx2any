@@ -27,12 +27,18 @@ class Engine
   end
 
   public
+    # Returns true iff this engine needs to run (again)
     def do?()
       false
     end
 
+    # Executes this engine
+    # Returns an array with three elements
+    #  1. true iff there were no fatal errors
+    #  2. A list of log messages (cf LogMessage)
+    #  3. The raw output of the external program
     def exec()
-      return [true, "No execution code, need to overwrite!"]
+      return [true, ["No execution code, need to overwrite!"], "No execution code, need to overwrite!"]
     end
 
     def to_s
