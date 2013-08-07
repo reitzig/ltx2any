@@ -34,20 +34,24 @@ begin
 
   # Parameter codes, type, names and descriptions
   codes = {
-    "t" => ["string", "tmpdir",   "Directory for intermediate results"],
-    "l" => ["string", "log"   ,   "Name of log file"],
-    "n" => ["int", "ltxruns",     "How often the LaTeX compiler runs. Values\n" +
-                              "\t\tsmaller than 1 will cause it to run until the\n" +
-                              "\t\tresulting file no longer changes."],
-    "c" => [nil, "clean",         "If set, all intermediate results are deleted."],
-    "e" => ["string", "engine",   "The output engine. Call with --engines for a list."],
-    "d" => [nil, "daemon", "Reruns ltx2any automatically when files change."]
+    "t" => ["string", "tmpdir",     "Directory for intermediate results"],
+    "lf" => ["string", "logformat", "Set to 'raw' for raw, 'md' for Markdown or 'pdf' for PDF log."],
+    "ll" => ["string", "loglevel",  "Set to 'error' to see only errors, to 'warning' to\n" +
+                                "\t\tsee also warnings, or to 'info' for everything."],
+    "n" => ["int", "ltxruns",       "How often the LaTeX compiler runs. Values\n" +
+                                "\t\tsmaller than 1 will cause it to run until the\n" +
+                                "\t\tresulting file no longer changes."],
+    "c" => [nil, "clean",           "If set, all intermediate results are deleted."],
+    "e" => ["string", "engine",     "The output engine. Call with --engines for a list."],
+    "d" => [nil, "daemon",          "Reruns ltx2any automatically when files change."]
   }
 
   # Parameter default values
   $params = {
     "tmpdir"    => '"#{$jobname}#{tmpsuffix}"',
     "log"       => '"#{$jobname}.log"',
+    "logformat" => "md",
+    "loglevel"  => "warning",
     "hashes"    => ".hashes",
     "ltxruns"   => 0,
     "clean"     => false,
@@ -193,12 +197,25 @@ begin
     $jobfile = File.basename($jobfile)
 
     # If the tmpdir string can be evaluated, do so
-    if ( !(/\A".+?"\z/ !~ $params["tmpdir"]) )
+    if ( /\A".+?"\z/ =~ $params["tmpdir"] )
       $params["tmpdir"] = eval($params["tmpdir"])
     end
     # If the log string can be evaluated, do so
-    if ( !(/\A".+?"\z/ !~ $params["log"]) )
+    if ( /\A".+?"\z/ =~ $params["log"] )
       $params["log"] = eval($params["log"])
+    end
+    
+    # TODO move these checks up; parameter reader should allow 
+    #      to specify a fixed set of possible values.
+    $params["logformat"] = $params["logformat"].to_sym
+    if ( ![:raw, :md, :pdf].include?($params["logformat"]) )
+      puts "#{shortcode} Log format \'#{$params["logformat"]}\' not valid, falling back to \'md\''"
+      $params["logformat"] = :md 
+    end
+    $params["loglevel"] = $params["loglevel"].to_sym
+    if ( ![:error, :warning, :info].include?($params["loglevel"]) )
+      puts "#{shortcode} Log level \'#{$params["loglevel"]}\' not valid, falling back to \'warning\''"
+      $params["loglevel"] = :warning 
     end
   end
 
@@ -343,6 +360,7 @@ begin
       # Reset
       engine.heap = []
       log = Log.new($jobname)
+      log.level = $params['loglevel']
       start_time = Time.now
 
       # Copy all files to tmp directory (some LaTeX packages fail to work with output dir)
@@ -432,6 +450,8 @@ begin
         }
       }
       
+      puts "#{shortcode} There werde #{log.count(:error)} errors and #{log.count(:warning)} warnings."
+      
       # Pick up output if present
       if ( File.exist?("#{$jobname}.#{engine.extension}") )
         FileUtils::cp("#{$jobname}.#{engine.extension}","../")
@@ -445,21 +465,23 @@ begin
       
       # Write log
       if ( !log.empty? )
-        # TODO make dependent on parameters
-        # Only build PDF if user requests; build the others always
-        # copy MD version by default, PDF if requested
         print "#{shortcode} Assembling log files ... "
         log.to_s("#{$params["log"]}.raw", true)
-        log.to_s("#{$params["log"]}.txt")
         log.to_md("#{$params["log"]}.md")
-        begin
-          log.to_pdf("#{$params["log"]}.pdf")
-        rescue RuntimeError => e
-          puts "#{shortcode} Failed to build PDF log:\n" +
-               (" " * shortcode.length) + " " + e.message
-        end
         
-        FileUtils::cp("#{$params["log"]}.md", "../#{$params["log"]}")
+        if ( $params['logformat'] == :pdf )
+          begin
+            log.to_pdf("#{$params["log"]}.pdf")
+          rescue RuntimeError => e
+            puts "#{shortcode} Failed to build PDF log:\n" +
+                 (" " * shortcode.length) + " " + e.message
+                 
+            # Fall back to Markdown log
+            $params["logformat"] = :md
+          end
+        end
+                
+        FileUtils::cp("#{$params["log"]}.#{$params["logformat"].to_s}", "../#{$params["log"]}")
         puts "done"
         puts "#{shortcode} Log file generated at #{$params["log"]}"
       end

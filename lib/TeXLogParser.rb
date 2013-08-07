@@ -98,7 +98,7 @@ class TeXLogParser
       elsif ( !filestack.empty? && /^#{Regexp.escape(filestack.last)}:(\d+): (.*)/ =~ line )
         messages += [finalizeMessage].compact
         
-        messages.push(LogMessage.new(:error, filestack.last, $~[1], linectr, line.strip))
+        messages.push(LogMessage.new(:error, filestack.last, $~[1], linectr, $~[2].strip))
         # TODO is it worthwhile to try and copy the context?
       elsif ( @currentMessage[0] != nil )
         if (@currentMessage[5] != nil )

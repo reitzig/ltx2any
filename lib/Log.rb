@@ -61,7 +61,7 @@ class Log
       @messages[source][1] += msgs
       @messages[source][2] += "\n\n#{raw}"
       [:error, :warning, :info].each { |type|
-        cnt = msgs.count { |e| e.type = type }
+        cnt = msgs.count { |e| e.type == type }
         @counts[type][source] += cnt
         @counts[type][:total] += cnt
       }
@@ -79,10 +79,10 @@ class Log
       result = "# Log for `#{@jobname}`\n\n"
       messages = only_level
       
-      result << "**Disclaimer:** This is  but a digest of the original log file.  \n" +
+      result << "**Disclaimer:**  \nThis is  but a digest of the original log file.  \n" +
                 "For full detail, check out `#{$params['tmpdir']}/#{@jobname}.log.raw`.\n\n" 
       
-      result << "We found **#{count(:error)} errors**, #{count(:warning)} warnings " +
+      result << "We found **#{count(:error)} errors**, *#{count(:warning)} warnings* " +
                 "and #{count(:info)} other messages in total.\n\n"
       
       # Write messages from engine first
@@ -103,18 +103,37 @@ class Log
             if ( @level == :warning )
               result << " and warnings"
             end
-            result << ". There may have been "
+            result << ". There were "
             if ( @level == :error )
-              result << "warnings and "
+              result << "#{@counts[:warning][name]} warnings and "
             end
-            result << " information messages which you find in the full log.\n\n"
+            result << "#{@counts[:info][name]} information messages which you find in the full log.\n\n"
           end
         else
-          result << "**#{@counts[:error][name]} errors**, #{@counts[:warning][name]} warnings " +
-                "and #{@counts[:info][name]} other messages in total.\n\n"
+          result << "**#{@counts[:error][name]} errors**, *#{@counts[:warning][name]} warnings* " +
+                "and #{@counts[:info][name]} other messages\n\n"
         
           msgs.each { |m|
-            result << m.to_s + "\n\n"
+            # Lay out for 80 characters width
+            #  * 4 colums for list stuff
+            #  * 11 columns for type + space
+            #  * file:line flushed to the right after
+            #  * The message, indented to the type stands out
+            #  * Log line, flushed right
+            result << " *  " +
+                      { :error   => "**Error**  ",
+                        :warning => "*Warning*  ",
+                        :info    => "Info       "
+                      }[m.type]
+            srcfilelength = 76 - 11 - m.srcline.to_s.length - 3
+            result << if ( m.srcfile.length > srcfilelength )
+                        "`...#{m.srcfile[m.srcfile.length - srcfilelength - 3, m.srcfile[m.srcfile.length]]} "
+                      else
+                        (" " * (srcfilelength - m.srcfile.length)) + "`#{m.srcfile}" 
+                      end
+            result << ":#{m.srcline.to_s}`\n\n"
+            result << break_at_spaces(m.msg.strip, 68, 8) + "\n\n"
+            result << (" " * (80 - (5 + m.logline.to_s.length))) + "log: " + m.logline.to_s + "\n\n"
           }
         end
       }
@@ -130,17 +149,28 @@ class Log
       if ( `which pdflatex` == "" )
         raise "You need pdflatex for PDF logs."
       end
-    
-      pandoc = '"pandoc -f markdown -o \"#{target_file}\" 2>&1"' 
+            
+      template = "#{File.dirname(__FILE__)}/logtemplate.tex"
+      pandoc = '"pandoc -f markdown --template=\"#{template}\" -V papersize:a4paper -V geometry:margin=3cm -o \"#{target_file}\" 2>&1"' 
 
       panout = IO::popen(eval(pandoc), "w+") { |f|
-        f.puts(to_md)
+        markdown = to_md
+        
+        # Perform some cosmetic tweaks
+        markdown.gsub!(/^ \*  \*\*Error\*\*/, " \*  \\error")
+        markdown.gsub!(/^ \*  \*Warning\*/, " \*  \\warning")
+        markdown.gsub!(/^ \*  Info/, " \*  \\info")
+        markdown.gsub!(/^\s+log: (\d+(--\d+)?)$/,  "\\logref{\\1}")
+      
+        f.puts(markdown)
         f.close_write
         f.read
       }
       
       if ( panout.strip != "" )
-        raise "pandoc encountered errors!"
+        # That should never happen
+        File.open("#{target_file}.log", w) { |f| f.write(panout) }
+        raise "Pandoc encountered errors! See #{target_file}.log."
       end
     end
     
@@ -185,4 +215,23 @@ class Log
       File.open("#{target_file}", "w") { |f| f.write(result) }
       return result
     end
+    
+    private 
+      def break_at_spaces(s, length, indent)
+        words = s.split(/\s+/)
+
+        res = ""
+        line = " " * (indent - 1)
+        words.each { |w|
+          newline = line + " " + w
+          if ( newline.length > length )
+            res += line + "\n"
+            line = (" " * indent) + w
+          else
+            line = newline
+          end
+        }
+        
+        return res + line
+      end
 end
