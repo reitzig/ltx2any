@@ -28,6 +28,12 @@ class Log
     @jobname = jobname
     @level = :warning # or :error, :info
     @mode = :structured # or :flat
+    @dependencies = [["pandoc", :binary, if ( $params['logformat'] == :pdf ) 
+                                         then :essential
+                                         else :recommended end], 
+                     ["pdflatex", :binary, if ( $params['logformat'] == :pdf ) 
+                                           then :essential
+                                           else :recommended end]]
   end
   
   def only_level(level = @level)
@@ -174,7 +180,7 @@ class Log
       end
     end
     
-    def to_s(target_file = "#{@jobname}.log", raw = false)
+    def to_s(target_file = "#{@jobname}.log", raw = false) # TODO add machine-readable mode?
       result = ""
       messages = only_level      
       

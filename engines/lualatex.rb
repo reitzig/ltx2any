@@ -24,6 +24,9 @@ class LuaLaTeX < Engine
     @name = "lualatex"
     @extension = "pdf"
     @description = "Uses lualatex to create a PDF"
+    @dependencies = [["lualatex", :binary, :essential],
+                     ["cat", :binary, :essential],
+                     ["grep", :binary, :essential]]
   end
   
   def do?
@@ -45,7 +48,7 @@ class LuaLaTeX < Engine
 
     newHash = -1
     if ( File.exist?("#{$jobname}.#{extension}") )
-      newHash = `cat "#{$jobname}.#{extension}" | grep -a -v "/CreationDate|/ModDate|/ID|/Type/XRef/Index" | md5sum`.strip
+      newHash = Digest::MD5.hexdigest(`cat "#{$jobname}.#{extension}" | grep -a -v "/CreationDate|/ModDate|/ID|/Type/XRef/Index"`.strip)
     end
 
     @heap[0] = @heap[1] == newHash

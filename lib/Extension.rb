@@ -22,6 +22,7 @@ class Extension
     @description = "Dummy description"
     @codes = {}
     @params = {}
+    @dependencies = []
   end
   
   public
@@ -37,7 +38,7 @@ class Extension
       @name
     end
     
-    attr_accessor :name, :description, :codes, :params
+    attr_accessor :name, :description, :codes, :params, :dependencies
     
   protected
     attr_writer :name, :description, :codes, :params

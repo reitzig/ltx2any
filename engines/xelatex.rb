@@ -24,6 +24,9 @@ class XeLaTeX < Engine
     @name = "xelatex"
     @extension = "pdf"
     @description = "Uses xelatex to create a PDF"
+    @dependencies = [["xelatex", :binary, :essential],
+                     ["cat", :binary, :essential],
+                     ["awk", :binary, :essential]]
   end
   
   def do?
@@ -45,7 +48,7 @@ class XeLaTeX < Engine
 
     newHash = -1
     if ( File.exist?("#{$jobname}.#{extension}") )
-      newHash = `cat -A "#{$jobname}.#{extension}" | awk '/CIDFontType0C|Type1C/ {exit} {print}' | md5sum`.strip
+      newHash = Digest::MD5.hexdigest(`cat -A "#{$jobname}.#{extension}" | awk '/CIDFontType0C|Type1C/ {exit} {print}'`.strip)
     end
     # TODO This is only a hack! What else can be embedded and changing?
 

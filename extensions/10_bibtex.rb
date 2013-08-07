@@ -22,6 +22,7 @@ class BibTeX < Extension
     
     @name = "bibtex"
     @description = "Creates bibliography"
+    @dependencies = [["bibtex", :binary, :essential]]
     
     # For checking whether bibtex has to rerun, we need to keep the 
     # relevant parts of the _.aux file handy.

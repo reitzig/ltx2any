@@ -18,6 +18,8 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 require 'fileutils'
+require 'rubygems'
+require 'digest'
 Dir[File.dirname(__FILE__) + '/lib/*.rb'].each { |f| require f }
 
 # Some frontend strings
@@ -30,7 +32,7 @@ tmpsuffix = "_tmp"
 ignorefile = ".#{name}ignore_"
 
 begin
-  puts "#{shortcode} Initialising ..."
+  puts "#{shortcode} Initialising ..." # TODO abstract away printing
 
   # Parameter codes, type, names and descriptions
   codes = {
@@ -57,7 +59,14 @@ begin
     "clean"     => false,
     "engine"    => "pdflatex",
     "daemon"    => false
-  }
+  } # TODO make parameter names symbols
+
+  dependencies =  [["which", :binary, :essential],
+                   ["listen", :gem, :recommended, "for daemon mode"]] 
+  # TODO merge with dependencies of engines, extensions, Log
+  # TODO list unsatisfied dependencies in parameter-less call
+  # TODO Check essential dependencies and fail if not there
+  # TODO Chech recommended dependencies (and do what?)
 
   # Load all extensions
   extensions = []
@@ -230,7 +239,7 @@ begin
       break
     end
   }
-  if ( engine == nil )
+  if ( engine == nil ) # TODO make obsolete by proper dependency check
     puts "#{shortcode} No such engine: #{$params["engine"]}. Use --engines to list availabe engines."
     Process.exit
   elsif ( `which #{engine}` == "" )
@@ -247,7 +256,6 @@ begin
   end
 
   # Hash function that can be used by engines and extensions
-  require 'digest'
   def filehash(f)
     Digest::MD5.file(f).to_s
   end
@@ -292,8 +300,6 @@ begin
   # TODO move gem-loading/checking code somewhere central so
   #      extensions and engines may use it?
   if ( $params['daemon'] )
-    require 'rubygems'
-  
     begin
       gem "listen", ">=1.2.0"
       require 'listen'

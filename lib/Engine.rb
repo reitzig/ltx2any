@@ -24,6 +24,7 @@ class Engine
     @codes = {}
     @params = {}
     @heap = []
+    @dependencies = []
   end
 
   public
@@ -46,9 +47,9 @@ class Engine
     end
   
   
-    attr_reader :name, :extension, :description, :codes, :params, :heap
+    attr_reader :name, :extension, :description, :codes, :params, :heap, :dependencies
     attr_writer :heap
     
   protected
-    attr_writer :name, :extension, :description, :codes, :params
+    attr_writer :name, :extension, :description, :codes, :params, :dependencies
 end

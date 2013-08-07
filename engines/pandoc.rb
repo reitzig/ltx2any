@@ -60,6 +60,8 @@ class Pandoc < Engine
       "org" => "org", 
       "asciidoc" => "txt"
     }
+    
+    @dependencies = [["pandoc", :binary, :essential]]
   end
 
   def extension 

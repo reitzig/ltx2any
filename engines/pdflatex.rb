@@ -24,6 +24,9 @@ class PdfLaTeX < Engine
     @name = "pdflatex"
     @extension = "pdf"
     @description = "Uses pdflatex to create a PDF"
+    @dependencies = [["pdflatex", :binary, :essential],
+                     ["cat", :binary, :essential],
+                     ["grep", :binary, :essential]]
   end
   
   def do?
@@ -45,7 +48,7 @@ class PdfLaTeX < Engine
 
     newHash = -1
     if ( File.exist?("#{$jobname}.#{extension}") )
-      newHash = `cat "#{$jobname}.#{extension}" | grep -a -v "/CreationDate\\|/ModDate\\|/ID" | md5sum`.strip
+      newHash = Digest::MD5.hexdigest(`cat "#{$jobname}.#{extension}" | grep -a -v "/CreationDate\\|/ModDate\\|/ID"`.strip)
     end
 
     @heap[0] = @heap[1] == newHash

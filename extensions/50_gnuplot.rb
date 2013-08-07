@@ -22,6 +22,8 @@ class Gnuplot < Extension
     
     @name = "gnuplot"
     @description = "Executes generated gnuplot files"
+    @dependencies = [["gnuplot", :binary, :essential],
+                     ["parallel", :gem, :recommended, "for better performance"]]
   end
 
   def do?

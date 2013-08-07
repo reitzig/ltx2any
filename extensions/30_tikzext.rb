@@ -24,6 +24,8 @@ class TikZExt < Extension
     @description = "Compiles externalized TikZ images"
     @codes = { "ir" => [nil, "imagerebuild", "If set, externalised TikZ images are rebuilt."]}
     @params = { "imagerebuild" => false }
+    @dependencies = [["pdflatex", :binary, :essential],
+                     ["parallel", :gem, :recommended, "for better performance"]]
   end
 
   def do?

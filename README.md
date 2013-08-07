@@ -10,6 +10,8 @@ Yet another LaTeX build wrapper, with one or two nifty features:
  * Work-intensive extensions (e.g. TikZ externalization) work in parallel to
    speedup compilation on multi-core machines.
  * Can run as daemon, listening for file changes which prompt recompilation.
+ * Aggregates error messages and warnings from all tools into a nicely formatted 
+   log (available options include PDF).
  * Adding additional phases is easy due to modular design.
  * Keeps your main directory clean by default.
  

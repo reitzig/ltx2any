@@ -22,6 +22,7 @@ class MakeIndex < Extension
     
     @name = "makeindex"
     @description = "Creates an index"
+    @dependencies = [["makeindex", :binary, :essential]]
   end
 
   def do?
