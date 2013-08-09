@@ -969,7 +969,7 @@ FUNCTION {inproceedings}
 }
 
 
-FUNCTION {conference} { inproceedings }
+% FUNCTION {conference} { inproceedings }
 
 
 FUNCTION {manual}

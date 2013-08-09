@@ -88,8 +88,21 @@ class BibTeX < Extension
     f = IO::popen(eval(bibtex))
     log = f.readlines
 
-    # TODO check for errors/warnings
-    return [true, [], log.join("")]
+    # Dig trough output and find errors
+    msgs = []
+    errors = false
+    linectr = 1
+    log.each { |line|
+      if ( /^Warning--(.*)$/ =~ line )
+        msgs.push(LogMessage.new(:warning, nil, nil, [linectr], $~[1]))
+      elsif ( /^(.*?)---line (\d+) of file (.*)$/ =~ line )
+        msgs.push(LogMessage.new(:error, $~[3], [Integer($~[2])], [linectr], $~[1]))
+        errors = true
+      end
+      linectr += 1
+    }
+
+    return [!errors, msgs, log.join("").strip!]
   end
 end
   

@@ -35,8 +35,8 @@ class MakeIndex < Extension
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
     # * mistyle -- name of the makeindex style file (with file ending)
-    makeindex = { "default" => '"makeindex -q \"#{$jobname}\""',
-                  "styled"  => '"makeindex -q -s \"#{mistyle}\" \"#{$jobname}\""'}
+    makeindex = { "default" => '"makeindex -q \"#{$jobname}\" 2>&1"',
+                  "styled"  => '"makeindex -q -s \"#{mistyle}\" \"#{$jobname}\" 2>&1"'}
     progress(3)
   
     version = "default"
@@ -46,17 +46,46 @@ class MakeIndex < Extension
       mistyle = f
     }
 
-    f = IO::popen(eval(makeindex[version]))
-    log = f.readlines
-
-    File.open("#{$jobname}.ilg", "r") { |file|
-      while ( line = file.gets )
-        log << line
-      end
+    # Even in quiet mode, some critical errors (e.g. regarding -g) 
+    # only end up in the error stream, but not in the file. Doh.
+    log1 = []
+    IO::popen(eval(makeindex[version])) { |f|
+     log1 = f.readlines
     }
 
-    # TODO implement error/warning recognition
-    return [true, [], log.join("")]
+    log2 = []
+    File.open("#{$jobname}.ilg", "r") { |f|
+      log2 = f.readlines
+    }
+
+    log = [log2[0]] + log1 + log2[1,log2.length]
+
+    msgs = []
+    current = []
+    linectr = 1
+    errors = false
+    log.each { |line|
+      if ( /^!! (.*?) \(file = (.+?), line = (\d+)\):$/ =~ line )
+        current = [:error, $~[2], [Integer($~[3])], [linectr], "#{$~[1]}: "]
+        errors = true
+      elsif ( /^\#\# (.*?) \(input = (.+?), line = (\d+); output = .+?, line = \d+\):$/ =~ line )
+        current = [:warning, $~[2], [Integer($~[3])], [linectr], "#{$~[1]}: "]
+      elsif ( current != [] && /^\s+-- (.*)$/ =~ line )
+        current[3][1] = linectr
+        msgs.push(LogMessage.new(current[0], current[1], current[2], 
+                                 current[3], current[4] + $~[1].strip))
+        current = []
+      elsif ( /Option -g invalid/ =~ line )
+        msgs.push(LogMessage.new(:error, nil, nil, [linectr], line.strip))
+        errors = true
+      elsif ( /Can't create output index file/ =~ line )
+        msgs.push(LogMessage.new(:error, nil, nil, [linectr], line.strip))
+        errors = true
+      end
+      linectr += 1
+    }
+
+    return [!errors, msgs, log.join("").strip!]
   end
 end
 

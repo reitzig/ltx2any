@@ -132,6 +132,8 @@ begin
     codes.keys.sort.each { |key|
       puts "  -#{key}\t#{if ( codes[key][0] != nil ) then codes[key][0] end}\t#{codes[key][2]}"
     }
+    
+    # TODO output dependencies
 
     Process.exit
   elsif ( ARGV[0] == "--extensions" )
@@ -239,10 +241,10 @@ begin
       break
     end
   }
-  if ( engine == nil ) # TODO make obsolete by proper dependency check
+  if ( engine == nil ) 
     puts "#{shortcode} No such engine: #{$params["engine"]}. Use --engines to list availabe engines."
     Process.exit
-  elsif ( `which #{engine}` == "" )
+  elsif ( `which #{engine}` == "" ) # TODO make obsolete by proper dependency check
     puts "#{shortcode} Engine not available. Please install #{$params["engine"]} and make sure it is in the executable path."
     Process.exit
   end
@@ -384,71 +386,80 @@ begin
         end
       }
 
-      # Delete former results in order not to pretend success
-      if ( File.exist?("#{$params["tmpdir"]}/#{$jobname}.#{engine.extension}") )
-        FileUtils::rm("#{$params["tmpdir"]}/#{$jobname}.#{engine.extension}")
-      end
-
       # Move into temporary directory
       Dir.chdir($params["tmpdir"])
 
-      # First run of LaTeX compiler
+      # Delete former results in order not to pretend success
+      if ( File.exist?("#{$jobname}.#{engine.extension}") )
+        FileUtils::rm("#{$jobname}.#{engine.extension}")
+      end
+
+      # First engine run
       print "#{shortcode} #{engine.name}(1) #{running} ..."
       STDOUT.flush
       r = engine.exec
       puts " #{if r[0] then done else error end}"
       STDOUT.flush
 
-      # Save the first log if it is the last one (should be before the extensions)
-      if ( $params["ltxruns"] ==  1 )
-        log.add_messages(engine.name, :engine, r[1], r[2])
-      end
+      if ( engine.do? && File.exist?("#{$jobname}.#{engine.extension}") )
+        # The first run produced some output so the input is hopefully
+        # not completely broken -- continue with the work!
+        # (That is, if the engine says it wants to run again.)
+      
+        # Save the first log if it is the last one (should be before the extensions)
+        if ( $params["ltxruns"] ==  1 )
+          log.add_messages(engine.name, :engine, r[1], r[2])
+        end
 
-      # Read hashes
-      $hashes = {}
-      hashfile = "#{$params["hashes"]}"
-      if ( File.exist?(hashfile) )
-        File.open(hashfile, "r") { |f|
-          while ( l = f.gets )
-            l = l.strip.split(",")
-            $hashes[l[0]] = l[1]
+        # Read hashes
+        $hashes = {}
+        hashfile = "#{$params["hashes"]}"
+        if ( File.exist?(hashfile) )
+          File.open(hashfile, "r") { |f|
+            while ( l = f.gets )
+              l = l.strip.split(",")
+              $hashes[l[0]] = l[1]
+            end
+          }
+        end
+        
+        # Run all extensions in order
+        extensions.each { |e|
+          if ( e.do? )
+            print "#{shortcode} #{e.name} #{running} "
+            STDOUT.flush
+            r = e.exec()
+            puts " #{if r[0] then done else error end}"
+            STDOUT.flush
+            log.add_messages(e.name, :extension, r[1], r[2])
           end
         }
-      end
-      
-      # TODO abort if first run had fatal error?
-      
-      # Run all extensions in order
-      extensions.each { |e|
-        if ( e.do? )
-          print "#{shortcode} #{e.name} #{running} "
+
+        # Run engine as often as specified/necessary
+        run = 2
+        while (  ($params["ltxruns"] > 0 && run <= $params["ltxruns"]) ||
+                 ($params["ltxruns"] <= 0 && engine.do?) )
+          print "#{shortcode} #{engine.name}(#{run}) #{running} ..."
           STDOUT.flush
-          r = e.exec()
+          r = engine.exec
           puts " #{if r[0] then done else error end}"
           STDOUT.flush
-          log.add_messages(e.name, :extension, r[1], r[2])
+          run += 1
         end
-      }
 
-      # Run LaTeX compiler specified number of times or engine says it's done
-      run = 2
-      while (  ($params["ltxruns"] > 0 && run <= $params["ltxruns"]) ||
-               ($params["ltxruns"] <= 0 && engine.do?) )
-        print "#{shortcode} #{engine.name}(#{run}) #{running} ..."
-        STDOUT.flush
-        r = engine.exec
-        puts " #{if r[0] then done else error end}"
-        STDOUT.flush
-        run += 1
-      end
-
-      # Save the last log if we did not save it already
-      if ( $params["ltxruns"] !=  1 )
+        # Save the last log if we did not save it already
+        if ( $params["ltxruns"] !=  1 )
+          log.add_messages(engine.name, :engine, r[1], r[2])
+        end
+      else
+        # First run did not yield a result so there has been a fatal error.
+        # Don't bother with extensions or more runs, just stop and
+        # report failure.
         log.add_messages(engine.name, :engine, r[1], r[2])
       end
 
       # Write new hashes
-      File.open(hashfile, "w") { |file|
+      File.open($params["hashes"], "w") { |file|
         Dir.entries(".").sort.each { |f|
           if ( File::file?(f) )
             file.write(f + "," + filehash(f) + "\n")
@@ -456,28 +467,34 @@ begin
         }
       }
       
-      puts "#{shortcode} There werde #{log.count(:error)} errors and #{log.count(:warning)} warnings."
+      errorS = if ( log.count(:error) != 1 ) then "s" else "" end
+      warningS = if ( log.count(:warning) != 1 ) then "s" else "" end
+      puts "#{shortcode} There were #{log.count(:error)} error#{errorS} " + 
+                        "and #{log.count(:warning)} warning#{warningS}."
       
       # Pick up output if present
       if ( File.exist?("#{$jobname}.#{engine.extension}") )
         FileUtils::cp("#{$jobname}.#{engine.extension}","../")
         puts "#{shortcode} Output generated at #{$jobname}.#{engine.extension}"
       else
-        puts "#{shortcode} No output generated. Check log for errors!"
+        puts "#{shortcode} No output generated due to fatal errors."
       end
-      
-      runtime = Time.now - start_time
-      puts "#{shortcode} Took #{sprintf("%d min ", runtime / 60)} #{sprintf("%d sec", runtime % 60)}"
-      
+            
       # Write log
       if ( !log.empty? )
         print "#{shortcode} Assembling log files ... "
-        log.to_s("#{$params["log"]}.raw", true)
-        log.to_md("#{$params["log"]}.md")
+        target = $params["log"]
+        STDOUT.flush
+        log.to_s("#{$params["log"]}.raw")
         
         if ( $params['logformat'] == :pdf )
           begin
             log.to_pdf("#{$params["log"]}.pdf")
+            
+            # Sucks, but OS might not offer correct apps otherwise
+            if ( !$params["log"].end_with?(".pdf") )
+              target += ".pdf"
+            end
           rescue RuntimeError => e
             puts "#{shortcode} Failed to build PDF log:\n" +
                  (" " * shortcode.length) + " " + e.message
@@ -486,10 +503,25 @@ begin
             $params["logformat"] = :md
           end
         end
+        if ( $params['logformat'] == :md )
+          log.to_md("#{$params["log"]}.md")
+          
+          # Sucks, but viewers can not choose proper highlighting otherwise
+          if ( !$params["log"].end_with?(".md") )
+              target += ".md"
+            end
+        end
                 
-        FileUtils::cp("#{$params["log"]}.#{$params["logformat"].to_s}", "../#{$params["log"]}")
+        FileUtils::cp("#{$params["log"]}.#{$params["logformat"].to_s}", "../#{target}")
         puts "done"
-        puts "#{shortcode} Log file generated at #{$params["log"]}"
+        puts "#{shortcode} Log file generated at #{target}"
+        STDOUT.flush
+        
+        runtime = Time.now - start_time
+        # Don't show runtimes of less than 5s (arbitrary)
+        if ( runtime / 60 >= 1 || runtime % 60 >= 5 )
+          puts "#{shortcode} Took #{sprintf("%d min ", runtime / 60)} #{sprintf("%d sec", runtime % 60)}"
+        end
       end
     rescue Interrupt # User cancelled current run
       puts "\n#{shortcode} Cancelled"
@@ -514,18 +546,24 @@ rescue Exception => e
     File.open("#{$jobname}.err", "w") { |file| 
       file.write("#{e.message}\n\n#{e.backtrace.join("\n")}") 
     }
+  else
+    # This is reached due to programming errors or if ltx2any quits early,
+    # i.e. if no feasible input file has been specified.
+    # Neither case warrants action.
   end
   # Exit immediately. Don't clean up, logs may be necessary for debugging.
   Kernel.exit!(FALSE) 
 end
 
-# Remove temps if so desired.
-if ( $params["clean"] )
-  FileUtils::rm_rf($params["tmpdir"])
-end
+# Stop file listeners
 if ( $params['daemon'] )
   $jobfilelistener.stop
   $ignfilelistener.stop
+end
+
+# Remove temps if so desired.
+if ( $params["clean"] )
+  FileUtils::rm_rf($params["tmpdir"])
 end
 FileUtils::rm_rf("#{ignorefile}#{$jobname}")
 

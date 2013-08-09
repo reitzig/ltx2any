@@ -33,11 +33,10 @@ class TeXLogParser
     filestack = []
     
     linectr = 1
-    @currentMessage = [nil, nil, nil, [nil,nil], nil, nil]
+    @currentMessage = [nil, nil, nil, nil, nil, nil, :none]
     log.each { |line|
       if ( line.strip == "" )
-        messages += [finalizeMessage].compact
-        
+        messages += [finalizeMessage].compact 
       elsif ( /^(\([^()]*\)|[^()])*\)/ =~ line )
         # End of messages regarding current file
         messages += [finalizeMessage].compact
@@ -71,8 +70,8 @@ class TeXLogParser
                              else :error 
                              end
         @currentMessage[1] = filestack.last
-        @currentMessage[2] = -1
-        @currentMessage[3] = [linectr, linectr]
+        @currentMessage[2] = nil
+        @currentMessage[3] = [linectr]
         @currentMessage[4] = line.strip
         @currentMessage[5] = /^\(#{$~[2]}\)\s*/
       elsif ( /\w+?TeX\s+(Warning|Error|Info)/ =~ line )
@@ -86,28 +85,43 @@ class TeXLogParser
                              else :error
                              end
         @currentMessage[1] = filestack.last
-        @currentMessage[2] = -1
-        @currentMessage[3] = [linectr, linectr]
+        @currentMessage[2] = nil
+        @currentMessage[3] = [linectr]
         @currentMessage[4] = line.strip
         @currentMessage[5] = /^\s*/
-      elsif ( /(Under|Over)full .*? (\d+--\d+)/ =~ line )
+      elsif ( /((Under|Over)full .*?) (\d+)--(\d+)/ =~ line )
         # Engine complains about under-/overfilled boxes
         messages += [finalizeMessage].compact
-        
-        messages.push(LogMessage.new(:warning, filestack.last, $~[2], linectr, line.strip))
+        fromLine = Integer($~[3])
+        toLine = Integer($~[4])
+        srcLine = [fromLine]
+        if ( toLine >= fromLine )
+          srcLine[1] = toLine
+        end
+          
+        messages.push(LogMessage.new(:warning, filestack.last, srcLine, [linectr], $~[1].strip))
+      elsif ( /^Runaway argument\?$/ =~ line )
+        messages += [finalizeMessage].compact
+        @currentMessage[0] = :error
+        @currentMessage[1] = filestack.last
+        @currentMessage[2] = nil
+        @currentMessage[3] = [linectr]
+        @currentMessage[4] = line
+        @currentMessage[5] = nil
+        @currentMessage[6] = :fixed # Maintain formatting
       elsif ( !filestack.empty? && /^#{Regexp.escape(filestack.last)}:(\d+): (.*)/ =~ line )
         messages += [finalizeMessage].compact
-        
-        messages.push(LogMessage.new(:error, filestack.last, $~[1], linectr, $~[2].strip))
+        messages.push(LogMessage.new(:error, filestack.last, [Integer($~[1])], [linectr], $~[2].strip))
         # TODO is it worthwhile to try and copy the context?
       elsif ( @currentMessage[0] != nil )
         if (@currentMessage[5] != nil )
           line = line.gsub(@currentMessage[5], "")
         end
-        @currentMessage[4] += " #{line.strip}"
+        if ( @currentMessage[6] != :fixed )
+          line = " " + line.strip!
+        end
+        @currentMessage[4] += line
         @currentMessage[3][1] = linectr
-      #else
-      #  puts line.strip
       end
          
       linectr += 1
@@ -118,17 +132,18 @@ class TeXLogParser
   
   private
     # Some messages may run over multiple lines. Complete with this:
-    #  (initially: @currentmessage = [nil, nil, [nil,nil], nil, nil] )
+    #  (initially: @currentmessage = [nil, nil, nil, nil, nil, nil, :none] )
     def self.finalizeMessage()
       if ( @currentMessage[0] != nil )
         res = 
           LogMessage.new(@currentMessage[0], # type
                          @currentMessage[1], # srcfile
                          @currentMessage[2], # srcline
-                         "#{@currentMessage[3][0]}--#{@currentMessage[3][1]}", # logline
-                         @currentMessage[4] # message
+                         @currentMessage[3], # logline
+                         @currentMessage[4],
+                         @currentMessage[6], # message
                         )
-        @currentMessage = [nil, nil, nil, [nil,nil], nil, nil]
+        @currentMessage = [nil, nil, nil, nil, nil, nil, :none]
         return res
       else
         return nil

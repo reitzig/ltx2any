@@ -55,7 +55,7 @@ class XeLaTeX < Engine
     @heap[0] = @heap[1] == newHash
     @heap[1] = newHash
 
-    return [File.exist?("#{$jobname}.#{extension}"), TeXLogParser.parse(log), log.join("")]
+    return [File.exist?("#{$jobname}.#{extension}"), TeXLogParser.parse(log), log.join("").strip!]
   end
 end
 

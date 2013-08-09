@@ -19,27 +19,49 @@
 class LogMessage
   # Parameter type: one of :error, :warning, :info
   # Parameter srcfile: name of the source file the message originated at
-  # Parameter srcline: line in the given file the message originated at 
-  #                    -1 if not available
-  # Parameter logline: line(s) in the log the message was found at
+  #                    nil if not available
+  # Parameter srcline: lines in the given file the message originated at
+  #                    as array of integers [line] or [from,to]. 
+  #                    nil if not available
+  # Parameter logline: line(s) in the log the message was found at as array
+  #                    of integers [line] or [from,to].
+  #                    nil if that does not make sense.
   # Parameter msg: String describing the problem
-  def initialize(type, srcfile, srcline, logline, msg)
+  # Parameter format: pass :fixed if you don't want the format of the message
+  #                   changed for output.
+  def initialize(type, srcfile, srcline, logline, msg, format = :none)
     @type = type
     @srcfile = srcfile
     @srcline = srcline
     @logline = logline
     @msg = msg
+    @format = format
   end
   
   public
     attr_reader :type, :srcfile, :srcline, :logline, :msg
     
     def to_s
-      return (if ( @type == :warning ) then "Warning" 
-              elsif ( @type == :error ) then "Error"
-              else "Info" end) +
-             " #{@srcfile}:#{@srcline}\n" +
-             @msg + "\n" +
-             "\t(For details see full log from line #{@logline}.)"
+      result = (if ( @type == :warning ) then "Warning" 
+                elsif ( @type == :error ) then "Error"
+                else "Info" end) 
+              
+      if ( @srcfile != nil )
+        result += " #{@srcfile}"
+        if ( @srcline != nil )
+          result += ":#{@srcline.join("-")}"
+        end
+      end
+      
+      result += "\n" + @msg
+      
+      if ( @logline != nil )
+        result +="\n\t(For details see original output from line #{@logline[0].to_s}.)"
+      end
+      return result
+    end
+    
+    def formatted?
+      @format == :fixed
     end
 end

@@ -9,6 +9,11 @@
 \tikzset{external/mode=list and make}
 \tikzset{external/export=true}
 
+\usepackage{todonotes}
+\usepackage{letltxmacro}% http://ctan.org/pkg/letltxmacro
+\LetLtxMacro{\oldtodo}{\todo}
+\renewcommand{\todo}[2][]{\tikzset{external/export next=false}\oldtodo[#1]{#2}}
+
 \begin{document}
 
 % First: normale figure
@@ -26,6 +31,8 @@
   \end{tikzpicture}
   \tikzset{external/export=true}
 \end{center}
+
+\todo[color=white,inline]{Test externalisation prevention for todonotes.}
 
 % Third: externalise again with custom name
 \begin{center}

@@ -17,7 +17,6 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class Pandoc < Engine 
-
   def initialize
     super
     
@@ -73,23 +72,48 @@ class Pandoc < Engine
   end
 
   def exec()
-    if ( $params["targetformat"] == nil ) # TODO implement message objects
-      return [false, ["not yet implemented"], "Specify a target format by adding '-format [format]' as parameter."]
+    if ( $params["targetformat"] == nil )
+      msg = "Specify a target format by adding '-format <format>' as parameter."
+      return [false, [LogMessage.new(:error, nil, nil, nil, msg)], msg]
     elsif ( @format2ending[$params["targetformat"]] == nil )
-      return [false, ["not yet implemented"], "Pandoc does not know target format #{$params["targetformat"]}"]
+      msg = "Pandoc does not know target format #{$params["targetformat"]}"
+      return [false, [LogMessage.new(:error, nil, nil, nil, msg)], msg]
     end
+    # TODO warn if executed multiple times?
     
     # Command for the main LaTeX compilation work.
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
     # * tmpdir  -- the output directory
-    pandoc = '"pandoc -f latex -t #{$params["targetformat"]} -o \"#{$jobname}.#{extension}\" #{$jobfile} 2>&1"'
+    pandoc = '"pandoc -s -f latex -t #{$params["targetformat"]} -o \"#{$jobname}.#{extension}\" #{$jobfile} 2>&1"'
 
     f = IO::popen(eval(pandoc))
-    log = f.readlines
+    log = f.readlines + [""] # One empty line to finalize the last message
   
-    # TODO implement log parser
-    return [File.exist?("#{$jobname}.#{extension}"), ["not yet implemented"], log.join("")]
+    msgs = [LogMessage.new(:warning, nil, nil, nil, 
+              "Beware, the LaTeX parser of pandoc does not report most non-critical errors! " + 
+              "Therefore, your output may still be broken even if you see no messages here.")]
+              
+    current = []
+    linectr = 1
+    errors = false
+    log.each { |line|
+      if ( /Error:/ =~ line )
+        current = [:error, linectr, ""]
+        errors = true
+      elsif ( /Warning:/ =~ line ) # Does that even exist?
+        current = [:warning, linectr, ""]
+      elsif ( current != [] && line.strip == "" )
+        msgs.push(LogMessage.new(current[0], nil, nil, [current[1], linectr - 1], current[2], :fixed))
+        current = []
+      elsif ( current != [] )
+        current[2] += line
+      end
+      
+      linectr += 1
+    }
+    
+    return [!errors, msgs, log.join("").strip!]
   end
 end
 

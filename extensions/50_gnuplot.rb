@@ -60,12 +60,12 @@ class Gnuplot < Extension
         end
         c += 1
         ilog
-      }.join
+      }.transpose
     rescue Gem::LoadError
-      log << "Hint: install gem 'parallel' to speed up jobs with many plots.\n\n"
+      log = [[[], "Hint: install gem 'parallel' to speed up jobs with many plots.\n\n"]]
       
       gnuplot_files.each { |f|
-        log << compile(gnuplot, f)
+        log += compile(gnuplot, f)
         # Output up to ten dots
         # TODO: make nicer output! Eg: [5/10]
         if ( c % [1, (gnuplot_files.size / 10)].max == 0 )
@@ -73,28 +73,61 @@ class Gnuplot < Extension
         end
         c += 1
       }
+      log = log.transpose
     end
 
-    # TODO check for errors/warnings
-    return [true, [], log]
+    log[0].flatten!
+    return [log[0].empty?, log[0], log[1].join]
   end
   
-  def compile(cmd, f)
-    log = ""
-    
-    io = IO::popen(eval(cmd))
-    output = io.readlines.join("").strip
+  private 
+    def compile(cmd, f)
+      log = ""
+      msgs = []
+      
+      io = IO::popen(eval(cmd))
+      lines = io.readlines
+      output = lines.join("").strip
 
-    log << "# #\n# #{f}\n\n"
-    if ( output != "" )
-      log << output
-    else
-      log << "No output from gnuplot, so apparently everything went fine!"
+      log << "# #\n# #{f}\n\n"
+      if ( output != "" )
+        log << output
+        msgs += parse(lines)
+      else
+        log << "No output from gnuplot, so apparently everything went fine!"
+      end
+      log << "\n\n"
+      
+      return [msgs, log.strip!]
     end
-    log << "\n\n"
     
-    return log
-  end
+    def parse(strings)
+      msgs = []
+        
+      context = ""
+      strings.each { |line|
+        # Messages have the format
+        #  * context (at least one line)
+        #  * ^ marking the point of issue in its own line
+        #  * one line of error statement
+        # I have never seen more than one error (seems to abort). 
+        # So I'm going to assume that multiple error messages
+        # are separated by empty lines.
+        if ( /^"(.+?)", line (\d+): (.*)$/ =~ line )
+          msgs.push(LogMessage.new(:error, $~[1], [Integer($~[2])], nil, 
+                                   "#{context}#{$~[3].strip}", :fixed))
+        elsif ( line.strip == "" )
+          context = ""
+        else
+          context += line
+        end
+        # TODO break/strip long lines? Should be able to figure out relevant parts
+        #      by position of circumflex
+        # TODO drop context here and instead give log line numbers?
+      }
+        
+      return msgs
+    end
 end
 
 $ext = Gnuplot.new
