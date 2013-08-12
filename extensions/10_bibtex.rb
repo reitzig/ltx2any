@@ -38,7 +38,9 @@ class BibTeX < Extension
       File.open("#{$jobname}.aux", "r") { |file|
         while ( line = file.gets )
           if ( /^\\bibdata\{(.+?)\}$/ =~ line )
-            bibdata.push "#{$~[1]}.bib"
+            # If commas occur, add both a split version (multiple files)
+            # and the hole string (filename with comma), to be safe.
+            bibdata += $~[1].split(",").map { |s| "#{s}.bib" } + [$~[1]]
             grepdata.push line.strip 
           elsif ( /^\\bibstyle\{(.+?)\}$/ =~ line )
             stylefile.push "#{$~[1]}.bst"
@@ -66,7 +68,7 @@ class BibTeX < Extension
       
       # Any changes in style or library?
       (stylefile + bibdata).each { |f|
-        fileschanged ||= !$hashes.has_key?(f) || filehash(f) != $hashes[f]
+        fileschanged ||= File.exist?(f) && (!$hashes.has_key?(f) || filehash(f) != $hashes[f])
       }
       
       # Any relevant changes in the main document?
