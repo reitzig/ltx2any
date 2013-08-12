@@ -11,7 +11,8 @@ Yet another LaTeX build wrapper, with one or two nifty features:
    speedup compilation on multi-core machines.
  * Can run as daemon, listening for file changes which prompt recompilation.
  * Aggregates error messages and warnings from all tools into a nicely formatted 
-   log (Markdown or PDF) with references to the original logs.
+   log (Markdown or [PDF](https://f.cloud.github.com/assets/1488534/937836/3e58c1e4-00ec-11e3-961c-9166c9c8d3c2.png)) 
+   with references to the original logs.
  * Adding additional phases is easy due to modular design.
  * Keeps your main directory clean by default.
  
@@ -72,14 +73,14 @@ Here is what you need to do in order get externalization running.
 
  * Read section IV.32 in [the pgfmanual](http://mirrors.ctan.org/graphics/pgf/base/doc/generic/pgf/pgfmanual.pdf).
  * Make sure you use the `list and make` mode, that is your file specifies:
- 
-        \tikzset{external/mode=list and make}
+   
+   ```latex
+   \tikzset{external/mode=list and make}
+   ```
         
  * There are two ways to make ltx2any rebuild images:
-
-     1. Specify the `-ir` option to rebuild *all* externalised images.
-     
-     2. Delete the corresponding PDF from the temp directory to have specific
+    1. Specify the `-ir` option to rebuild *all* externalised images.
+    2. Delete the corresponding PDF from the temp directory to have specific
       images rebuilt
       
    There is currently no support from TikZ for detecting when images have to be
@@ -89,9 +90,11 @@ Here is what you need to do in order get externalization running.
  * *Hint:* You may want to turn off externalization while you work on an image 
     like this:
     
-         \tikzset{external/export next=false}
-         \begin{tikzpicture}
-           ...
+    ```latex
+    \tikzset{external/export next=false}
+    \begin{tikzpicture}
+      ...
+    ```
          
  * *Hint:* Externalization adds quite some overhead and is probably not useful
     for small images. In particular, packages that use TikZ for small stuff
@@ -100,12 +103,14 @@ Here is what you need to do in order get externalization running.
     
     Therefore, you may want to enable externalization only for specific images
     (recommended, see above) or redefine troublesome commands, e.g. like this:
-    
-        \usepackage{letltxmacro}
-        \LetLtxMacro{\oldtodo}{\todo}
-        \renewcommand{\todo}[2][]{%
-          \tikzset{external/export next=false}\oldtodo[#1]{#2}%
-        }
+
+    ```latex
+    \usepackage{letltxmacro}
+    \LetLtxMacro{\oldtodo}{\todo}
+    \renewcommand{\todo}[2][]{%
+      \tikzset{external/export next=false}\oldtodo[#1]{#2}%
+    }
+    ```
 
 ### To Do ###
  
