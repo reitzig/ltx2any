@@ -179,7 +179,7 @@ class Log
             if ( m.logline != nil )
               # We have line offset in the raw log!
               logline = m.logline.map { |i| i += @rawoffsets[name] }.join("--")
-              result << (" " * (80 - (6 + logline.length))) + "`log:" + logline + "`\n\n"
+              result << (" " * (80 - (6 + logline.length))) + "`log:" + logline + "`\n\n\n"
             end
           }
         end
