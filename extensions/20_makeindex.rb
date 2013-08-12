@@ -26,7 +26,11 @@ class MakeIndex < Extension
   end
 
   def do?
-    File.exist?("#{$jobname}.idx")
+       File.exist?("#{$jobname}.idx") \
+    && (    !File.exist?("#{$jobname}.ind") \
+         || !$hashes.has_key?("#{$jobname}.idx") \
+         || filehash("#{$jobname}.idx") != $hashes["#{$jobname}.idx"] \
+       )
   end
 
   def exec()
