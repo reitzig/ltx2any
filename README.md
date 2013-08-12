@@ -21,7 +21,7 @@ We currently have support for the following implemented:
 
  * Engines `pdflatex`, `xelatex` and `lualatex` for PDF targets.
  * Engine `pandoc` which supports many target formats, including EPUB and ODT.
- * Extensions for `bibtex`, `makeindex`, TikZ externalization and `gnuplot`.
+ * Extensions for `bibtex`, `biber`, `makeindex`, TikZ externalization and `gnuplot`.
  
 Pull requests with new engines or extensions are appreciated. Please make sure
 to adhere to the specs (upcoming) and include test cases.
