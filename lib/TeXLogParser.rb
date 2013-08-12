@@ -89,7 +89,7 @@ class TeXLogParser
         @currentMessage[3] = [linectr]
         @currentMessage[4] = line.strip
         @currentMessage[5] = /^\s*/
-      elsif ( /((Under|Over)full .*?) (\d+)--(\d+)/ =~ line )
+      elsif ( /((Under|Over)full .*?) in paragraph at lines (\d+)--(\d+)/ =~ line )
         # Engine complains about under-/overfilled boxes
         messages += [finalizeMessage].compact
         fromLine = Integer($~[3])
