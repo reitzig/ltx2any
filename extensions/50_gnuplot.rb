@@ -62,7 +62,9 @@ class Gnuplot < Extension
         ilog
       }.transpose
     rescue Gem::LoadError
-      log = [[[], "Hint: install gem 'parallel' to speed up jobs with many plots.\n\n"]]
+      hint = "Hint: install gem 'parallel' to speed up jobs with many plots."
+      log = [[[LogMessage.new(:info, nil, nil, nil, hint)], 
+              "#{hint}\n\n"]]
       
       gnuplot_files.each { |f|
         log += compile(gnuplot, f)

@@ -62,12 +62,8 @@ begin
   } # TODO make parameter names symbols
 
   dependencies =  [["which", :binary, :essential],
-                   ["listen", :gem, :recommended, "for daemon mode"]] 
-  # TODO merge with dependencies of engines, extensions, Log
-  # TODO list unsatisfied dependencies in parameter-less call
-  # TODO Check essential dependencies and fail if not there
-  # TODO Chech recommended dependencies (and do what?)
-
+                   ["listen", :gem, :recommended, "for daemon mode"]]
+                                 
   # Load all extensions
   extensions = []
   $ext = nil
@@ -133,16 +129,16 @@ begin
       puts "  -#{key}\t#{if ( codes[key][0] != nil ) then codes[key][0] end}\t#{codes[key][2]}"
     }
     
-    # TODO output dependencies
+    # TODO output unsatisfied dependencies
 
     Process.exit
-  elsif ( ARGV[0] == "--extensions" )
+  elsif ( ARGV[0] == "--extensions" ) # TODO check dependencies
     puts "Installed extensions in order of execution:"
     extensions.each { |e|
       puts "  #{e.name}\t#{e.description}"
     }
     Process.exit
-  elsif ( ARGV[0] == "--engines" )
+  elsif ( ARGV[0] == "--engines" ) # TODO check dependencies in better way
     puts "Installed engines:"
     engines.each { |t|
       if ( `which #{t.name}` != "" )
@@ -367,7 +363,7 @@ begin
     begin # inner block that can be cancelled by user
       # Reset
       engine.heap = []
-      log = Log.new($jobname)
+      log = Log.new($jobname) # TODO check dependencies
       log.level = $params['loglevel']
       start_time = Time.now
 
@@ -424,8 +420,8 @@ begin
         end
         
         # Run all extensions in order
-        extensions.each { |e|
-          if ( e.do? )
+        extensions.each { |e| 
+          if ( e.do? ) # TODO check dependencies
             print "#{shortcode} #{e.name} #{running} "
             STDOUT.flush
             r = e.exec()
