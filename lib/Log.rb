@@ -161,7 +161,7 @@ class Log
               end
               srcfilelength = 76 - 9 - (if ( srcline != nil ) then srcline.length + 1 else 0 end) - 2
               result << if ( m.srcfile.length > srcfilelength )
-                          "`...#{m.srcfile[m.srcfile.length - srcfilelength - 3, m.srcfile[m.srcfile.length]]} "
+                          "  `...#{m.srcfile[m.srcfile.length - srcfilelength + 5, m.srcfile.length]}"
                         else
                           (" " * (srcfilelength - m.srcfile.length)) + "`#{m.srcfile}" 
                         end
