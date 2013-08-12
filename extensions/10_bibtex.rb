@@ -92,14 +92,24 @@ class BibTeX < Extension
     msgs = []
     errors = false
     linectr = 1
+    lastline = ""
     log.each { |line|
       if ( /^Warning--(.*)$/ =~ line )
         msgs.push(LogMessage.new(:warning, nil, nil, [linectr], $~[1]))
       elsif ( /^(.*?)---line (\d+) of file (.*)$/ =~ line )
-        msgs.push(LogMessage.new(:error, $~[3], [Integer($~[2])], [linectr], $~[1]))
+        msg = $~[1].strip
+        logline = [linectr]
+        if ( msg == "" )
+          # Sometimes the message can be on the last line
+          msg = lastline
+          logline = [linectr - 1, linectr]
+        end
+          
+        msgs.push(LogMessage.new(:error, $~[3], [Integer($~[2])], logline, msg))
         errors = true
       end
       linectr += 1
+      lastline = line
     }
 
     return [!errors, msgs, log.join("").strip!]
