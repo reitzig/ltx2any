@@ -20,6 +20,7 @@
 require 'fileutils'
 require 'rubygems'
 require 'digest'
+require 'yaml'
 Dir[File.dirname(__FILE__) + '/lib/*.rb'].each { |f| require f }
 
 # Some frontend strings
@@ -479,6 +480,25 @@ begin
       # Write log
       if ( !log.empty? )
         print "#{shortcode} Assembling log files ... "
+        
+        # Manage messages from extensions
+        extensions.each { |ext|
+          if (   !log.has_messages?(ext.name) \
+              && File.exist?(".#{name}_extensionmsg_#{ext.name}") )
+            # Extension did not run but has run before; load messages from then!
+            old = File.open(".#{name}_extensionmsg_#{ext.name}", "r") { |f|
+              f.readlines.join
+            }
+            old = YAML.load(old)
+            log.add_messages(ext.name, old[0], old[1], old[2])
+          elsif ( log.has_messages?(ext.name) )
+            # Write new messages
+            File.open(".#{name}_extensionmsg_#{ext.name}", "w") { |f|
+              f.write(YAML.dump(log.messages(ext.name)))
+            }
+          end
+        }
+        
         target = $params["log"]
         STDOUT.flush
         log.to_s("#{$params["log"]}.raw")

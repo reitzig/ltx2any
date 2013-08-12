@@ -80,6 +80,14 @@ class Log
       @rawoffsets = nil
     end
     
+    def has_messages?(source)
+      return @messages.has_key?(source)
+    end
+    
+    def messages(source)
+      return @messages[source].clone
+    end
+    
     def empty?
       return @messages.empty?
     end
