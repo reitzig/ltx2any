@@ -89,9 +89,10 @@ class TeXLogParser
         @currentMessage[3] = [linectr]
         @currentMessage[4] = line.strip
         @currentMessage[5] = /^\s*/
-      elsif ( /((Under|Over)full .*?) at lines (\d+)--(\d+)/ =~ line )
+      elsif ( /^((Under|Over)full .*?) at lines (\d+)--(\d+)?/ =~ line )
         # Engine complains about under-/overfilled boxes
         messages += [finalizeMessage].compact
+
         fromLine = Integer($~[3])
         toLine = Integer($~[4])
         srcLine = [fromLine]
@@ -100,6 +101,8 @@ class TeXLogParser
         end
           
         messages.push(LogMessage.new(:warning, filestack.last, srcLine, [linectr], $~[1].strip))
+      elsif ( /^((Under|Over)full .*?)[\d\[\]]*$/ =~ line )
+          messages.push(LogMessage.new(:warning, filestack.last, nil, [linectr], $~[1].strip))
       elsif ( /^Runaway argument\?$/ =~ line )
         messages += [finalizeMessage].compact
         @currentMessage[0] = :error
