@@ -44,7 +44,7 @@ class PdfLaTeX < Engine
     pdflatex = '"pdflatex -file-line-error -interaction=nonstopmode \"#{$jobfile}\""'
 
     f = IO::popen(eval(pdflatex))
-    log = f.readlines
+    log = f.readlines.map! { |s| Log.fix(s) }
 
     newHash = -1
     if ( File.exist?("#{$jobname}.#{extension}") )

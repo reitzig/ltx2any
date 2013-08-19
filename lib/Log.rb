@@ -250,6 +250,17 @@ class Log
       return result
     end
     
+    def self.fix(s)
+      # Prevents errors when engines write illegal symbols to log.
+      # Since the API changed between Ruby 1.8.x and 1.9, be
+      # careful.
+      RUBY_VERSION.to_f < 1.9 ? 
+        Iconv.iconv('UTF-8//IGNORE', 'UTF-8',  s) :
+        s.encode!(Encoding::UTF_16LE, :invalid => :replace, 
+                                      :undef => :replace, 
+                                      :replace => '?').encode!(Encoding::UTF_8)
+    end
+    
     private 
       def break_at_spaces(s, length, indent)
         words = s.split(/\s+/)
