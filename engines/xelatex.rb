@@ -44,7 +44,7 @@ class XeLaTeX < Engine
     xelatex = '"xelatex -file-line-error -interaction=nonstopmode \"#{$jobfile}\""'
 
     f = IO::popen(eval(xelatex))
-    log = f.readlines
+    log = f.readlines.map! { |s| Log.fix(s) }
 
     newHash = -1
     if ( File.exist?("#{$jobname}.#{extension}") )

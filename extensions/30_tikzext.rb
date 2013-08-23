@@ -77,6 +77,12 @@ class TikZExt < Extension
     end
   
     # TODO check for errors/warnings
+    # Note: individual logs contains stuff from all over the original job.
+    # The interesting part seems to be framed by:
+    #   ^\openout5 = `<figjobname>.dpth'.$
+    #   ...
+    #   ^[\d+$
+    # Especially the latter may be vague -- test
     return [true, [], log]
   end
   

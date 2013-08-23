@@ -218,7 +218,7 @@ class Log
       
       if ( panout.strip != "" )
         # That should never happen
-        File.open("#{target_file}.log", w) { |f| f.write(panout) }
+        File.open("#{target_file}.log", "w") { |f| f.write(panout) }
         raise "Pandoc encountered errors! See #{target_file}.log."
       end
     end

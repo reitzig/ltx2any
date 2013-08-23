@@ -44,7 +44,7 @@ class LuaLaTeX < Engine
     lualatex = '"lualatex -file-line-error -interaction=nonstopmode \"#{$jobfile}\""'
 
     f = IO::popen(eval(lualatex))
-    log = f.readlines
+    log = f.readlines.map! { |s| Log.fix(s) }
 
     newHash = -1
     if ( File.exist?("#{$jobname}.#{extension}") )
