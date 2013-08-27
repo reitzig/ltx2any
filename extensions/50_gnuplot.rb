@@ -78,6 +78,8 @@ class Gnuplot < Extension
       log = log.transpose
     end
 
+    # TODO fix log line numbers (cf tikzext)
+
     log[0].flatten!
     return [log[0].empty?, log[0], log[1].join]
   end

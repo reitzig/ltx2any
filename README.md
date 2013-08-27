@@ -81,7 +81,7 @@ Here is what you need to do in order get externalization running.
  * There are two ways to make ltx2any rebuild images:
     1. Specify the `-ir` option to rebuild *all* externalised images.
     2. Delete the corresponding PDF from the temp directory to have specific
-      images rebuilt
+      images rebuilt.
       
    There is currently no support from TikZ for detecting when images have to be
    rebuilt due to changes. We may add a way to invalidate specific images between

@@ -16,7 +16,7 @@
 
 \begin{document}
 
-% First: normale figure
+% First: normal figure
 \begin{center}
   \begin{tikzpicture}
     \node[draw,circle]{A};
@@ -49,6 +49,11 @@
     \node[draw,circle]{\Rightarrow}
     \path (a) -- ;
   \end{tikzpicture}
+\end{center}
+
+% Fifth: figure with errors from external files
+\begin{center}
+  \input{testfigure.tikz}
 \end{center}
 
 \end{document}

@@ -61,12 +61,14 @@ class TikZExt < Extension
         end
         c += 1
         ilog
-      }.join
+      }.transpose
     rescue Gem::LoadError
-      log << "Hint: install gem 'parallel' to speed up jobs with many externalized figures.\n\n"
+      hint = "Hint: install gem 'parallel' to speed up jobs with many externalized figures."
+      log = [[[LogMessage.new(:info, nil, nil, nil, hint)], 
+              "#{hint}\n\n"]]
       
       figures.each { |fig|
-        log << compile(pdflatex, fig)
+        log += compile(pdflatex, fig)
         # Output up to ten dots
         # TODO: make nicer output! Eg: [5/10]
         if ( c % [1, (figures.size / 10)].max == 0 )
@@ -74,32 +76,92 @@ class TikZExt < Extension
         end
         c += 1
       }
+      log = log.transpose
     end
   
-    # TODO check for errors/warnings
-    # Note: individual logs contains stuff from all over the original job.
-    # The interesting part seems to be framed by:
-    #   ^\openout5 = `<figjobname>.dpth'.$
-    #   ...
-    #   ^[\d+$
-    # Especially the latter may be vague -- test
-    return [true, [], log]
-  end
-  
-  def compile(cmd, fig)
-    log = ""
-    
-    if ( $params["imagerebuild"] || !File.exist?("#{fig}.pdf") )
-      io = IO::popen(eval(cmd))
-      output = io.readlines.join("").strip
-
-      if ( !File.exist?("#{fig}.pdf") ) 
-        log << "Fatal error on #{fig}. See #{$params["tmpdir"]}/#{fig}.log for details.\n"
+    # Log line numbers are wrong since every compile determines log line numbers
+    # w.r.t. its own contribution. Later steps will only add the offset of the
+    # whole tikzext block, not those inside.
+    offset = 0
+    (0..(log[0].size - 1)).each { |i|
+      if ( log[0][i].size > 0 )
+        internal_offset = 5 # Stuff we print per figure before log excerpt (see :compile)
+        log[0][i].map! { |m|
+          LogMessage.new(m.type, m.srcfile, m.srcline, 
+                         if ( m.logline != nil ) then
+                           m.logline.map { |ll| ll + offset + internal_offset - 1} # -1 because we drop first line!
+                         else
+                           nil
+                         end,
+                         m.msg, if ( m.formatted? ) then :fixed else :none end)
+        }
+        
+        log[0][i] = [LogMessage.new(:info, nil, nil, nil, 
+                                    "The following messages refer to figure\n  #{figures[i]}.\n" + 
+                                    "See\n  #{$params["tmpdir"]}/#{figures[i]}.log\nfor the full log.", :fixed)
+                    ] + log[0][i]
+      else
+        log[0][i] += [LogMessage.new(:info, nil, nil, nil, 
+                                     "No messages for figure\n  #{figures[i]}.\nfound. " + 
+                                     "See\n  #{$params["tmpdir"]}/#{figures[i]}.log\nfor the full log.", :fixed)
+                     ]
       end
-    end
+      offset += log[1][i].count(?\n) 
+    }
     
-    return log
+    log[0].flatten!
+    errors = log[0].count { |m| m.type == :error }
+    return [errors <= 0, log[0], log[1].join]
   end
+  
+  private
+    def compile(cmd, fig)
+      msgs = []
+      log = "# #\n# Figure: #{fig}\n#   See #{$params["tmpdir"]}/#{fig}.log for full log.\n\n"
+      
+      if ( $params["imagerebuild"] || !File.exist?("#{fig}.pdf") )       
+        # Run twice to clean up log?
+        # IO::popen(eval(cmd)).readlines
+        io = IO::popen(eval(cmd)).readlines
+        # Shell output does not contain error messages -> read log
+        output = File.open("#{fig}.log", "r") { |f|
+          f.readlines.map { |s| Log.fix(s) }
+        }
+        
+        # These seems to describe reliable boundaries of that part in the log
+        # which deals with the processed TikZ figure.
+        startregexp = /^\\openout5 = `#{fig}\.dpth'\.\s*$/
+        endregexp = /^\[\d+\s*$/
+        
+        # Cut out relevant part for raw log (heuristic)
+        string = output.drop_while { |line|
+          startregexp !~ line
+        }.take_while { |line|
+          endregexp !~ line
+        }.drop(1).join("").strip
+
+        if ( string != "" )
+          log << "<snip>\n\n#{string}\n\n<snip>"
+        else
+          log << "No errors detected."
+        end
+        
+        # Parse whole log for messages (needed for filenames) but restrict
+        # to messages from interesting part
+        msgs = TeXLogParser.parse(output, startregexp, endregexp)
+
+        # Still necessary? Should get *some* error from the recursive call.
+        # if ( !File.exist?("#{fig}.pdf") ) 
+        #   log << "Fatal error on #{fig}. See #{$params["tmpdir"]}/#{fig}.log for details.\n"
+        # end
+      else
+        msgs.push(LogMessage.new(:info, nil, nil, nil, "Not rebuilt."))
+        log << "Not rebuilt."
+      end
+      log << "\n\n"
+      
+      return [msgs, log]
+    end
 end
 
 $ext = TikZExt.new

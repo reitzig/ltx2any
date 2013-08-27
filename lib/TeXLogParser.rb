@@ -19,9 +19,14 @@
 require "#{File.dirname(__FILE__)}/LogMessage.rb"
 
 class TeXLogParser
-  # Input: string array (one entry per line)
+  # Input: 
+  #  * log -- string array (one entry per line)
+  #  * startregexp -- start collecting messages after first match
+  #                   Default: matches any line, thus collects from the start
+  #  * endregexp   -- stop collecting at first match after collection started
+  #                   Default: matches nothing, thus collects to the end
   # Output: Array of Message objects
-  def self.parse(log)
+  def self.parse(log, startregexp = /.*/, endregexp = /(?=a)b/)
     # Contains a stack of currently "open" files.
     # filestack.last is the current one.
     filestack = []
@@ -32,23 +37,38 @@ class TeXLogParser
     # The stack of files the log is currently "in"
     filestack = []
     
-    linectr = 1
-    @currentMessage = [nil, nil, nil, nil, nil, nil, :none]
+    collecting = false
+    linectr = 1 # Declared for the increment at the end of the loop
+    current = Finalizer.new
     log.each { |line|
-      if ( line.strip == "" )
-        messages += [finalizeMessage].compact 
+      if ( !collecting && startregexp =~ line )
+        collecting = true
+        linectr = 1
+      end
+      if ( collecting && endregexp =~ line )
+        messages += [current.get_msg].compact
+        break
+      end
+    
+      # Even when not collecting, we need to keep track of which file
+      # we are in.
+      if ( collecting && line.strip == "" )
+        messages += [current.get_msg].compact 
       elsif ( /^(\([^()]*\)|[^()])*\)/ =~ line )
         # End of messages regarding current file
-        messages += [finalizeMessage].compact
-        
+        if ( collecting )
+          messages += [current.get_msg].compact
+        end
+
         filestack.pop
         
         # Multiple files may close; cut away matching part and start over.
         line = line.gsub($~.regexp, "")
         redo
-      elsif ( /\(([^()]*?)(\s+\[\d+\]\s+)?$/ =~ line )
-        # A new file has started
+      elsif ( /^[^()]*\(([^()]*?(\(|$))/ =~ line )
+        # A new file has started. Match only those that don't close immediately.
         candidate = $~[1]
+        
         while( !File.exist?(candidate) && candidate != "" ) do # TODO can be long; use heuristics?
           candidate = candidate[0,candidate.length - 1]
         end
@@ -59,72 +79,79 @@ class TeXLogParser
           # add a dummy and hope it closes.
           filestack.push("dummy")
         end
-      elsif ( /(Package|Class)\s+([\w]+)\s+(Warning|Error|Info)/ =~ line )
-        # Message from some package or class, may be multi-line
-        messages += [finalizeMessage].compact
-        
-        @currentMessage[0] = if ( $~[3] == "Warning" )
-                             then :warning
-                             elsif ( $~[3] == "Info" )
-                             then :info
-                             else :error 
-                             end
-        @currentMessage[1] = filestack.last
-        @currentMessage[2] = nil
-        @currentMessage[3] = [linectr]
-        @currentMessage[4] = line.strip
-        @currentMessage[5] = /^\(#{$~[2]}\)\s*/
-      elsif ( /\w+?TeX\s+(Warning|Error|Info)/ =~ line )
-        # Some message from the engine, may be multi-line
-        messages += [finalizeMessage].compact
 
-        @currentMessage[0] = if ( $~[1] == "Warning" )
-                             then :warning
-                             elsif ( $~[1] == "Info" )
-                             then :info 
-                             else :error
-                             end
-        @currentMessage[1] = filestack.last
-        @currentMessage[2] = nil
-        @currentMessage[3] = [linectr]
-        @currentMessage[4] = line.strip
-        @currentMessage[5] = /^\s*/
-      elsif ( /^((Under|Over)full .*?) at lines (\d+)--(\d+)?/ =~ line )
-        # Engine complains about under-/overfilled boxes
-        messages += [finalizeMessage].compact
-
-        fromLine = Integer($~[3])
-        toLine = Integer($~[4])
-        srcLine = [fromLine]
-        if ( toLine >= fromLine )
-          srcLine[1] = toLine
-        end
+        # Multiple files may open; cut away matching part and start over.
+        replace = if ( $~[2] == "(" ) then "(" else "" end
+        line = line.gsub($~.regexp, replace)
+        redo
+      elsif ( collecting ) # Do all the checks only when collecting
+        if ( !filestack.empty? && /^#{Regexp.escape(filestack.last)}:(\d+): (.*)/ =~ line )
+          messages += [current.get_msg].compact
+          messages.push(LogMessage.new(:error, filestack.last, [Integer($~[1])], [linectr], $~[2].strip))
+          # TODO is it worthwhile to try and copy the context?
+        elsif ( /(Package|Class)\s+([\w]+)\s+(Warning|Error|Info)/ =~ line )
+          # Message from some package or class, may be multi-line
+          messages += [current.get_msg].compact
           
-        messages.push(LogMessage.new(:warning, filestack.last, srcLine, [linectr], $~[1].strip))
-      elsif ( /^((Under|Over)full .*?)[\d\[\]]*$/ =~ line )
+          current.type = if ( $~[3] == "Warning" )
+                         then :warning
+                         elsif ( $~[3] == "Info" )
+                         then :info
+                         else :error 
+                         end
+          current.srcfile = filestack.last
+          current.srcline = nil
+          current.logline = [linectr]
+          current.message = line.strip
+          current.slicer = /^\(#{$~[2]}\)\s*/
+        elsif ( /\w+?TeX\s+(Warning|Error|Info)/ =~ line )
+          # Some message from the engine, may be multi-line
+          messages += [current.get_msg].compact
+
+          current.type = if ( $~[1] == "Warning" )
+                         then :warning
+                         elsif ( $~[1] == "Info" )
+                         then :info 
+                         else :error
+                         end
+          current.srcfile = filestack.last
+          current.srcline = nil
+          current.logline = [linectr]
+          current.message = line.strip
+          current.slicer = /^\s*/
+        elsif ( /^((Under|Over)full .*?) at lines (\d+)--(\d+)?/ =~ line )
+          # Engine complains about under-/overfilled boxes
+          messages += [current.get_msg].compact
+
+          fromLine = Integer($~[3])
+          toLine = Integer($~[4])
+          srcLine = [fromLine]
+          if ( toLine >= fromLine )
+            srcLine[1] = toLine
+          end
+            
+          messages.push(LogMessage.new(:warning, filestack.last, srcLine, [linectr], $~[1].strip))
+        elsif ( /^((Under|Over)full .*?)[\d\[\]]*$/ =~ line )
+          messages += [current.get_msg].compact
           messages.push(LogMessage.new(:warning, filestack.last, nil, [linectr], $~[1].strip))
-      elsif ( /^Runaway argument\?$/ =~ line )
-        messages += [finalizeMessage].compact
-        @currentMessage[0] = :error
-        @currentMessage[1] = filestack.last
-        @currentMessage[2] = nil
-        @currentMessage[3] = [linectr]
-        @currentMessage[4] = line
-        @currentMessage[5] = nil
-        @currentMessage[6] = :fixed # Maintain formatting
-      elsif ( !filestack.empty? && /^#{Regexp.escape(filestack.last)}:(\d+): (.*)/ =~ line )
-        messages += [finalizeMessage].compact
-        messages.push(LogMessage.new(:error, filestack.last, [Integer($~[1])], [linectr], $~[2].strip))
-        # TODO is it worthwhile to try and copy the context?
-      elsif ( @currentMessage[0] != nil )
-        if (@currentMessage[5] != nil )
-          line = line.gsub(@currentMessage[5], "")
+        elsif ( /^Runaway argument\?$/ =~ line )
+          messages += [current.get_msg].compact
+          current.type = :error
+          current.srcfile = filestack.last
+          current.srcline = nil
+          current.logline = [linectr]
+          current.message = line.strip
+          current.format = :fixed # Maintain formatting
+        elsif ( current.type != nil )
+          if ( current.slicer != nil )
+            line = line.gsub(current.slicer, "")
+          end
+          if ( current.format != :fixed )
+            line = " " + line.strip!
+          end
+          current.message += line
+          current.logline[1] = linectr
         end
-        if ( @currentMessage[6] != :fixed )
-          line = " " + line.strip!
-        end
-        @currentMessage[4] += line
-        @currentMessage[3][1] = linectr
       end
          
       linectr += 1
@@ -134,22 +161,38 @@ class TeXLogParser
   end
   
   private
-    # Some messages may run over multiple lines. Complete with this:
-    #  (initially: @currentmessage = [nil, nil, nil, nil, nil, nil, :none] )
-    def self.finalizeMessage()
-      if ( @currentMessage[0] != nil )
-        res = 
-          LogMessage.new(@currentMessage[0], # type
-                         @currentMessage[1], # srcfile
-                         @currentMessage[2], # srcline
-                         @currentMessage[3], # logline
-                         @currentMessage[4],
-                         @currentMessage[6], # message
-                        )
-        @currentMessage = [nil, nil, nil, nil, nil, nil, :none]
-        return res
-      else
-        return nil
+  
+    # Some messages may run over multiple lines. Use an instance
+    # of this class to collect it completely.
+    class Finalizer
+      def initialize
+        reset
       end
+      
+      def reset
+        @type = nil
+        @srcfile = nil
+        @srcline = nil
+        @logline = nil
+        @message = nil
+        @format = :none
+        
+        @slicer = nil
+      end 
+      
+      public
+        attr_accessor :type, :srcfile, :srcline, :logline, :message, :format, :slicer
+      
+        #  (initially: @currentmessage = [nil, nil, nil, nil, nil, nil, :none] )
+        def get_msg()
+          if ( @type != nil )
+            res = LogMessage.new(@type, @srcfile, @srcline, @logline, @message, @format)
+            reset
+            return res
+          else
+            reset
+            return nil
+          end
+        end
     end
 end
