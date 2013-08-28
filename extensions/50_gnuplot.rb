@@ -78,10 +78,29 @@ class Gnuplot < Extension
       log = log.transpose
     end
 
-    # TODO fix log line numbers (cf tikzext)
+    # Log line numbers are wrong since every compile determines log line numbers
+    # w.r.t. its own contribution. Later steps will only add the offset of the
+    # whole gnuplot block, not those inside.
+    offset = 0
+    (0..(log[0].size - 1)).each { |i|
+      if ( log[0][i].size > 0 )
+        internal_offset = 2 # Stuff we print per plot before log excerpt (see :compile)
+        log[0][i].map! { |m|
+          LogMessage.new(m.type, m.srcfile, m.srcline, 
+                         if ( m.logline != nil ) then
+                           m.logline.map { |ll| ll + offset + internal_offset} 
+                         else
+                           nil
+                         end,
+                         m.msg, if ( m.formatted? ) then :fixed else :none end)
+        }
+      end
+      offset += log[1][i].count(?\n) 
+    }
 
     log[0].flatten!
-    return [log[0].empty?, log[0], log[1].join]
+    errors = log[0].count { |m| m.type == :error }
+    return [errors <= 0, log[0], log[1].join]
   end
   
   private 
@@ -102,13 +121,15 @@ class Gnuplot < Extension
       end
       log << "\n\n"
       
-      return [msgs, log.strip!]
+      return [msgs, log]
     end
     
     def parse(strings)
       msgs = []
         
       context = ""
+      contextline = 1
+      linectr = 1
       strings.each { |line|
         # Messages have the format
         #  * context (at least one line)
@@ -118,13 +139,17 @@ class Gnuplot < Extension
         # So I'm going to assume that multiple error messages
         # are separated by empty lines.
         if ( /^"(.+?)", line (\d+): (.*)$/ =~ line )
-          msgs.push(LogMessage.new(:error, $~[1], [Integer($~[2])], nil, 
+          msgs.push(LogMessage.new(:error, "#{$params["tmpdir"]}/#{$~[1]}", 
+                                   [Integer($~[2])], [[contextline, linectr].min, linectr], 
                                    "#{context}#{$~[3].strip}", :fixed))
         elsif ( line.strip == "" )
           context = ""
+          contextline = strings.size + 1 # Larger than every line number
         else
+          contextline = [contextline, linectr].min
           context += line
         end
+        linectr += 1
         # TODO break/strip long lines? Should be able to figure out relevant parts
         #      by position of circumflex
         # TODO drop context here and instead give log line numbers?
