@@ -29,24 +29,31 @@ class TikZExt < Extension
   end
 
   def do?
-    File.exist?("#{$jobname}.figlist")
+    File.exist?("#{$jobname}.figlist") && ($params["imagerebuild"] || 
+      IO.readlines("#{$jobname}.figlist").select { |fig|
+        !File.exist?("#{fig.strip}.pdf")
+      }.size > 0 )
   end
 
   def exec()
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
-    # * jobname -- name of the main LaTeX file (without file ending)
-    pdflatex = '"pdflatex -shell-escape -file-line-error -interaction=batchmode -jobname \"#{fig}\" \"\\\def\\\tikzexternalrealjob{#{$jobname}}\\\input{#{$jobname}}\" 2>&1"'
+    # * $params["engine"] -- Engine used by the main job.
+    # * $jobname -- name of the main LaTeX file (without file ending)
+    pdflatex = '"#{$params["engine"]} -shell-escape -file-line-error -interaction=batchmode -jobname \"#{fig}\" \"\\\def\\\tikzexternalrealjob{#{$jobname}}\\\input{#{$jobname}}\" 2>&1"'
 
-    figures = []
-    IO.foreach("#{$jobname}.figlist") { |fig|
+    figures = IO.readlines("#{$jobname}.figlist").map { |fig|
       if ( fig.strip != "" )
-       figures.push(fig.strip)
+        fig.strip
+      else
+        nil
       end
+    }.compact.select { |fig|
+      $params["imagerebuild"] || !File.exist?("#{fig}.pdf")
     }
-     
-    # Run pdflatex for each figure
-    log = ""
+    
+    # Run (latex) engine for each figure
+    log = [[], ""]
     c = 1
     begin # TODO move gem checking/loading to a central place?
       gem "parallel"
@@ -118,46 +125,41 @@ class TikZExt < Extension
     def compile(cmd, fig)
       msgs = []
       log = "# #\n# Figure: #{fig}\n#   See #{$params["tmpdir"]}/#{fig}.log for full log.\n\n"
+             
+      # Run twice to clean up log?
+      # IO::popen(eval(cmd)).readlines
+      io = IO::popen(eval(cmd)).readlines
+      # Shell output does not contain error messages -> read log
+      output = File.open("#{fig}.log", "r") { |f|
+        f.readlines.map { |s| Log.fix(s) }
+      }
       
-      if ( $params["imagerebuild"] || !File.exist?("#{fig}.pdf") )       
-        # Run twice to clean up log?
-        # IO::popen(eval(cmd)).readlines
-        io = IO::popen(eval(cmd)).readlines
-        # Shell output does not contain error messages -> read log
-        output = File.open("#{fig}.log", "r") { |f|
-          f.readlines.map { |s| Log.fix(s) }
-        }
-        
-        # These seems to describe reliable boundaries of that part in the log
-        # which deals with the processed TikZ figure.
-        startregexp = /^\\openout5 = `#{fig}\.dpth'\.\s*$/
-        endregexp = /^\[\d+\s*$/
-        
-        # Cut out relevant part for raw log (heuristic)
-        string = output.drop_while { |line|
-          startregexp !~ line
-        }.take_while { |line|
-          endregexp !~ line
-        }.drop(1).join("").strip
+      # These seems to describe reliable boundaries of that part in the log
+      # which deals with the processed TikZ figure.
+      startregexp = /^\\openout5 = `#{fig}\.dpth'\.\s*$/
+      endregexp = /^\[\d+\s*$/
+      
+      # Cut out relevant part for raw log (heuristic)
+      string = output.drop_while { |line|
+        startregexp !~ line
+      }.take_while { |line|
+        endregexp !~ line
+      }.drop(1).join("").strip
 
-        if ( string != "" )
-          log << "<snip>\n\n#{string}\n\n<snip>"
-        else
-          log << "No errors detected."
-        end
-        
-        # Parse whole log for messages (needed for filenames) but restrict
-        # to messages from interesting part
-        msgs = TeXLogParser.parse(output, startregexp, endregexp)
-
-        # Still necessary? Should get *some* error from the recursive call.
-        # if ( !File.exist?("#{fig}.pdf") ) 
-        #   log << "Fatal error on #{fig}. See #{$params["tmpdir"]}/#{fig}.log for details.\n"
-        # end
+      if ( string != "" )
+        log << "<snip>\n\n#{string}\n\n<snip>"
       else
-        msgs.push(LogMessage.new(:info, nil, nil, nil, "Not rebuilt."))
-        log << "Not rebuilt."
+        log << "No errors detected."
       end
+      
+      # Parse whole log for messages (needed for filenames) but restrict
+      # to messages from interesting part
+      msgs = TeXLogParser.parse(output, startregexp, endregexp)
+
+      # Still necessary? Should get *some* error from the recursive call.
+      # if ( !File.exist?("#{fig}.pdf") ) 
+      #   log << "Fatal error on #{fig}. See #{$params["tmpdir"]}/#{fig}.log for details.\n"
+      # end
       log << "\n\n"
       
       return [msgs, log]
