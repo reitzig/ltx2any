@@ -128,6 +128,11 @@ class TeXLogParser
           srcLine = [fromLine]
           if ( toLine >= fromLine )
             srcLine[1] = toLine
+          else
+            # This seems to happen for included files. The first number is the
+            # line in the including file, the second in the included one.
+            # TODO What for chains?
+            srcLine = [toLine]
           end
             
           messages.push(LogMessage.new(:warning, filestack.last, srcLine, [linectr], $~[1].strip))
