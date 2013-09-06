@@ -206,10 +206,10 @@ class Log
         markdown = to_md
         
         # Perform some cosmetic tweaks
-        markdown.gsub!(/^ \*  \*\*Error\*\*/, " \*  \\error")
-        markdown.gsub!(/^ \*  \*Warning\*/, " \*  \\warning")
-        markdown.gsub!(/^ \*  Info/, " \*  \\info")
-        markdown.gsub!(/^\s+`log:(\d+(--\d+)?)`$/,  "\\logref{\\1}")
+        markdown.gsub!(/^ \*  \*\*Error\*\*/, " \*  \\blockitem\\error")
+        markdown.gsub!(/^ \*  \*Warning\*/, " \*  \\blockitem\\warning")
+        markdown.gsub!(/^ \*  Info/, " \*  \\blockitem\\info")
+        markdown.gsub!(/^\s+`log:(\d+(--\d+)?)`$/,  "\\logref{\\1}\\endblockitem")
       
         f.puts(markdown)
         f.close_write
