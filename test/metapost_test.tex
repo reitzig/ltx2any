@@ -1,0 +1,44 @@
+\documentclass[a4paper,fleqn]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage[pdftex]{graphicx}
+\DeclareGraphicsRule{*}{mps}{*}{}
+\usepackage{emp}
+
+\begin{document}
+
+\begin{empfile}[milderrorfig]
+  \begin{empdef}[milderrorfig](5cm,5cm)
+    fill ((0,0)--(20,0)--(20,10)--(10,10)--(10,20)--(0,20)--cycle)
+        withcolor green;
+    draw ((20,0)..(20,10)..(10,10)..(10,20)..(020));
+    drawarrow ((0,0)--(20,20));
+  \end{empdef}
+\end{empfile}
+
+\begin{empfile}[testfig]
+  \begin{empdef}[testfig](5cm,5cm)
+    fill ((0,0)--(20,0)--(20,10)--(10,10)--(10,20)--(0,20)--cycle)
+        withcolor green;
+    draw ((20,0)..(20,10)..(10,10)..(10,20)..(0,20));
+    drawarrow ((0,0)--(20,20));
+  \end{empdef}
+\end{empfile}
+
+\begin{empfile}[errorfig]
+  \begin{empdef}[errorfig](5cm,5cm)
+    fill ((0,0)--(20,0)--(20,10)--(10,10)--(10,20)--(0,20)--cycle)
+        withcolor green;
+    draw ((20,0)..(20,10)..(10,10)..(10,20)..(020))
+    drawarrow ((0,0)--(20,20));
+  \end{empdef}
+\end{empfile}
+
+\empuse{milderrorfig}
+
+\empuse{testfig}
+
+\empuse{errorfig}
+
+\end{document}

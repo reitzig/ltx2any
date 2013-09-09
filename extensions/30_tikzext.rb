@@ -36,7 +36,7 @@ class TikZExt < Extension
   end
 
   def exec()
-    # Command to process bibtex bibliography if necessary.
+    # Command to process externalised TikZ images if necessary.
     # Uses the following variables:
     # * $params["engine"] -- Engine used by the main job.
     # * $jobname -- name of the main LaTeX file (without file ending)

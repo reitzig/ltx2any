@@ -16,46 +16,44 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-class Gnuplot < Extension
+class MetaPost < Extension
   def initialize
     super
     
-    @name = "gnuplot"
-    @description = "Executes generated gnuplot files"
-    @dependencies = [["gnuplot", :binary, :essential],
+    @name = "metapost"
+    @description = "Compiles generated MetaPost files"
+    @dependencies = [["mpost", :binary, :essential],
                      ["parallel", :gem, :recommended, "for better performance"]]
   end
 
   def do?
-    # Check whether there are any _.gnuplot files that have changed
+    # Check whether there are any _.mp files that have changed
     !Dir.entries(".").delete_if { |f|
-      (/\.gnuplot$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
+      (/\.mp$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
     }.empty?
   end
 
   def exec()
-    # Command to process gnuplot files if necessary.
-    # Uses the following variables:
-    # * jobname -- name of the main LaTeX file (without file ending)
-    gnuplot = '"gnuplot \"#{f}\" 2>&1"'
+    # Command to process metapost files if necessary.
+    mpost = '"mpost -tex=#{$params["engine"]} -file-line-error -interaction=nonstopmode \"#{f}\" 2>&1"'
 
     # Filter out non-gnuplot files and such that did not change since last run
-    gnuplot_files = Dir.entries(".").delete_if { |f|
-      (/\.gnuplot$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
+    mp_files = Dir.entries(".").delete_if { |f|
+      (/\.mp$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
     }
 
-    # Run gnuplot for each remaining file
+    # Run mpost for each remaining file
     log = ""
     c = 1
     begin # TODO move gem checking/loading to a central place?
       gem "parallel"
       require 'parallel'
       
-      log = Parallel.map(gnuplot_files) { |f|
-        ilog = compile(gnuplot, f)
+      log = Parallel.map(mp_files) { |f|
+        ilog = compile(mpost, f)
         # Output up to ten dots
         # TODO: make nicer output! Eg: [5/10]
-        if ( c % [1, (gnuplot_files.size / 10)].max == 0 )
+        if ( c % [1, (mp_files.size / 10)].max == 0 )
           progress()
         end
         c += 1
@@ -66,11 +64,11 @@ class Gnuplot < Extension
       log = [[[LogMessage.new(:info, nil, nil, nil, hint)], 
               "#{hint}\n\n"]]
       
-      gnuplot_files.each { |f|
-        log += compile(gnuplot, f)
+      mp_files.each { |f|
+        log += compile(mpost, f)
         # Output up to ten dots
         # TODO: make nicer output! Eg: [5/10]
-        if ( c % [1, (gnuplot_files.size / 10)].max == 0 )
+        if ( c % [1, (mp_files.size / 10)].max == 0 )
           progress()
         end
         c += 1
@@ -84,7 +82,7 @@ class Gnuplot < Extension
     offset = 0
     (0..(log[0].size - 1)).each { |i|
       if ( log[0][i].size > 0 )
-        internal_offset = 2 # Stuff we print per plot before log excerpt (see :compile)
+        internal_offset = 3 # Stuff we print per plot before log excerpt (see :compile)
         log[0][i].map! { |m|
           LogMessage.new(m.type, m.srcfile, m.srcline, 
                          if ( m.logline != nil ) then
@@ -115,48 +113,41 @@ class Gnuplot < Extension
       log << "# #\n# #{f}\n\n"
       if ( output != "" )
         log << output
-        msgs += parse(lines)
+        msgs += msgs = parse(lines, f)
       else
-        log << "No output from gnuplot, so apparently everything went fine!"
+        log << "No output from mpost, so apparently everything went fine!"
       end
       log << "\n\n"
       
       return [msgs, log]
     end
     
-    def parse(strings)
+    def parse(strings, file)
       msgs = []
         
-      context = ""
-      contextline = 1
       linectr = 1
+      curmsg = nil
+      curline = -1
       strings.each { |line|
         # Messages have the format
-        #  * context (at least one line)
-        #  * ^ marking the point of issue in its own line
-        #  * one line of error statement
-        # I have never seen more than one error (seems to abort). 
-        # So I'm going to assume that multiple error messages
-        # are separated by empty lines.
-        if ( /^"(.+?)", line (\d+): (.*)$/ =~ line )
-          msgs.push(LogMessage.new(:error, "#{$params["tmpdir"]}/#{$~[1]}", 
-                                   [Integer($~[2])], [[contextline, linectr].min, linectr], 
-                                   "#{context}#{$~[3].strip}", :fixed))
-        elsif ( line.strip == "" )
-          context = ""
-          contextline = strings.size + 1 # Larger than every line number
-        else
-          contextline = [contextline, linectr].min
-          context += line
+        #  ! message
+        #  ...
+        #  l.\d+ ...
+        if ( /^! (.*)$/ =~ line )
+          curmsg = $~[1].strip
+          curline = linectr
+        elsif ( curmsg != nil && /^l\.(\d+)/ =~ line )
+          msgs.push(LogMessage.new(:error, "#{$params["tmpdir"]}/#{file}", 
+                                   [Integer($~[1])], [curline, linectr], 
+                                   curmsg, :none))
+          curmsg = nil
+          curline = -1
         end
         linectr += 1
-        # TODO break/strip long lines? Should be able to figure out relevant parts
-        #      by position of circumflex
-        # TODO drop context here and instead give log line numbers?
       }
         
       return msgs
     end
 end
 
-$ext = Gnuplot.new
+$ext = MetaPost.new
