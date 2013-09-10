@@ -106,6 +106,8 @@ class MetaPost < Extension
       log = ""
       msgs = []
       
+      # Run twice to get LaTeX bits right
+      IO::popen(eval(cmd)).readlines
       io = IO::popen(eval(cmd))
       lines = io.readlines
       output = lines.join("").strip

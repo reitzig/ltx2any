@@ -181,7 +181,7 @@ begin
     end
 
     if ( $jobfile == nil )
-      puts "#{shortcode} Please provide input file. Call with --help for details."
+      puts "#{shortcode} Please provide an input file. Call with --help for details."
       Process.exit
     end
 
