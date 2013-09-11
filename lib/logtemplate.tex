@@ -31,8 +31,6 @@ $if(mathfont)$
     \setmathfont{$mathfont$}
 $endif$
 \fi
-% use microtype if available
-\IfFileExists{microtype.sty}{\usepackage{microtype}}{}
 $if(geometry)$
 \usepackage[$for(geometry)$$geometry$$sep$,$endfor$]{geometry}
 $endif$
@@ -62,26 +60,6 @@ $if(graphics)$
 \makeatother
 \let\Oldincludegraphics\includegraphics
 \renewcommand{\includegraphics}[1]{\Oldincludegraphics[width=\maxwidth]{#1}}
-$endif$
-\ifxetex
-  \usepackage[setpagesize=false, % page size defined by xetex
-              unicode=false, % unicode breaks when used with xetex
-              xetex]{hyperref}
-\else
-  \usepackage[unicode=true]{hyperref}
-\fi
-\hypersetup{breaklinks=true,
-            bookmarks=true,
-            pdfauthor={$author-meta$},
-            pdftitle={$title-meta$},
-            colorlinks=true,
-            urlcolor=$if(urlcolor)$$urlcolor$$else$blue$endif$,
-            linkcolor=$if(linkcolor)$$linkcolor$$else$magenta$endif$,
-            pdfborder={0 0 0}}
-\urlstyle{same}  % don't use monospace font for urls
-$if(links-as-notes)$
-% Make links footnotes instead of hotlinks:
-\renewcommand{\href}[2]{#2\footnote{\url{#1}}}
 $endif$
 $if(strikeout)$
 \usepackage[normalem]{ulem}
@@ -117,15 +95,60 @@ $endif$
 \author{$for(author)$$author$$sep$ \and $endfor$}
 \date{$date$}
 
-% Custom preamble
-
-\usepackage{xcolor}
-\newcommand{\error}{{\color{red!80!black}\textbf{\textsc{Error}}}\hfill}
+% Custom preamble: defines commands for pretty printing and
+% error navigation.
+\usepackage{xcolor,marginnote,xifthen}
+\reversemarginpar
+\newcounter{errornr}
+\newcounter{errorref}
+\setcounter{errorref}{1}
+\newcommand{\errlink}[1]{%
+  \hyperref[error:\theerrorref]{#1}%
+}
+\newcommand{\error}{%
+  % Set up link target
+  \refstepcounter{errornr}\label{error:\theerrornr}%
+  % Error text itself
+  {\color{red!80!black}\textbf{\textsc{Error}}}\hfill%
+  % Add easy way to navigate from error to error
+  \marginnote{%
+    \ifthenelse{1<\value{errorref}}{%
+      \addtocounter{errorref}{-1}%
+      \hyperref[error:\theerrorref]{\textbf{\textuparrow}}\ %
+      \addtocounter{errorref}{1}%
+    }{\phantom{\textuparrow}}\ %
+    \addtocounter{errorref}{1}%
+    \hyperref[error:\theerrorref]{\textbf{\textdownarrow}}%
+    \addtocounter{errorref}{-1}%
+  }%
+  \stepcounter{errorref}%
+}
 \newcommand{\warning}{{\color{orange!90!black}\textit{Warning}}\hfill}
 \newcommand{\info}{\emph{Info}\hfill}
 \newcommand{\logref}[1]{\vspace{-1em}\hfill{\footnotesize \texttt{log:#1}}}
 \newenvironment{blockitem}{\begin{minipage}[t]{\linewidth}\leavevmode}{\end{minipage}}
 \pagestyle{empty}
+
+\ifxetex
+  \usepackage[setpagesize=false, % page size defined by xetex
+              unicode=false, % unicode breaks when used with xetex
+              xetex]{hyperref}
+\else
+  \usepackage[unicode=true]{hyperref}
+\fi
+\hypersetup{breaklinks=true,
+            bookmarks=true,
+            pdfauthor={$author-meta$},
+            pdftitle={$title-meta$},
+            colorlinks=true,
+            urlcolor=$if(urlcolor)$$urlcolor$$else$blue$endif$,
+            linkcolor=$if(linkcolor)$$linkcolor$$else$red!80!black$endif$,
+            pdfborder={0 0 0}}
+\urlstyle{same}  % don't use monospace font for urls
+$if(links-as-notes)$
+% Make links footnotes instead of hotlinks:
+\renewcommand{\href}[2]{#2\footnote{\url{#1}}}
+$endif$
 
 \begin{document}
 $for(include-before)$

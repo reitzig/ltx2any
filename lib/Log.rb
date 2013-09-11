@@ -205,7 +205,9 @@ class Log
       panout = IO::popen(eval(pandoc), "w+") { |f|
         markdown = to_md
         
-        # Perform some cosmetic tweaks
+        # Perform some cosmetic tweaks and add LaTeX hooks
+        markdown.gsub!(/(We found) \*\*(\d+ errors?)\*\*/, 
+                       "\\1 \\errlink{\\textbf{\\2}}")
         markdown.gsub!(/^ \*  \*\*Error\*\*/, " \*  \\blockitem\\error")
         markdown.gsub!(/^ \*  \*Warning\*/, " \*  \\blockitem\\warning")
         markdown.gsub!(/^ \*  Info/, " \*  \\blockitem\\info")
