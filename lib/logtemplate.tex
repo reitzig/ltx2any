@@ -97,7 +97,18 @@ $endif$
 
 % Custom preamble: defines commands for pretty printing and
 % error navigation.
-\usepackage{xcolor,marginnote,xifthen}
+
+% Pretty printing
+\usepackage{xcolor}
+\newcommand{\error}{{\color{red!80!black}\textbf{\textsc{Error}}}\hfill}
+\newcommand{\warning}{{\color{orange!90!black}\textit{Warning}}\hfill}
+\newcommand{\info}{\emph{Info}\hfill}
+\newcommand{\logref}[1]{\vspace{-1em}\hfill{\footnotesize \texttt{log:#1}}}
+\newenvironment{blockitem}{\begin{minipage}[t]{\linewidth}\leavevmode}{\end{minipage}}
+\pagestyle{empty}
+
+% Error navigation
+\usepackage{marginnote,xifthen}
 \reversemarginpar
 \newcounter{errornr}
 \newcounter{errorref}
@@ -105,11 +116,11 @@ $endif$
 \newcommand{\errlink}[1]{%
   \hyperref[error:\theerrorref]{#1}%
 }
-\newcommand{\error}{%
+\newcommand{\linkederror}{%
   % Set up link target
   \refstepcounter{errornr}\label{error:\theerrornr}%
   % Error text itself
-  {\color{red!80!black}\textbf{\textsc{Error}}}\hfill%
+  \error%
   % Add easy way to navigate from error to error
   \marginnote{%
     \ifthenelse{1<\value{errorref}}{%
@@ -123,11 +134,6 @@ $endif$
   }%
   \stepcounter{errorref}%
 }
-\newcommand{\warning}{{\color{orange!90!black}\textit{Warning}}\hfill}
-\newcommand{\info}{\emph{Info}\hfill}
-\newcommand{\logref}[1]{\vspace{-1em}\hfill{\footnotesize \texttt{log:#1}}}
-\newenvironment{blockitem}{\begin{minipage}[t]{\linewidth}\leavevmode}{\end{minipage}}
-\pagestyle{empty}
 
 \ifxetex
   \usepackage[setpagesize=false, % page size defined by xetex

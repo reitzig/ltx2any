@@ -206,9 +206,14 @@ class Log
         markdown = to_md
         
         # Perform some cosmetic tweaks and add LaTeX hooks
-        markdown.gsub!(/(We found) \*\*(\d+ errors?)\*\*/, 
-                       "\\1 \\errlink{\\textbf{\\2}}")
-        markdown.gsub!(/^ \*  \*\*Error\*\*/, " \*  \\blockitem\\error")
+        if ( $params["loglevel"] != :error )
+          # When there are messages other than errors, provide error navigation
+          markdown.gsub!(/(We found) \*\*(\d+ errors?)\*\*/, 
+                         "\\1 \\errlink{\\textbf{\\2}}")
+          markdown.gsub!(/^ \*  \*\*Error\*\*/, " \*  \\blockitem\\linkederror")
+        else
+          markdown.gsub!(/^ \*  \*\*Error\*\*/, " \*  \\blockitem\\error")
+        end
         markdown.gsub!(/^ \*  \*Warning\*/, " \*  \\blockitem\\warning")
         markdown.gsub!(/^ \*  Info/, " \*  \\blockitem\\info")
         markdown.gsub!(/^\s+`log:(\d+(--\d+)?)`$/,  "\\logref{\\1}\\endblockitem")

@@ -55,11 +55,13 @@ class TeXLogParser
       if ( collecting && line.strip == "" )
        # Empty line ends messages
         messages += [current.get_msg].compact 
-      elsif ( /^l\.(\d+) / =~ line )
+      elsif ( /^l\.(\d+) (.*)$/ =~ line )
         # Line starting with a line number ends messages
         if ( current.srcline == nil )
           current.srcline = [Integer($~[1])]
         end
+        current.message += $~[2].strip
+        current.logline[1] = linectr
         messages += [current.get_msg].compact 
       elsif ( /^(\([^()]*\)|[^()])*\)/ =~ line )
         # End of messages regarding current file
