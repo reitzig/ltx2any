@@ -49,12 +49,14 @@ class TeXLogParser
         messages += [current.get_msg].compact
         break
       end
-    
+
       # Even when not collecting, we need to keep track of which file
       # we are in.
       if ( collecting && line.strip == "" )
+       # Empty line ends messages
         messages += [current.get_msg].compact 
       elsif ( /^l\.(\d+) / =~ line )
+        # Line starting with a line number ends messages
         if ( current.srcline == nil )
           current.srcline = [Integer($~[1])]
         end
@@ -70,9 +72,14 @@ class TeXLogParser
         # Multiple files may close; cut away matching part and start over.
         line = line.gsub($~.regexp, "")
         redo
-      elsif ( /^[^()]*\(([^()]*?(\(|$))/ =~ line )
+      elsif ( /^[^()]*(\([^()]*\).*?)*[^()]*\(([^()]*?(\(|$))/ =~ line )
+        #       {                          }
+        #       skip series of matching parens and gutter
+        #                                   {        }
+        #                                   opening paren and potential filename
+        #
         # A new file has started. Match only those that don't close immediately.
-        candidate = $~[1]
+        candidate = $~[2]
         
         while( !File.exist?(candidate) && candidate != "" ) do # TODO can be long; use heuristics?
           candidate = candidate[0,candidate.length - 1]
@@ -86,7 +93,7 @@ class TeXLogParser
         end
 
         # Multiple files may open; cut away matching part and start over.
-        replace = if ( $~[2] == "(" ) then "(" else "" end
+        replace = if ( ["("].include?($~[3]) ) then $~[3] else "" end
         line = line.gsub($~.regexp, replace)
         redo
       elsif ( collecting ) # Do all the checks only when collecting
