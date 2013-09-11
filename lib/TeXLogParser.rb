@@ -54,6 +54,11 @@ class TeXLogParser
       # we are in.
       if ( collecting && line.strip == "" )
         messages += [current.get_msg].compact 
+      elsif ( /^l\.(\d+) / =~ line )
+        if ( current.srcline == nil )
+          current.srcline = [Integer($~[1])]
+        end
+        messages += [current.get_msg].compact 
       elsif ( /^(\([^()]*\)|[^()])*\)/ =~ line )
         # End of messages regarding current file
         if ( collecting )
@@ -85,10 +90,17 @@ class TeXLogParser
         line = line.gsub($~.regexp, replace)
         redo
       elsif ( collecting ) # Do all the checks only when collecting
-        if ( !filestack.empty? && /^#{Regexp.escape(filestack.last)}:(\d+): (.*)/ =~ line )
+        if ( /^([\.\/\w\d]*?):(\d+): (.*)/ =~ line )
           messages += [current.get_msg].compact
-          messages.push(LogMessage.new(:error, filestack.last, [Integer($~[1])], [linectr], $~[2].strip))
-          # TODO is it worthwhile to try and copy the context?
+          # messages.push(LogMessage.new(:error, $~[1], [Integer($~[2])], [linectr], $~[3].strip))
+          
+          current.type = :error
+          current.srcfile = $~[1]
+          current.srcline = [Integer($~[2])]
+          current.logline = [linectr]
+          current.message = $~[3].strip + "\n"
+          current.slicer = nil
+          current.format = :fixed
         elsif ( /(Package|Class)\s+([\w]+)\s+(Warning|Error|Info)/ =~ line )
           # Message from some package or class, may be multi-line
           messages += [current.get_msg].compact
@@ -145,8 +157,8 @@ class TeXLogParser
           current.srcfile = filestack.last
           current.srcline = nil
           current.logline = [linectr]
-          current.message = line.strip
-          current.format = :fixed # Maintain formatting
+          current.message = line.strip + "\n"
+          current.format = :fixed
         elsif ( current.type != nil )
           if ( current.slicer != nil )
             line = line.gsub(current.slicer, "")
