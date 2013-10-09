@@ -99,16 +99,38 @@ $endif$
 % error navigation.
 
 % Pretty printing
-\usepackage{xcolor}
+\usepackage{xcolor,xifthen}
+\newcommand{\loglink}{\href{run:$fulllog$}{the full log}}%
 \newcommand{\error}{{\color{red!80!black}\textbf{\textsc{Error}}}\hfill}
 \newcommand{\warning}{{\color{orange!90!black}\textit{Warning}}\hfill}
 \newcommand{\info}{\emph{Info}\hfill}
-\newcommand{\logref}[1]{\vspace{-1em}\hfill{\footnotesize \texttt{log:#1}}}
-\newenvironment{blockitem}{\begin{minipage}[t]{\linewidth}\leavevmode}{\end{minipage}}
+\newcommand{\fileref}[3]{%
+  \texttt{%
+    \ifthenelse{\NOT\equal{#1}{dummy}}{% If the log parser was dumb, we lost the file reference
+      \href{run:#1}{#1}%
+    }{%
+      unknown%
+    }%
+    \ifthenelse{\NOT\isempty{#2}}{%
+      :#2%
+      \ifthenelse{\NOT\isempty{#3}}{%
+        --#3%
+      }{}%
+    }{}%
+  }%
+}
+\newcommand{\logref}[2]{\vspace{-1em}\hfill{\footnotesize \texttt{%
+  \href{run:$fulllog$}{log}:#1\ifthenelse{\NOT\isempty{#2}}{--#2}{}%
+}}}
+\newenvironment{blockitem}{%
+  \begin{minipage}[t]{\linewidth}\leavevmode%
+}{%
+  \end{minipage}%
+}
 \pagestyle{empty}
 
 % Error navigation
-\usepackage{marginnote,xifthen}
+\usepackage{marginnote}
 \reversemarginpar
 \newcounter{errornr}
 \newcounter{errorref}
@@ -149,6 +171,7 @@ $endif$
             colorlinks=true,
             urlcolor=$if(urlcolor)$$urlcolor$$else$blue$endif$,
             linkcolor=$if(linkcolor)$$linkcolor$$else$red!80!black$endif$,
+            runcolor=$if(runcolor)$$runcolor$$else$black$endif$,
             pdfborder={0 0 0}}
 \urlstyle{same}  % don't use monospace font for urls
 $if(links-as-notes)$

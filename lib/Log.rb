@@ -104,8 +104,8 @@ class Log
       result = "# Log for `#{@jobname}`\n\n"
       messages = only_level
       
-      result << "**Disclaimer:**  \nThis is  but a digest of the original log file.  \n" +
-                "For full detail, check out `#{$params['tmpdir']}/#{$params["log"]}.raw`. " +
+      result << "**Disclaimer:**  \nThis is  but a digest of the original log file.\n" +
+                "For full detail, check out `#{$params["tmpdir"]}/#{$params["log"]}.raw`.\n" +
                 "In case we failed to pick up an error or warning, please " +
                 "[report it to us](https://github.com/akerbos/ltx2any/issues/new).\n\n" 
       # TODO get rid of ugly dependency on globals and code cross-dep.
@@ -200,7 +200,7 @@ class Log
       end
             
       template = "#{File.dirname(__FILE__)}/logtemplate.tex"
-      pandoc = '"pandoc -f markdown --template=\"#{template}\" -V papersize:a4paper -V geometry:margin=3cm -o \"#{target_file}\" 2>&1"' 
+      pandoc = '"pandoc -f markdown --template=\"#{template}\" -V papersize:a4paper -V geometry:margin=3cm -V fulllog:\"#{$params["tmpdir"]}/#{$params["log"]}.raw\" -o \"#{target_file}\" 2>&1"' 
 
       panout = IO::popen(eval(pandoc), "w+") { |f|
         markdown = to_md
@@ -210,13 +210,18 @@ class Log
           # When there are messages other than errors, provide error navigation
           markdown.gsub!(/(We found) \*\*(\d+ errors?)\*\*/, 
                          "\\1 \\errlink{\\textbf{\\2}}")
-          markdown.gsub!(/^ \*  \*\*Error\*\*/, " \*  \\blockitem\\linkederror")
+          markdown.gsub!(/^ \*  \*\*Error\*\*\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`/, 
+                         " \*  \\blockitem\\linkederror\\fileref{\\1}{\\2}{\\3}")
         else
-          markdown.gsub!(/^ \*  \*\*Error\*\*/, " \*  \\blockitem\\error")
+          markdown.gsub!(/^ \*  \*\*Error\*\*\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`/, 
+                         " \*  \\blockitem\\error\\fileref{\\1}{\\2}{\\3}")
         end
-        markdown.gsub!(/^ \*  \*Warning\*/, " \*  \\blockitem\\warning")
-        markdown.gsub!(/^ \*  Info/, " \*  \\blockitem\\info")
-        markdown.gsub!(/^\s+`log:(\d+(--\d+)?)`$/,  "\\logref{\\1}\\endblockitem")
+        markdown.gsub!(/^ \*  \*Warning\*\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`/, 
+                       " \*  \\blockitem\\warning\\fileref{\\1}{\\2}{\\3}")
+        markdown.gsub!(/^ \*  Info\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`/, 
+                       " \*  \\blockitem\\info\\fileref{\\1}{\\2}{\\3}")
+        markdown.gsub!(/^\s+`log:(\d+)(?:--(\d+))?`$/,  "\\logref{\\1}{\\2}\\endblockitem")
+        markdown.gsub!(/`#{$params["tmpdir"]}\/#{$params["log"]}.raw`/, "\\loglink")
       
         f.puts(markdown)
         f.close_write

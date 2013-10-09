@@ -12,7 +12,7 @@ Yet another LaTeX build wrapper, with one or two nifty features:
  * Can run as daemon, listening for file changes which prompt recompilation.
  * Aggregates error messages and warnings from all tools into a nicely formatted 
    log (Markdown or [PDF](https://f.cloud.github.com/assets/1488534/937836/3e58c1e4-00ec-11e3-961c-9166c9c8d3c2.png)) 
-   with references to the original logs.
+   with references to source files and original logs.
  * Adding additional phases is easy due to modular design.
  * Keeps your main directory clean by default.
  
