@@ -76,7 +76,12 @@ class TeXLogParser
         # Multiple files may close; cut away matching part and start over.
         line = line.gsub($~.regexp, "")
         redo
-      elsif ( /^[^()]*(\([^()]*\).*?)*[^()]*\(([^()]*?(\(|$))/ =~ line )
+      elsif ( current.type == nil && # When we have an active message, it has
+                                     # to complete before a new file can open.
+                                     # Probably. (Without, error messages with
+                                     # opening but no closing parenthesis would
+                                     # skrew up file tracking.)
+              /^[^()]*(\([^()]*\).*?)*[^()]*\(([^()]*?(\(|$))/ =~ line )
         #       {                          }
         #       skip series of matching parens and gutter
         #                                   {        }
@@ -101,7 +106,7 @@ class TeXLogParser
         line = line.gsub($~.regexp, replace)
         redo
       elsif ( collecting ) # Do all the checks only when collecting
-        if ( /^([\.\/\w\d]*?):(\d+): (.*)/ =~ line )
+        if ( /^(\S*?):(\d+): (.*)/ =~ line )
           messages += [current.get_msg].compact
           # messages.push(LogMessage.new(:error, $~[1], [Integer($~[2])], [linectr], $~[3].strip))
           
@@ -142,6 +147,10 @@ class TeXLogParser
           current.logline = [linectr]
           current.message = line.strip
           current.slicer = /^\s*/
+        elsif ( /^(LaTeX Font Warning: .*?) on input line (\d+).$/ =~ line )
+          messages += [current.get_msg].compact
+          messages.push(LogMessage.new(:warning, filestack.last, [Integer($~[2])], 
+                                       [linectr], $~[1].strip))
         elsif ( /^((Under|Over)full .*?) at lines (\d+)--(\d+)?/ =~ line )
           # Engine complains about under-/overfilled boxes
           messages += [current.get_msg].compact
@@ -162,7 +171,7 @@ class TeXLogParser
         elsif ( /^((Under|Over)full .*?)[\d\[\]]*$/ =~ line )
           messages += [current.get_msg].compact
           messages.push(LogMessage.new(:warning, filestack.last, nil, [linectr], $~[1].strip))
-        elsif ( /^Runaway argument\?$/ =~ line )
+        elsif ( /^Runaway .*?\?$/ =~ line )
           messages += [current.get_msg].compact
           current.type = :error
           current.srcfile = filestack.last
