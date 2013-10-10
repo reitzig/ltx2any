@@ -550,17 +550,17 @@ begin
       # Wait until sources changes
       puts "#{shortcode} Waiting for changes... (^c to terminate)"
       while ( $changetime <= start_time || Time.now - $changetime < 2 )
-        sleep(0.5)
+        sleep(0.5) # TODO listen for input here?
       end
     end
   end while ( $params['daemon'] )
-rescue Interrupt
+rescue Interrupt, SystemExit
   puts "\n#{shortcode} Shutdown"
 rescue Exception => e
   if ( $jobname != nil )
     puts "\n#{shortcode} ERROR: #{e.message} (see #{$jobname}.err for details)"
     File.open("#{$jobname}.err", "w") { |file| 
-      file.write("#{e.message}\n\n#{e.backtrace.join("\n")}") 
+      file.write("#{e.inspect}\n\n#{e.backtrace.join("\n")}") 
     }
   else
     # This is reached due to programming errors or if ltx2any quits early,
