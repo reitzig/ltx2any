@@ -503,6 +503,7 @@ begin
         STDOUT.flush
         log.to_s("#{$params["log"]}.raw")
         
+        mdfallback = false
         if ( $params['logformat'] == :pdf )
           begin
             log.to_pdf("#{$params["log"]}.pdf")
@@ -512,14 +513,15 @@ begin
               target += ".pdf"
             end
           rescue RuntimeError => e
-            puts "#{shortcode} Failed to build PDF log:\n" +
+            puts "\n#{shortcode} Failed to build PDF log:\n" +
                  (" " * shortcode.length) + " " + e.message
                  
             # Fall back to Markdown log
-            $params["logformat"] = :md
+            print "#{shortcode} Falling back to Markdown log ... "
+            mdfallback = true
           end
         end
-        if ( $params['logformat'] == :md )
+        if ( $params['logformat'] == :md || mdfallback )
           log.to_md("#{$params["log"]}.md")
           
           # Sucks, but viewers can not choose proper highlighting otherwise
