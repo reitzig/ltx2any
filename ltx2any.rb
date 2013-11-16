@@ -505,6 +505,7 @@ begin
         
         target = $params["log"]
         STDOUT.flush
+        tmpsrc = "#{$params["log"]}.#{$params["logformat"].to_s}"
         log.to_s("#{$params["log"]}.raw")
         
         mdfallback = false
@@ -514,7 +515,7 @@ begin
             
             # Sucks, but OS might not offer correct apps otherwise
             if ( !$params["log"].end_with?(".pdf") )
-              target += ".pdf"
+              target = "#{$params["log"]}.pdf"
             end
           rescue RuntimeError => e
             puts "\n#{shortcode} Failed to build PDF log:\n" +
@@ -522,6 +523,7 @@ begin
                  
             # Fall back to Markdown log
             print "#{shortcode} Falling back to Markdown log ... "
+            tmpsrc = "#{$params["log"]}.md"
             mdfallback = true
           end
         end
@@ -530,11 +532,11 @@ begin
           
           # Sucks, but viewers can not choose proper highlighting otherwise
           if ( !$params["log"].end_with?(".md") )
-              target += ".md"
+              target = "#{$params["log"]}.md"
             end
         end
                 
-        FileUtils::cp("#{$params["log"]}.#{$params["logformat"].to_s}", "../#{target}")
+        FileUtils::cp(tmpsrc, "../#{target}")
         puts "done"
         puts "#{shortcode} Log file generated at #{target}"
         STDOUT.flush
@@ -626,4 +628,3 @@ if ( $params["clean"] )
   FileUtils::rm_rf($params["tmpdir"])
 end
 FileUtils::rm_rf("#{ignorefile}#{$jobname}")
-

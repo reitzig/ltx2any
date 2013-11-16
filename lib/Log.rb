@@ -191,7 +191,7 @@ class Log
       return result
     end
     
-    def to_pdf(target_file = "#{@jobname}.log.pdf")
+    def to_pdf(target_file = "#{@jobname}.log.pdf") # TODO once central binary check is there, remove these.
       if ( `which pandoc` == "" )
         raise "You need pandoc for PDF logs."
       end
@@ -231,7 +231,11 @@ class Log
       if ( panout.strip != "" )
         # That should never happen
         File.open("#{target_file}.log", "w") { |f| f.write(panout) }
-        raise "Pandoc encountered errors! See #{target_file}.log."
+        msg = "Pandoc encountered errors!"
+        if ( $params["daemon"] || !$params["clean"] )
+          msg += " See #{$params["tmpdir"]}/#{target_file}.log."
+        end
+        raise msg
       end
     end
     
