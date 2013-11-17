@@ -62,6 +62,7 @@ begin
     "engine"    => "pdflatex",
     "daemon"    => false
   } # TODO make parameter names symbols
+  # TODO add parameter for target output file
 
   dependencies =  [["which", :binary, :essential],
                    ["listen", :gem, :recommended, "for daemon mode"]]
@@ -118,6 +119,8 @@ begin
     end
   }
 
+  # TODO collect all dependencies (from above, extensions, engines, lib/*)
+
   # process command line parameters
   if ( ARGV.length == 0 || !(/--help|-help|--h|-h|help|\?/ !~ ARGV[0]) )
     puts "\nUsage: "
@@ -154,6 +157,7 @@ begin
     Process.exit
   else
     # Read in parameters
+    # TODO use/build proper CLI and parameter handler!
     i = 0
     while ( i < ARGV.length )
       p = /\A-(\w+)\z/.match(ARGV[i])
@@ -566,31 +570,19 @@ begin
 
         while ( Thread.current[:raisetarget] == nil ) do end
         Thread.current[:raisetarget].raise(Interrupt.new("Files have changed"))
-        # TODO other exception!
       end
       files[:raisetarget] = Thread.current
       
-      # Pause waiting if user wants to input 
+      # Pause waiting if user wants to enter prompt 
       begin
         STDIN.noecho(&:gets)
         files.kill
         puts "cancelled"
-        
-        print "> "
-        commands = gets.strip.split(";").map { |s| s.strip }
-        while ( commands.size > 0 && commands.last != "run" )       
-          # TODO process commands/options:
-          #  help
-          #  clean (all) -- remove tmp, log, (result)
-          #  open (log|result|source) -- open specified files
-          #  run, "" -- rerun compilation
-          #  quit, ^C -- shutdown
-          #  set [once] <name> <value> -- sets parameter to value
-          
-          # Prompt for more
-          print "> "
-          commands = gets.strip.split(";").map { |s| s.strip }
-        end
+
+        # Delegate. The method returns if the user
+        # prompts a rerun. It throws a SystemExit
+        # exception if the user wants to quit.
+        DaemonPrompt.run
       rescue Interrupt => e
         # We have file changes, rerun!
         puts "done"
