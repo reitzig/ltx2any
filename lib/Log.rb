@@ -210,16 +210,18 @@ class Log
           # When there are messages other than errors, provide error navigation
           markdown.gsub!(/(We found) \*\*(\d+ errors?)\*\*/, 
                          "\\1 \\errlink{\\textbf{\\2}}")
-          markdown.gsub!(/^ \*  \*\*Error\*\*\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`/, 
-                         " \*  \\blockitem\\linkederror\\fileref{\\1}{\\2}{\\3}")
-        else
-          markdown.gsub!(/^ \*  \*\*Error\*\*\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`/, 
-                         " \*  \\blockitem\\error\\fileref{\\1}{\\2}{\\3}")
         end
-        markdown.gsub!(/^ \*  \*Warning\*\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`/, 
-                       " \*  \\blockitem\\warning\\fileref{\\1}{\\2}{\\3}")
-        markdown.gsub!(/^ \*  Info\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`/, 
-                       " \*  \\blockitem\\info\\fileref{\\1}{\\2}{\\3}")
+        markdown.gsub!(/^ \*  \*\*Error\*\*(?:\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`)?$/) { |match|
+          # When there are messages other than errors, provide error navigation
+          linked = if ( @params[:loglevel] != :error ) then "linked" else "" end
+          " \*  \\blockitem\\#{linked}error#{makeFileref($1, $2, $3)}"
+        } 
+        markdown.gsub!(/^ \*  \*Warning\*(?:\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`)?$/) { |match|
+          " \*  \\blockitem\\warning#{makeFileref($1, $2, $3)}"
+        }
+        markdown.gsub!(/^ \*  Info(?:\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`)?$/) { |match|
+          " \*  \\blockitem\\info#{makeFileref($1, $2, $3)}"
+        } 
         markdown.gsub!(/^\s+`log:(\d+)(?:--(\d+))?`$/,  "\\logref{\\1}{\\2}\\endblockitem")
         markdown.gsub!(/`#{@params[:tmpdir]}\/#{@params[:log]}.raw`/, "\\loglink")
       
@@ -306,5 +308,14 @@ class Log
         else
           "s"
         end
+      end
+
+      def makeFileref(file, linefrom, lineto)
+        fileref = ""
+        if ( file != nil )
+          filename = file.gsub(/_/, '\_')
+          fileref = "\\fileref{#{filename}}{#{linefrom}}{#{lineto}}"
+        end
+        fileref
       end
 end

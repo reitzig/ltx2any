@@ -8,7 +8,7 @@ Yet another LaTeX build wrapper, with one or two nifty features:
    a single log file.
  * Does not require user intervention or annotations to do either of the above.
  * Work-intensive extensions (e.g. TikZ externalization) work in parallel to
-   speedup compilation on multi-core machines.
+   speed up compilation on multi-core machines.
  * Can run as daemon, listening for file changes which prompt recompilation.
  * Aggregates error messages and warnings from all tools into a nicely formatted 
    log (Markdown or [PDF](https://f.cloud.github.com/assets/1488534/937836/3e58c1e4-00ec-11e3-961c-9166c9c8d3c2.png)) 
@@ -31,6 +31,7 @@ bug-free or reliable. Take care!
 
 ### Requirements ###
 
+ * GNU/Linux
  * Ruby 1.9.x or higher
  * Ruby gem [listen](https://github.com/guard/listen) for daemon mode.
  * [pandoc](https://github.com/jgm/pandoc) for PDF logs and target formats other than PDF.
@@ -38,7 +39,8 @@ bug-free or reliable. Take care!
 
 ### Basic Use ###
 
-Once `ltx2any` is in your PATH, run `ltx2any <file>`. Find out about available parameters by running `ltx2any --help`.
+Once `ltx2any` is in your PATH, run `ltx2any <file>` to compile the specified file.
+Find out about available parameters by running `ltx2any --help`.
 
 A typical run may look like this:
 
@@ -48,9 +50,11 @@ $> ltx2any bibtex_test.tex
 [ltx2any] pdflatex(1) running ... Done
 [ltx2any] bibtex running ... Error
 [ltx2any] pdflatex(2) running ... Done
+[ltx2any] pdflatex(3) running ... Done
+[ltx2any] pdflatex(4) running ... Done
 [ltx2any] There were 1 error and 3 warnings.
 [ltx2any] Output generated at bibtex_test.pdf
-[ltx2any] Assembling log files ... done
+[ltx2any] Assembling log files ... Done
 [ltx2any] Log file generated at bibtex_test.log.md
 ```
 
@@ -116,10 +120,7 @@ long as LaTeX engines are used. Here is what you need to do in order get it runn
 
 ### To Do ###
  
- * Make target options accessible for targets
- * De-spaghettify code (mainly `ltx2any.rb`)
- * Refactor and/or document functions, constants, ...
  * Check out tex daemon(s) to speed up compilation
  * Add support for preamble precompilation.
  * How-To for writing extensions (and targets).
- * Start scripts for other OS
+ * Compatibility and start scripts for other OS

@@ -40,6 +40,7 @@ class DaemonPrompt
       # TODO process commands/options:
 
       #  open (log|result|source) -- open specified files
+      #  show <name> -- shows current value of parameter
       #  set [once] <name> <value> -- sets parameter to value
       #  listen -- commence listening for file changes (?)
       
