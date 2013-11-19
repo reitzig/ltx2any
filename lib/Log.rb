@@ -19,22 +19,22 @@
 require "#{File.dirname(__FILE__)}/LogMessage.rb"
 
 class Log
-  def initialize(jobname)
+  def initialize(params)
     @messages = {}
     @counts = { :error => {:total => 0}, 
                 :warning => {:total => 0},
                 :info => {:total => 0}
               }
-    @jobname = jobname
     @level = :warning # or :error, :info
     @rawoffsets = nil
     @mode = :structured # or :flat
-    @dependencies = [["pandoc", :binary, if ( $params['logformat'] == :pdf ) 
+    @dependencies = [["pandoc", :binary, if ( params[:logformat] == :pdf ) 
                                          then :essential
                                          else :recommended end], 
-                     ["pdflatex", :binary, if ( $params['logformat'] == :pdf ) 
+                     ["pdflatex", :binary, if ( params[:logformat] == :pdf ) 
                                            then :essential
                                            else :recommended end]]
+    @params = params
   end
   
   def only_level(level = @level)
@@ -101,11 +101,11 @@ class Log
         to_s # Determines offsets in raw log
       end
     
-      result = "# Log for `#{@jobname}`\n\n"
+      result = "# Log for `#{@params[:jobname]}`\n\n"
       messages = only_level
       
       result << "**Disclaimer:**  \nThis is  but a digest of the original log file.\n" +
-                "For full detail, check out `#{$params["tmpdir"]}/#{$params["log"]}.raw`.\n" +
+                "For full detail, check out `#{@params[:tmpdir]}/#{@params[:log]}.raw`.\n" +
                 "In case we failed to pick up an error or warning, please " +
                 "[report it to us](https://github.com/akerbos/ltx2any/issues/new).\n\n" 
       # TODO get rid of ugly dependency on globals and code cross-dep.
@@ -191,7 +191,7 @@ class Log
       return result
     end
     
-    def to_pdf(target_file = "#{@jobname}.log.pdf") # TODO once central binary check is there, remove these.
+    def to_pdf(target_file = "#{@params[:jobname]}.log.pdf") # TODO once central binary check is there, remove these.
       if ( `which pandoc` == "" )
         raise "You need pandoc for PDF logs."
       end
@@ -200,13 +200,13 @@ class Log
       end
             
       template = "#{File.dirname(__FILE__)}/logtemplate.tex"
-      pandoc = '"pandoc -f markdown --template=\"#{template}\" -V papersize:a4paper -V geometry:margin=3cm -V fulllog:\"#{$params["tmpdir"]}/#{$params["log"]}.raw\" -o \"#{target_file}\" 2>&1"' 
+      pandoc = '"pandoc -f markdown --template=\"#{template}\" -V papersize:a4paper -V geometry:margin=3cm -V fulllog:\"#{@params[:tmpdir]}/#{@params[:log]}.raw\" -o \"#{target_file}\" 2>&1"' 
 
       panout = IO::popen(eval(pandoc), "w+") { |f|
         markdown = to_md
         
         # Perform some cosmetic tweaks and add LaTeX hooks
-        if ( $params["loglevel"] != :error )
+        if ( @params[:loglevel] != :error )
           # When there are messages other than errors, provide error navigation
           markdown.gsub!(/(We found) \*\*(\d+ errors?)\*\*/, 
                          "\\1 \\errlink{\\textbf{\\2}}")
@@ -221,7 +221,7 @@ class Log
         markdown.gsub!(/^ \*  Info\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`/, 
                        " \*  \\blockitem\\info\\fileref{\\1}{\\2}{\\3}")
         markdown.gsub!(/^\s+`log:(\d+)(?:--(\d+))?`$/,  "\\logref{\\1}{\\2}\\endblockitem")
-        markdown.gsub!(/`#{$params["tmpdir"]}\/#{$params["log"]}.raw`/, "\\loglink")
+        markdown.gsub!(/`#{@params[:tmpdir]}\/#{@params[:log]}.raw`/, "\\loglink")
       
         f.puts(markdown)
         f.close_write
@@ -232,8 +232,8 @@ class Log
         # That should never happen
         File.open("#{target_file}.log", "w") { |f| f.write(panout) }
         msg = "Pandoc encountered errors!"
-        if ( $params["daemon"] || !$params["clean"] )
-          msg += " See #{$params["tmpdir"]}/#{target_file}.log."
+        if ( @params[:daemon] || !@params[:clean] )
+          msg += " See #{@params[:tmpdir]}/#{target_file}.log."
         end
         raise msg
       end

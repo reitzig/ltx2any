@@ -17,20 +17,19 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class TikZExt < Extension
-  def initialize
-    super
+  def initialize(params)
+    super(params)
     
     @name = "tikzext"
     @description = "Compiles externalized TikZ images"
-    @codes = { "ir" => [nil, "imagerebuild", "If set, externalised TikZ images are rebuilt."]}
-    @params = { "imagerebuild" => false }
+    @parameters = [ Parameter.new(:imagerebuild, "ir", Boolean, false, "If set, externalised TikZ images are rebuilt.") ]
     @dependencies = [["pdflatex", :binary, :essential],
                      ["parallel", :gem, :recommended, "for better performance"]]
   end
 
   def do?
-    File.exist?("#{$jobname}.figlist") && ($params["imagerebuild"] || 
-      IO.readlines("#{$jobname}.figlist").select { |fig|
+    File.exist?("#{@params[:jobname]}.figlist") && (@params[:imagerebuild] || 
+      IO.readlines("#{@params[:jobname]}.figlist").select { |fig|
         !File.exist?("#{fig.strip}.pdf")
       }.size > 0 )
   end
@@ -39,17 +38,17 @@ class TikZExt < Extension
     # Command to process externalised TikZ images if necessary.
     # Uses the following variables:
     # * $params["engine"] -- Engine used by the main job.
-    # * $jobname -- name of the main LaTeX file (without file ending)
-    pdflatex = '"#{$params["engine"]} -shell-escape -file-line-error -interaction=batchmode -jobname \"#{fig}\" \"\\\def\\\tikzexternalrealjob{#{$jobname}}\\\input{#{$jobname}}\" 2>&1"'
+    # * params[:jobname] -- name of the main LaTeX file (without file ending)
+    pdflatex = '"#{@params[:engine]} -shell-escape -file-line-error -interaction=batchmode -jobname \"#{fig}\" \"\\\def\\\tikzexternalrealjob{#{@params[:jobname]}}\\\input{#{@params[:jobname]}}\" 2>&1"'
 
-    figures = IO.readlines("#{$jobname}.figlist").map { |fig|
+    figures = IO.readlines("#{@params[:jobname]}.figlist").map { |fig|
       if ( fig.strip != "" )
         fig.strip
       else
         nil
       end
     }.compact.select { |fig|
-      $params["imagerebuild"] || !File.exist?("#{fig}.pdf")
+      @params[:imagerebuild] || !File.exist?("#{fig}.pdf")
     }
     
     # Run (latex) engine for each figure
@@ -105,12 +104,12 @@ class TikZExt < Extension
         
         log[0][i] = [LogMessage.new(:info, nil, nil, nil, 
                                     "The following messages refer to figure\n  #{figures[i]}.\n" + 
-                                    "See\n  #{$params["tmpdir"]}/#{figures[i]}.log\nfor the full log.", :fixed)
+                                    "See\n  #{@params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
                     ] + log[0][i]
       else
         log[0][i] += [LogMessage.new(:info, nil, nil, nil, 
                                      "No messages for figure\n  #{figures[i]}.\nfound. " + 
-                                     "See\n  #{$params["tmpdir"]}/#{figures[i]}.log\nfor the full log.", :fixed)
+                                     "See\n  #{@params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
                      ]
       end
       offset += log[1][i].count(?\n) 
@@ -124,7 +123,7 @@ class TikZExt < Extension
   private
     def compile(cmd, fig)
       msgs = []
-      log = "# #\n# Figure: #{fig}\n#   See #{$params["tmpdir"]}/#{fig}.log for full log.\n\n"
+      log = "# #\n# Figure: #{fig}\n#   See #{@params[:tmpdir]}/#{fig}.log for full log.\n\n"
              
       # Run twice to clean up log?
       # IO::popen(eval(cmd)).readlines
@@ -166,4 +165,4 @@ class TikZExt < Extension
     end
 end
 
-$ext = TikZExt.new
+$extension = TikZExt

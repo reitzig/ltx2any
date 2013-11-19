@@ -17,8 +17,8 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class Gnuplot < Extension
-  def initialize
-    super
+  def initialize(params)
+    super(params)
     
     @name = "gnuplot"
     @description = "Executes generated gnuplot files"
@@ -139,7 +139,7 @@ class Gnuplot < Extension
         # So I'm going to assume that multiple error messages
         # are separated by empty lines.
         if ( /^"(.+?)", line (\d+): (.*)$/ =~ line )
-          msgs.push(LogMessage.new(:error, "#{$params["tmpdir"]}/#{$~[1]}", 
+          msgs.push(LogMessage.new(:error, "#{@params[:tmpdir]}/#{$~[1]}", 
                                    [Integer($~[2])], [[contextline, linectr].min, linectr], 
                                    "#{context}#{$~[3].strip}", :fixed))
         elsif ( line.strip == "" )
@@ -159,4 +159,4 @@ class Gnuplot < Extension
     end
 end
 
-$ext = Gnuplot.new
+$extension = Gnuplot

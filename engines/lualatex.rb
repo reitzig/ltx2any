@@ -18,8 +18,8 @@
 
 class LuaLaTeX < Engine
 
-  def initialize
-    super
+  def initialize(params)
+    super(params)
     
     @name = "lualatex"
     @extension = "pdf"
@@ -41,21 +41,21 @@ class LuaLaTeX < Engine
     # Command for the main LaTeX compilation work.
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
-    lualatex = '"lualatex -file-line-error -interaction=nonstopmode \"#{$jobfile}\""'
+    lualatex = '"lualatex -file-line-error -interaction=nonstopmode \"#{@params[:jobfile]}\""'
 
     f = IO::popen(eval(lualatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
     newHash = -1
-    if ( File.exist?("#{$jobname}.#{extension}") )
-      newHash = Digest::MD5.hexdigest(`cat "#{$jobname}.#{extension}" | grep -a -v "/CreationDate|/ModDate|/ID|/Type/XRef/Index"`.strip)
+    if ( File.exist?("#{params[:jobname]}.#{extension}") )
+      newHash = Digest::MD5.hexdigest(`cat "#{params[:jobname]}.#{extension}" | grep -a -v "/CreationDate|/ModDate|/ID|/Type/XRef/Index"`.strip)
     end
 
     @heap[0] = @heap[1] == newHash
     @heap[1] = newHash
 
-    return [File.exist?("#{$jobname}.#{extension}"), TeXLogParser.parse(log), log.join("").strip!]
+    return [File.exist?("#{params[:jobname]}.#{extension}"), TeXLogParser.parse(log), log.join("").strip!]
   end
 end
 
-$tgt = LuaLaTeX.new
+$engine = LuaLaTeX

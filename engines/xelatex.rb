@@ -18,8 +18,8 @@
 
 class XeLaTeX < Engine
 
-  def initialize
-    super
+  def initialize(params)
+    super(params)
     
     @name = "xelatex"
     @extension = "pdf"
@@ -41,22 +41,22 @@ class XeLaTeX < Engine
     # Command for the main LaTeX compilation work.
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
-    xelatex = '"xelatex -file-line-error -interaction=nonstopmode \"#{$jobfile}\""'
+    xelatex = '"xelatex -file-line-error -interaction=nonstopmode \"#{@params[:jobfile]}\""'
 
     f = IO::popen(eval(xelatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
     newHash = -1
-    if ( File.exist?("#{$jobname}.#{extension}") )
-      newHash = Digest::MD5.hexdigest(`cat -A "#{$jobname}.#{extension}" | awk '/CIDFontType0C|Type1C/ {exit} {print}'`.strip)
+    if ( File.exist?("#{params[:jobname]}.#{extension}") )
+      newHash = Digest::MD5.hexdigest(`cat -A "#{params[:jobname]}.#{extension}" | awk '/CIDFontType0C|Type1C/ {exit} {print}'`.strip)
     end
     # TODO This is only a hack! What else can be embedded and changing?
 
     @heap[0] = @heap[1] == newHash
     @heap[1] = newHash
 
-    return [File.exist?("#{$jobname}.#{extension}"), TeXLogParser.parse(log), log.join("").strip!]
+    return [File.exist?("#{params[:jobname]}.#{extension}"), TeXLogParser.parse(log), log.join("").strip!]
   end
 end
 
-$tgt = XeLaTeX.new
+$engine = XeLaTeX

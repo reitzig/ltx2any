@@ -17,8 +17,8 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class BibTeX < Extension
-  def initialize
-    super
+  def initialize(params)
+    super(params)
     
     @name = "bibtex"
     @description = "Creates bibliography"
@@ -34,8 +34,8 @@ class BibTeX < Extension
     stylefile = []
     bibdata = []
     grepdata = []
-    if ( File.exist?("#{$jobname}.aux") )
-      File.open("#{$jobname}.aux", "r") { |file|
+    if ( File.exist?("#{@params[:jobname]}.aux") )
+      File.open("#{@params[:jobname]}.aux", "r") { |file|
         while ( line = file.gets )
           if ( /^\\bibdata\{(.+?)\}$/ =~ line )
             # If commas occur, add both a split version (multiple files)
@@ -61,7 +61,7 @@ class BibTeX < Extension
     usesbib = bibdata.size > 0
     
     # Check whether a (re)run is needed
-    needsrerun = !File.exist?("#{$jobname}.bbl") # Is result still there?
+    needsrerun = !File.exist?("#{@params[:jobname]}.bbl") # Is result still there?
     # Check more closely
     if ( usesbib && !needsrerun )
       fileschanged = false
@@ -84,7 +84,7 @@ class BibTeX < Extension
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
-    bibtex = '"bibtex \"#{$jobname}\""'
+    bibtex = '"bibtex \"#{@params[:jobname]}\""'
     progress(3)
 
     f = IO::popen(eval(bibtex))
@@ -118,4 +118,4 @@ class BibTeX < Extension
   end
 end
   
-$ext = BibTeX.new
+$extension = BibTeX

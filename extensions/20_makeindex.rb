@@ -17,8 +17,8 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class MakeIndex < Extension
-  def initialize
-    super
+  def initialize(params)
+    super(params)
     
     @name = "makeindex"
     @description = "Creates an index"
@@ -26,10 +26,10 @@ class MakeIndex < Extension
   end
 
   def do?
-       File.exist?("#{$jobname}.idx") \
-    && (    !File.exist?("#{$jobname}.ind") \
-         || !$hashes.has_key?("#{$jobname}.idx") \
-         || filehash("#{$jobname}.idx") != $hashes["#{$jobname}.idx"] \
+       File.exist?("#{@params[:jobname]}.idx") \
+    && (    !File.exist?("#{@params[:jobname]}.ind") \
+         || !$hashes.has_key?("#{@params[:jobname]}.idx") \
+         || filehash("#{@params[:jobname]}.idx") != $hashes["#{@params[:jobname]}.idx"] \
        )
   end
 
@@ -39,8 +39,8 @@ class MakeIndex < Extension
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
     # * mistyle -- name of the makeindex style file (with file ending)
-    makeindex = { "default" => '"makeindex -q \"#{$jobname}\" 2>&1"',
-                  "styled"  => '"makeindex -q -s \"#{mistyle}\" \"#{$jobname}\" 2>&1"'}
+    makeindex = { "default" => '"makeindex -q \"#{@params[:jobname]}\" 2>&1"',
+                  "styled"  => '"makeindex -q -s \"#{mistyle}\" \"#{@params[:jobname]}\" 2>&1"'}
     progress(3)
   
     version = "default"
@@ -58,7 +58,7 @@ class MakeIndex < Extension
     }
 
     log2 = []
-    File.open("#{$jobname}.ilg", "r") { |f|
+    File.open("#{@params[:jobname]}.ilg", "r") { |f|
       log2 = f.readlines
     }
 
@@ -93,4 +93,4 @@ class MakeIndex < Extension
   end
 end
 
-$ext = MakeIndex.new
+$extension = MakeIndex

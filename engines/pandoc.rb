@@ -17,13 +17,12 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class Pandoc < Engine 
-  def initialize
-    super
+  def initialize(params)
+    super(params)
     
     @name = "pandoc"
     @description = "Translates into many formats (see 'pandoc --help')"
-    @codes = { "f" => ["string", "targetformat", "Selects one of the target formats of pandoc."]}
-    @params = { "targetformat" => nil } # TODO how to pass other parameters to pandoc?
+    @parameters = [ Parameter.new(:targetformat, "f", String, nil, "Selects one of the target formats of pandoc.") ]
     
     @format2ending = {
       "native" => "txt",
@@ -64,7 +63,7 @@ class Pandoc < Engine
   end
 
   def extension 
-    @format2ending[$params["targetformat"]]
+    @format2ending[params[:targetformat]]
   end
 
   def do?
@@ -72,11 +71,11 @@ class Pandoc < Engine
   end
 
   def exec()
-    if ( $params["targetformat"] == nil )
-      msg = "Specify a target format by adding '-format <format>' as parameter."
+    if ( params[:targetformat] == nil )
+      msg = "Specify a target format by adding '-f <format>' as parameter."
       return [false, [LogMessage.new(:error, nil, nil, nil, msg)], msg]
-    elsif ( @format2ending[$params["targetformat"]] == nil )
-      msg = "Pandoc does not know target format #{$params["targetformat"]}"
+    elsif ( @format2ending[params[:targetformat]] == nil )
+      msg = "Pandoc does not know target format #{params[:targetformat]}"
       return [false, [LogMessage.new(:error, nil, nil, nil, msg)], msg]
     end
     # TODO warn if executed multiple times?
@@ -85,7 +84,7 @@ class Pandoc < Engine
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
     # * tmpdir  -- the output directory
-    pandoc = '"pandoc -s -f latex -t #{$params["targetformat"]} -o \"#{$jobname}.#{extension}\" #{$jobfile} 2>&1"'
+    pandoc = '"pandoc -s -f latex -t #{params[:targetformat]} -o \"#{params[:jobname]}.#{extension}\" #{@params[:jobfile]} 2>&1"'
 
     f = IO::popen(eval(pandoc))
     log = f.readlines + [""] # One empty line to finalize the last message
@@ -117,4 +116,4 @@ class Pandoc < Engine
   end
 end
 
-$tgt = Pandoc.new
+$engine = Pandoc

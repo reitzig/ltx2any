@@ -17,8 +17,8 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class MetaPost < Extension
-  def initialize
-    super
+  def initialize(params)
+    super(params)
     
     @name = "metapost"
     @description = "Compiles generated MetaPost files"
@@ -35,7 +35,7 @@ class MetaPost < Extension
 
   def exec()
     # Command to process metapost files if necessary.
-    mpost = '"mpost -tex=#{$params["engine"]} -file-line-error -interaction=nonstopmode \"#{f}\" 2>&1"'
+    mpost = '"mpost -tex=#{@params[:engine]} -file-line-error -interaction=nonstopmode \"#{f}\" 2>&1"'
 
     # Filter out non-gnuplot files and such that did not change since last run
     mp_files = Dir.entries(".").delete_if { |f|
@@ -139,7 +139,7 @@ class MetaPost < Extension
           curmsg = $~[1].strip
           curline = linectr
         elsif ( curmsg != nil && /^l\.(\d+)/ =~ line )
-          msgs.push(LogMessage.new(:error, "#{$params["tmpdir"]}/#{file}", 
+          msgs.push(LogMessage.new(:error, "#{@params[:tmpdir]}/#{file}", 
                                    [Integer($~[1])], [curline, linectr], 
                                    curmsg, :none))
           curmsg = nil
@@ -152,4 +152,4 @@ class MetaPost < Extension
     end
 end
 
-$ext = MetaPost.new
+$extension = MetaPost

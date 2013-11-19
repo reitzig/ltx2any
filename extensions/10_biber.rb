@@ -17,8 +17,8 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class Biber < Extension
-  def initialize
-    super
+  def initialize(params)
+    super(params)
     
     @name = "biber"
     @description = "Creates bibliography"
@@ -28,12 +28,12 @@ class Biber < Extension
   end
 
   def do?
-    usesbib = File.exist?("#{$jobname}.bcf")
+    usesbib = File.exist?("#{@params[:jobname]}.bcf")
     
     if ( usesbib )
       # Collect sources (needed for log parsing)
       @sources = []
-      IO.foreach("#{$jobname}.bcf") { |line|
+      IO.foreach("#{@params[:jobname]}.bcf") { |line|
         if ( /<bcf:datasource[^>]*type="file"[^>]*>(.*?)<\/bcf:datasource>/ =~ line )
           @sources.push($~[1])
         end
@@ -41,7 +41,7 @@ class Biber < Extension
       @sources.uniq!
     end    
       
-    needrerun = !File.exist?("#{$jobname}.bbl") # Is this the first run?
+    needrerun = !File.exist?("#{@params[:jobname]}.bbl") # Is this the first run?
     if ( usesbib && !needrerun )
       # There are two things that prompt us to rerun:
       #  * changes to the bcf file (which includes all kinds of things,
@@ -49,7 +49,7 @@ class Biber < Extension
       #  * changes to the bib sources (which are listed in the bcf file)
       
       # Has the bcf file changed?
-      needrerun ||= !$hashes.has_key?("#{$jobname}.bcf") || filehash("#{$jobname}.bcf") != $hashes["#{$jobname}.bcf"]
+      needrerun ||= !$hashes.has_key?("#{@params[:jobname]}.bcf") || filehash("#{@params[:jobname]}.bcf") != $hashes["#{@params[:jobname]}.bcf"]
       
       if ( !needrerun )
         # Have bibliography files changes?
@@ -71,7 +71,7 @@ class Biber < Extension
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
-    biber = '"biber \"#{$jobname}\""'
+    biber = '"biber \"#{@params[:jobname]}\""'
     progress(3)
 
     f = IO::popen(eval(biber))
@@ -100,4 +100,4 @@ class Biber < Extension
   end
 end
   
-$ext = Biber.new
+$extension = Biber

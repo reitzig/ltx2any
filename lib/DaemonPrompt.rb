@@ -17,16 +17,16 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class DaemonPrompt
-  def self.run
+  def self.run(params)
     command = getCommand
     while ( command.size > 0 )
       case command[0]
       when :help
         respond "Work in progress"
       when :clean
-        FileUtils::rm_rf($params["tmpdir"])
+        FileUtils::rm_rf(params[:tmpdir])
         if ( command.size > 1 && command[1].to_sym == :all )
-          FileUtils::rm("#{$params["log"]}.#{$params["logformat"].to_s}") # TODO may fail when MD fallback?
+          FileUtils::rm("#{params[:log]}.#{params[:logformat].to_s}") # TODO may fail when MD fallback?
           # TODO remove result
         end
       when :run

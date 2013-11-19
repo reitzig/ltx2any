@@ -17,12 +17,12 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class Extension  
-  def initialize
+  def initialize(params)
     @name = "Dummy name"
     @description = "Dummy description"
-    @codes = {}
-    @params = {}
+    @parameters = []
     @dependencies = []
+    @params = params
   end
   
   public
@@ -38,8 +38,9 @@ class Extension
       @name
     end
     
-    attr_accessor :name, :description, :codes, :params, :dependencies
+    attr_accessor :name, :description, :codes, :parameters, :dependencies
     
   protected
-    attr_writer :name, :description, :codes, :params
+    attr_reader :params
+    attr_writer :name, :description, :codes, :parameters
 end

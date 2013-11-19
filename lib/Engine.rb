@@ -17,14 +17,14 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class Engine
-  def initialize
+  def initialize(params)
     @name = "Dummy Name"
     @extension = "dummy"
     @description = "Dummy Description"
-    @codes = {}
-    @params = {}
+    @parameters = []
     @heap = []
     @dependencies = []
+    @params = params
   end
 
   public
@@ -47,9 +47,10 @@ class Engine
     end
   
   
-    attr_reader :name, :extension, :description, :codes, :params, :heap, :dependencies
+    attr_reader :name, :extension, :description, :codes, :parameters, :heap, :dependencies
     attr_writer :heap
     
   protected
-    attr_writer :name, :extension, :description, :codes, :params, :dependencies
+    attr_reader :params
+    attr_writer :name, :extension, :description, :codes, :parameters, :dependencies
 end
