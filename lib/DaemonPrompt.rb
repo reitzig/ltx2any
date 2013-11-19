@@ -32,8 +32,6 @@ class DaemonPrompt
           end
         when :show
           respond "#{command[0]} = #{params[command[1].to_sym]}"
-        when :help
-          respond "Work in progress"
         when :clean
           FileUtils::rm_rf(params[:tmpdir])
           if ( command.size > 1 && command[1].to_sym == :all )
@@ -44,6 +42,8 @@ class DaemonPrompt
           break
         when :quit
           raise SystemExit.new("User issued quit command")
+        when :help
+          respond "Work in progress. Supports commands set, show, clean (partial), run and quit."
         else
           respond "Command #{command[0].to_s} unknown"
         end

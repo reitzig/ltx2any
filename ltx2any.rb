@@ -24,6 +24,9 @@ require 'digest'
 require 'yaml'
 Dir[File.dirname(__FILE__) + '/lib/*.rb'].each { |f| require f }
 
+# Set process name to something less cumbersome
+$0="ltx2any.rb"
+
 # Some frontend strings
 # TODO move somewhere nice
 name      = "ltx2any"
