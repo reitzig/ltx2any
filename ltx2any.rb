@@ -27,6 +27,7 @@ Dir[File.dirname(__FILE__) + '/lib/*.rb'].each { |f| require f }
 # Some frontend strings
 # TODO move somewhere nice
 name      = "ltx2any"
+version   = "0.9a"
 shortcode = "[#{name}]"
 running   = "running"
 done      = "Done"
@@ -36,7 +37,8 @@ tmpsuffix = "_tmp"
 ignorefile = ".#{name}ignore_"
 hashes    = ".hashes"
 
-params = ParameterManager.new # For visibility in rescue clause
+params = ParameterManager.new # Out here for visibility at the end
+
 begin
   puts "#{shortcode} Initialising ..." # TODO abstract away printing
 
@@ -101,6 +103,7 @@ begin
     puts "  #{name} [options] inputfile\tNormal execution (see below)"
     puts "  #{name} --extensions\t\tList of extensions"
     puts "  #{name} --engines\t\tList of target engines"
+    puts "  #{name} --version\t\tPrints version information"
     puts "  #{name} --help\t\tThis message"
 
     puts "\nOptions:"
@@ -131,6 +134,12 @@ begin
         puts ""
       end
     }
+    Process.exit
+  elsif ( ARGV[0] == "--version" )
+    puts "#{name} #{version}"
+    puts "Copyright \u00A9 Raphael Reitzig 2013".encode('utf-8')
+    puts "This is free software; see the source for copying conditions."
+    puts "There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
     Process.exit
   end
 
@@ -324,7 +333,7 @@ begin
         # (That is, if the engine says it wants to run again.)
       
         # Save the first log if it is the last one (should be before the extensions)
-        if ( params[:ltxruns] ==  1 )
+        if ( params[:runs] ==  1 )
           log.add_messages(engine.name, :engine, r[1], r[2])
         end
 
@@ -354,8 +363,8 @@ begin
 
         # Run engine as often as specified/necessary
         run = 2
-        while (  (params[:ltxruns] > 0 && run <= params[:ltxruns]) ||
-                 (params[:ltxruns] <= 0 && engine.do?) )
+        while (  (params[:runs] > 0 && run <= params[:runs]) ||
+                 (params[:runs] <= 0 && engine.do?) )
           print "#{shortcode} #{engine.name}(#{run}) #{running} ..."
           STDOUT.flush
           r = engine.exec
@@ -365,7 +374,7 @@ begin
         end
 
         # Save the last log if we did not save it already
-        if ( params[:ltxruns] !=  1 )
+        if ( params[:runs] !=  1 )
           log.add_messages(engine.name, :engine, r[1], r[2])
         end
       else
@@ -473,7 +482,7 @@ begin
     if ( params[:daemon] )
       # Wait until sources changes
       # TODO if check interval is negative (option to come), never wait.
-      print "#{shortcode} Waiting for changes... "
+      print "#{shortcode} Waiting for file changes... "
        
       files = Thread.new do
         while ( $changetime <= start_time || Time.now - $changetime < 2 )
@@ -523,8 +532,12 @@ end
 
 # Stop file listeners
 if ( params[:daemon] )
-  $jobfilelistener.stop
-  $ignfilelistener.stop
+  begin
+    $jobfilelistener.stop
+    $ignfilelistener.stop
+  rescue Exception
+    # Apparently, stopping throws exceptions.
+  end
 end
 
 # Remove temps if so desired.

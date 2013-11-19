@@ -34,7 +34,7 @@ class ParameterManager
                     "Set to 'raw' for raw, 'md' for Markdown or 'pdf' for PDF log."),
       Parameter.new(:loglevel,      "ll",       [:error, :warning, :info],      :warning,
                     "Set to 'error' to see only errors, to 'warning' to see also warnings, or to 'info' for everything."),
-      Parameter.new(:ltxruns,       "n",        Integer,                        0,
+      Parameter.new(:runs,          "n",        Integer,                        0,
                     "How often the LaTeX compiler runs. Values smaller than one will cause it to run until the resulting file no longer changes. May not apply to all engines."),
       Parameter.new(:tmpdir,        "t",        String,                         '"#{self[:jobname]}_tmp"',
                     "Directory for intermediate results")
@@ -111,7 +111,7 @@ class ParameterManager
 
           if ( @values.has_key?(key) )
             if ( @values[key].type == Boolean )
-              set(key, nil) # value is ignored for booleans
+              set(key, :true)
               i += 1
             else
               val = ARGV[i+1]
@@ -166,7 +166,12 @@ class ParameterManager
           raise ParameterException.new("Parameter #{code} requires an integer ('#{val}' given).")
         end
       elsif ( @values[key].type == Boolean )
-        @values[key].value = true
+        val = val.to_sym
+        if ( val == :true || val == :false )
+          @values[key].value = ( val == :true )
+        else
+          raise ParameterException.new("Parameter #{code} requires a boolean ('#{val}' given).")
+        end
       elsif ( @values[key].type.is_a? Array )
         if ( @values[key].type.include?(val.to_sym) )
           @values[key].value = val.to_sym
@@ -178,14 +183,14 @@ class ParameterManager
         raise RuntimeError.new("Parameter #{key} has unknown type #{@values[key].type}.")
       end
       
-      @copy_dirty = true
+      #@copy_dirty = true
     end
 
     def add(key, val, once=false) # TODO implement "once" behaviour
       if ( @values.has_key?(key) ) 
         if ( @values[key].type == String )
           @values[key].value += val.to_s
-          @copy_dirty = true
+          #@copy_dirty = true
         else
           raise ParameterException.new("Parameter #{key} does not support extension.")
         end

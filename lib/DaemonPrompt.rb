@@ -20,21 +20,35 @@ class DaemonPrompt
   def self.run(params)
     command = getCommand
     while ( command.size > 0 )
-      case command[0]
-      when :help
-        respond "Work in progress"
-      when :clean
-        FileUtils::rm_rf(params[:tmpdir])
-        if ( command.size > 1 && command[1].to_sym == :all )
-          FileUtils::rm("#{params[:log]}.#{params[:logformat].to_s}") # TODO may fail when MD fallback?
-          # TODO remove result
+      begin
+        case command[0]
+        when :set
+          if ( command.size < 3 )
+            respond "Please supply a parameter name and a value."
+          else
+            value = command[2,command.size-1].join(" ")
+            params[command[1].to_sym] = value
+            respond "Set parameter '#{command[1]}' to '#{value}'."
+          end
+        when :show
+          respond "#{command[0]} = #{params[command[1].to_sym]}"
+        when :help
+          respond "Work in progress"
+        when :clean
+          FileUtils::rm_rf(params[:tmpdir])
+          if ( command.size > 1 && command[1].to_sym == :all )
+            FileUtils::rm("#{params[:log]}.#{params[:logformat].to_s}") # TODO may fail when MD fallback?
+            # TODO remove result
+          end
+        when :run
+          break
+        when :quit
+          raise SystemExit.new("User issued quit command")
+        else
+          respond "Command #{command[0].to_s} unknown"
         end
-      when :run
-        break
-      when :quit
-        raise SystemExit.new("User issued quit command")
-      else
-        respond "Command #{command[0].to_s} unknown"
+      rescue ParameterException => e
+        respond "Error: #{e.message}"
       end
 
       # TODO process commands/options:
@@ -61,7 +75,11 @@ class DaemonPrompt
     def self.getCommand
       print "> "
       command = gets.strip.split(/\s+/) # User may quit by hitting ^C at this point
-      command[0] = command[0].to_sym
+      if ( command.size > 0 )
+        command[0] = command[0].to_sym
+      else
+        command[0] = :run
+      end
       return command
     end
 end
