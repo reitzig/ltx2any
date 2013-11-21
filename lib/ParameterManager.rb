@@ -83,7 +83,8 @@ class ParameterManager
       end
       # TODO do basic checks as to whether we really have a LaTeX file?
 
-      addParameter(Parameter.new(:jobpath, "", String, File.dirname(jobfile), "Name of the main input file"))
+      addParameter(Parameter.new(:jobpath, "", String, File.dirname(File.expand_path(jobfile)), 
+                                 "Absolute path of source directory"))
       addParameter(Parameter.new(:jobfile, "", String, File.basename(jobfile), "Name of the main input file"))
       set(:jobname, /\A(.+?)\.\w+\z/.match(self[:jobfile])[1])
 
