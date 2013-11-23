@@ -176,6 +176,7 @@ begin
   end
 
   # Make sure that target directory is available
+  # TODO move into loop; parameter may change during the run!
   if ( !File.exist?(params[:tmpdir]) )
     Dir.mkdir(params[:tmpdir])
   elsif ( !File.directory?(params[:tmpdir]) )
@@ -307,11 +308,11 @@ begin
         # Avoid trouble with symlink loops
         if ( File.symlink?(f) )
           if ( !File.exists?("#{params[:tmpdir]}/#{f}") )
-            File.symlink("../#{f}", "#{params[:tmpdir]}/#{f}")
+            File.symlink("#{params[:jobpath]}/#{f}", "#{params[:tmpdir]}/#{f}")
           end
         else
           FileUtils::rm_rf("#{params[:tmpdir]}/#{f}")
-          FileUtils::cp_r(f,"./#{params[:tmpdir]}/")
+          FileUtils::cp_r(f,"#{params[:tmpdir]}/")
         end
       }
 
@@ -403,7 +404,7 @@ begin
       
       # Pick up output if present
       if ( File.exist?("#{params[:jobname]}.#{engine.extension}") )
-        FileUtils::cp("#{params[:jobname]}.#{engine.extension}","../")
+        FileUtils::cp("#{params[:jobname]}.#{engine.extension}", "#{params[:jobpath]}/")
         puts "#{shortcode} Output generated at #{params[:jobname]}.#{engine.extension}"
       else
         puts "#{shortcode} No output generated due to fatal errors."
@@ -464,7 +465,7 @@ begin
             end
         end
                 
-        FileUtils::cp(tmpsrc, "../#{target}")
+        FileUtils::cp(tmpsrc, "#{params[:jobpath]}/#{target}")
         puts done
         puts "#{shortcode} Log file generated at #{target}"
         STDOUT.flush
@@ -479,7 +480,7 @@ begin
       puts "\n#{shortcode} #{cancelled}"
     ensure 
       # Return from temporary directory
-      Dir.chdir("..")
+      Dir.chdir(params[:jobpath])
     end
 
     if ( params[:daemon] )
