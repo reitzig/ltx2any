@@ -168,21 +168,26 @@ class ParameterManager
       if ( @values[key].type == String )
         @values[key].value = val
       elsif ( @values[key].type == Integer )
-        if ( /\d+/ =~ val )
+        if ( val.is_a?(Integer) )
+          @values[key].value = val
+        elsif ( /\d+/ =~ val )
           @values[key].value = val.to_i
         else
           raise ParameterException.new("Parameter -#{code} requires an integer ('#{val}' given).")
         end
       elsif ( @values[key].type == Float )
-        if ( /\d+(\.\d+)?/ =~ val )
+        if ( val.is_a?(Float) )
+          @values[key].value = val
+        elsif ( /\d+(\.\d+)?/ =~ val )
           @values[key].value = val.to_f
         else
           raise ParameterException.new("Parameter -#{code} requires a number ('#{val}' given).")
         end
       elsif ( @values[key].type == Boolean )
-        val = val.to_sym
-        if ( val == :true || val == :false )
-          @values[key].value = ( val == :true )
+        if ( val.is_a?(Boolean) )
+          @values[key].value = val
+        elsif ( val.to_sym == :true || val.to_sym == :false )
+          @values[key].value = ( val.to_sym == :true )
         else
           raise ParameterException.new("Parameter -#{code} requires a boolean ('#{val}' given).")
         end
