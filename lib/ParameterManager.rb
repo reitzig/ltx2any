@@ -20,31 +20,37 @@ class ParameterManager
 # TODO Make it so that keys are (also) "long" codes as fas as users are concerned. Interesting for DaemonPrompt!
   def initialize
     parameters = [
-      Parameter.new(:jobname,       "j",        String,                         nil,
+      Parameter.new(:jobname,        "j",        String,                         nil,
                     "Job name, in particular name of result file."), 
-      Parameter.new(:clean,         "c",        Boolean,                        false,
+      Parameter.new(:clean,          "c",        Boolean,                        false,
                     "If set, all intermediate results are deleted."),
-      Parameter.new(:daemon,        "d",        Boolean,                        false,
+      Parameter.new(:daemon,         "d",        Boolean,                        false,
                     "Re-compiles automatically when files change."),
-      Parameter.new(:enginepar,     "ep",       String,                         "",
+      Parameter.new(:listeninterval, "di",       Float,                          0.5,
+                    "Re-compiles automatically when files change."),
+      Parameter.new(:enginepar,      "ep",       String,                         "",
                     "Parameters passed to the engine, separated by spaces."),
-      Parameter.new(:log,           "l",        String,                         '"#{self[:jobname]}.log"',
+      Parameter.new(:log,            "l",        String,                         '"#{self[:jobname]}.log"',
                     "(Base-)Name of log file."),
-      Parameter.new(:logformat,     "lf",       [:raw, :md, :pdf],              :md,
+      Parameter.new(:logformat,      "lf",       [:raw, :md, :pdf],              :md,
                     "Set to 'raw' for raw, 'md' for Markdown or 'pdf' for PDF log."),
-      Parameter.new(:loglevel,      "ll",       [:error, :warning, :info],      :warning,
+      Parameter.new(:loglevel,       "ll",       [:error, :warning, :info],      :warning,
                     "Set to 'error' to see only errors, to 'warning' to see also warnings, or to 'info' for everything."),
-      Parameter.new(:runs,          "n",        Integer,                        0,
+      Parameter.new(:runs,           "n",        Integer,                        0,
                     "How often the LaTeX compiler runs. Values smaller than one will cause it to run until the resulting file no longer changes. May not apply to all engines."),
-      Parameter.new(:tmpdir,        "t",        String,                         '"#{self[:jobname]}_tmp"',
+      Parameter.new(:tmpdir,         "t",        String,                         '"#{self[:jobname]}_tmp"',
                     "Directory for intermediate results")
     ]
 
-    # Convert to hash
-    @values = parameters.map { |e| {e.key => e} }.reduce { |s,e| s.merge e }
-    @code2key = parameters.map { |e| { e.code => e.key} }.reduce { |s,e| s.merge e }
-
+    @values = {}
+    @hooks = {}
+    @code2key = {}
     @processed = false
+
+    parameters.each { |p|
+      addParameter(p)
+    }
+    
     #@frozen_copy = nil
     #@copy_dirty = false
     #frozenCopy()
@@ -59,6 +65,7 @@ class ParameterManager
           else
             @values[p.key] = p
             @code2key[p.code] = p.key
+            @hooks[p.key] = []
           end
         else
           raise ParameterException.new("Can not add object of type #{p.class} as parameter.")
@@ -164,14 +171,20 @@ class ParameterManager
         if ( /\d+/ =~ val )
           @values[key].value = val.to_i
         else
-          raise ParameterException.new("Parameter #{code} requires an integer ('#{val}' given).")
+          raise ParameterException.new("Parameter -#{code} requires an integer ('#{val}' given).")
+        end
+      elsif ( @values[key].type == Float )
+        if ( /\d+(\.\d+)?/ =~ val )
+          @values[key].value = val.to_f
+        else
+          raise ParameterException.new("Parameter -#{code} requires a number ('#{val}' given).")
         end
       elsif ( @values[key].type == Boolean )
         val = val.to_sym
         if ( val == :true || val == :false )
           @values[key].value = ( val == :true )
         else
-          raise ParameterException.new("Parameter #{code} requires a boolean ('#{val}' given).")
+          raise ParameterException.new("Parameter -#{code} requires a boolean ('#{val}' given).")
         end
       elsif ( @values[key].type.is_a? Array )
         if ( @values[key].type.include?(val.to_sym) )
@@ -181,9 +194,13 @@ class ParameterManager
         end
       else
         # This should never happen
-        raise RuntimeError.new("Parameter #{key} has unknown type #{@values[key].type}.")
+        raise RuntimeError.new("Parameter -#{code} has unknown type #{@values[key].type}.")
       end
-      
+
+      @hooks[key].each { |b|
+        b.call(key, @values[key].value)
+      }
+
       #@copy_dirty = true
     end
 
@@ -194,6 +211,18 @@ class ParameterManager
           #@copy_dirty = true
         else
           raise ParameterException.new("Parameter #{key} does not support extension.")
+        end
+      else
+        raise ParameterException.new("Parameter #{key} does not exist.")
+      end
+    end
+
+    def addHook(key, &block)
+      if ( @values.has_key?(key) )
+        if ( block.arity == 2 )
+          @hooks[key].push(block)
+        else
+          raise ParameterException.new("Parameter hooks need to take two parameters.")
         end
       else
         raise ParameterException.new("Parameter #{key} does not exist.")

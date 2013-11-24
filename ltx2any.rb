@@ -201,7 +201,7 @@ begin
                    "#{params[:jobname]}.err",
                    ".listen_test"] # That is some artifact of listen -.-
   # Write ignore list for other processes
-  File.open("#{ignorefile}#{params[:jobname]}", "w") { |file| 
+  File.open("#{params[:jobpath]}/#{ignorefile}#{params[:jobname]}", "w") { |file| 
     file.write($ignoredfiles.join("\n"))
   }
   
@@ -254,13 +254,18 @@ begin
     #                (indirectly: The Loop below checks $changetime.)
     $jobfilelistener = 
       Listen.to('.',
-                latency: 0.5,
+                latency: params[:listeninterval],
                 ignore: [ /(\.\/)?#{Regexp.escape(ignorefile)}[^\/]+/,
                           /\A(\.\/)?(#{$ignoredfiles.map { |s| Regexp.escape(s) }.join("|")})/ ],
                ) \
       do |modified, added, removed|
         $changetime = Time.now
       end
+      
+    params.addHook(:listeninterval) { |key,val|
+      # $jobfilelistener.latency = val
+      # TODO tell change to listener; in worst case, restart?
+    }
 
     # Secondary listener: this one checks for (new) ignore files, i.e. other
     #                     jobs in the same directory. It then updates the main
@@ -490,7 +495,7 @@ begin
        
       files = Thread.new do
         while ( $changetime <= start_time || Time.now - $changetime < 2 )
-          sleep(0.5)
+          sleep(params[:listeninterval])
         end
 
         while ( Thread.current[:raisetarget] == nil ) do end
@@ -522,7 +527,7 @@ rescue Interrupt, SystemExit
 rescue Exception => e
   if ( params[:jobname] != nil )
     puts "\n#{shortcode} ERROR: #{e.message} (see #{params[:jobname]}.err for details)"
-    File.open("#{params[:jobname]}.err", "w") { |file| 
+    File.open("#{params[:jobpath]}/#{params[:jobname]}.err", "w") { |file| 
       file.write("#{e.inspect}\n\n#{e.backtrace.join("\n")}") 
     }
   else
@@ -548,4 +553,4 @@ end
 if ( params[:clean] )
   FileUtils::rm_rf(params[:tmpdir])
 end
-FileUtils::rm_rf("#{ignorefile}#{params[:jobname]}")
+FileUtils::rm_rf("#{params[:jobpath]}/#{ignorefile}#{params[:jobname]}")
