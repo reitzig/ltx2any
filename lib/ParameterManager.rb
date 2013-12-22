@@ -92,6 +92,11 @@ class ParameterManager
 
       addParameter(Parameter.new(:jobpath, "", String, File.dirname(File.expand_path(jobfile)), 
                                  "Absolute path of source directory"))
+      addHook(:tmpdir) { |key,val|
+        if ( self[:jobpath].start_with?(File.expand_path(val)) )
+          raise ParameterException.new("Temporary directory may not contain job directory.")
+        end
+      }
       addParameter(Parameter.new(:jobfile, "", String, File.basename(jobfile), "Name of the main input file"))
       set(:jobname, /\A(.+?)\.\w+\z/.match(self[:jobfile])[1])
 
