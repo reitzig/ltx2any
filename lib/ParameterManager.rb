@@ -81,7 +81,7 @@ class ParameterManager
       original = ARGV.last
       endings = ["tex", "ltx", "latex"]
       jobfile = original
-      while ( !File.exist?(jobfile) )
+      while ( !File.exist?(jobfile) || File.directory?(jobfile) )
         if ( endings.length == 0 )
           raise ParameterException.new("No input file fitting #{original} exists.")
         end
