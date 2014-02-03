@@ -147,10 +147,16 @@ class TeXLogParser
           current.logline = [linectr]
           current.message = line.strip
           current.slicer = /^\s*/
-        elsif ( /^(LaTeX Font Warning: .*?) on input line (\d+).$/ =~ line )
+        elsif ( /^(LaTeX Font Warning: .*?)(?: on input line (\d+).)?$/ =~ line )
+          # Some issue with fonts
           messages += [current.get_msg].compact
-          messages.push(LogMessage.new(:warning, filestack.last, [Integer($~[2])], 
-                                       [linectr], $~[1].strip))
+         
+          current.type = :warning
+          current.srcfile = filestack.last
+          current.srcline = if ( $~[2] ) then [Integer($~[2])] else nil end 
+          current.logline = [linectr]
+          current.message = $~[1].strip
+          current.slicer  = /^\(Font\)\s*/
         elsif ( /^((Under|Over)full .*?) at lines (\d+)--(\d+)?/ =~ line )
           # Engine complains about under-/overfilled boxes
           messages += [current.get_msg].compact
@@ -223,6 +229,12 @@ class TeXLogParser
         #  (initially: @currentmessage = [nil, nil, nil, nil, nil, nil, :none] )
         def get_msg()
           if ( @type != nil )
+            if ( @srcline == nil && @message =~ /(.+?) on input line (\d+)\.?$/ )
+              # The first line did not contain the line of warning, but
+              # the last did!
+              @message = $~[1].strip
+              @srcline = [Integer($~[2])]
+            end
             res = LogMessage.new(@type, @srcfile, @srcline, @logline, @message, @format)
             reset
             return res
