@@ -185,7 +185,7 @@ class ParameterManager
           raise ParameterException.new("Parameter -#{code} requires a number ('#{val}' given).")
         end
       elsif ( @values[key].type == Boolean )
-        val = val.to_sym
+        val = val.to_s.to_sym
         if ( val == :true || val == :false )
           @values[key].value = ( val == :true )
         else
