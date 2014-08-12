@@ -77,7 +77,7 @@ TikZ can externalize images so that they do not have to be rebuilt every run;
 this can save quite some compilation time. We support TikZ externalisation as 
 long as LaTeX engines are used. Here is what you need to do in order get it running.
 
- * Read section IV.32 in [the pgfmanual](http://mirrors.ctan.org/graphics/pgf/base/doc/generic/pgf/pgfmanual.pdf).
+ * Read section V.50 in [the pgfmanual](http://mirrors.ctan.org/graphics/pgf/base/doc/generic/pgf/pgfmanual.pdf).
  * Make sure you use the `list and make` mode, that is your file specifies:
    
    ```latex
