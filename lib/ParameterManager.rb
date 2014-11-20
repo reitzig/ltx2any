@@ -79,14 +79,14 @@ class ParameterManager
       # Check for input file first
       # Try to find an existing file by attaching common endings
       original = ARGV.last
-      endings = ["tex", "ltx", "latex"]
+      endings = ["tex", "ltx", "latex", ".tex", ".ltx", ".latex"]
       jobfile = original
       while ( !File.exist?(jobfile) || File.directory?(jobfile) )
         if ( endings.length == 0 )
           raise ParameterException.new("No input file fitting #{original} exists.")
         end
 
-        jobfile = "#{original}.#{endings.pop}"
+        jobfile = "#{original}#{endings.pop}"
       end
       # TODO do basic checks as to whether we really have a LaTeX file?
 

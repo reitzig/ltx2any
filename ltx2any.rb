@@ -140,7 +140,7 @@ begin
     Process.exit
   elsif ( ARGV[0] == "--version" )
     puts "#{name} #{version}"
-    puts "Copyright \u00A9 Raphael Reitzig 2013".encode('utf-8')
+    puts "Copyright \u00A9 Raphael Reitzig 2014".encode('utf-8')
     puts "This is free software; see the source for copying conditions."
     puts "There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
     Process.exit
