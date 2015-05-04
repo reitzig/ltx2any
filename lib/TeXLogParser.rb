@@ -19,6 +19,10 @@
 require "#{File.dirname(__FILE__)}/LogMessage.rb"
 
 class TeXLogParser
+  def self.dependencies
+    return []
+  end
+  
   # Input: 
   #  * log -- string array (one entry per line)
   #  * startregexp -- start collecting messages after first match

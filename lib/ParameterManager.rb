@@ -17,6 +17,10 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class ParameterManager
+  def self.dependencies
+    return []
+  end
+  
 # TODO Make it so that keys are (also) "long" codes as fas as users are concerned. Interesting for DaemonPrompt!
   def initialize
     parameters = [

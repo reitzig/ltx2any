@@ -17,6 +17,10 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class DaemonPrompt
+  def self.dependencies
+    return []
+  end
+  
   def self.run(params)
     command = getCommand
     while ( command.size > 0 )

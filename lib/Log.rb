@@ -19,6 +19,15 @@
 require "#{File.dirname(__FILE__)}/LogMessage.rb"
 
 class Log
+  def self.dependencies
+    return [["pandoc", :binary, if ( params[:logformat] == :pdf ) 
+                                         then :essential
+                                         else :recommended end, "for PDF logs"], 
+             ["pdflatex", :binary, if ( params[:logformat] == :pdf ) 
+                                   then :essential
+                                   else :recommended end, "for PDF logs"]]
+  end
+  
   def initialize(params)
     @messages = {}
     @counts = { :error => {:total => 0}, 
@@ -28,12 +37,6 @@ class Log
     @level = :warning # or :error, :info
     @rawoffsets = nil
     @mode = :structured # or :flat
-    @dependencies = [["pandoc", :binary, if ( params[:logformat] == :pdf ) 
-                                         then :essential
-                                         else :recommended end], 
-                     ["pdflatex", :binary, if ( params[:logformat] == :pdf ) 
-                                           then :essential
-                                           else :recommended end]]
     @params = params
   end
   
