@@ -19,10 +19,9 @@
 
 require 'io/console'
 require 'fileutils'
-require 'rubygems'
 require 'digest'
 require 'yaml'
-Dir[File.dirname(__FILE__) + '/lib/*.rb'].each { |f| require f }
+Dir[File.dirname(__FILE__) + '/lib/*.rb'].each { |f| require f } # TODO load dependencies
 
 # Set process name to something less cumbersome
 $0="ltx2any.rb"
@@ -36,7 +35,8 @@ ignorefile = ".#{name}ignore_"
 hashes    = ".hashes"
 
 params = ParameterManager.new # Out here for visibility at the end
-output = Output.new(name)
+output = Output.instance
+output.name = name
 
 begin
   output.start("Initialising")
@@ -185,10 +185,10 @@ begin
     Digest::MD5.file(f).to_s
   end
 
-  def progress(steps=1) # TODO improve
-    print "." * steps
-    STDOUT.flush
-  end
+  #def progress(steps=1) # TODO improve
+  #  print "." * steps
+  #  STDOUT.flush
+  #end
 
   $ignoredfiles = ["#{ignorefile}#{params[:jobname]}",
                    "#{params[:tmpdir]}", 
@@ -313,24 +313,25 @@ begin
           if ( File.symlink?(f) )
             # Avoid trouble with symlink loops
             
+            # Delete old symlink if there is one, because:
             # If a proper file or directory has been replaced with a symlink,
-            # remove the obsolete stuff
-            if (     File.exists?("#{params[:tmpdir]}/#{f}") \
-                 && !File.symlink?("#{params[:tmpdir]}/#{f}") )
-              FileUtils::rm_rf("#{params[:tmpdir]}/#{f}")
+            # remove the obsolete stuff.
+            # If there already is a symlink, delete because it might have been
+            # relinked.
+            if ( File.exists?("#{params[:tmpdir]}/#{f}") )
+              FileUtils::rm("#{params[:tmpdir]}/#{f}")
             end
             
             # Create new symlink instead of copying 
-            if ( !File.exists?("#{params[:tmpdir]}/#{f}") )
-              File.symlink("#{params[:jobpath]}/#{f}", "#{params[:tmpdir]}/#{f}")
-            end
+            File.symlink("#{params[:jobpath]}/#{f}", "#{params[:tmpdir]}/#{f}")
           elsif ( File.directory?(f) )
+            FileUtils::mkdir_p("#{params[:tmpdir]}/#{f}")
             copy2tmp(Dir.entries(f)\
                         .delete_if { |s| [".", ".."]\
                         .include?(s) }.map { |s| "#{f}/#{s}" })
             # TODO Is this necessary? Why not just copy? (For now, safer and more adaptable.)
           else
-            FileUtils::cp(f,"#{params[:tmpdir]}/")
+            FileUtils::cp(f,"#{params[:tmpdir]}/#{f}")
           end
         }
       }
@@ -376,9 +377,9 @@ begin
         # Run all extensions in order
         extensions.each { |e| 
           if ( e.do? ) # TODO check dependencies
-            output.start("#{e.name} running")
-            r = e.exec()
-            output.stop(if r[0] then :success else :error end)
+            progress, stop = output.start("#{e.name} running", e.job_size)
+            r = e.exec(progress)
+            stop.call(if r[0] then :success else :error end)
             log.add_messages(e.name, :extension, r[1], r[2])
           end
         }

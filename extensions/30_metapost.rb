@@ -27,13 +27,17 @@ class MetaPost < Extension
   end
 
   def do?
-    # Check whether there are any _.mp files that have changed
-    !Dir.entries(".").delete_if { |f|
-      (/\.mp$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
-    }.empty?
+    job_size > 0
   end
 
-  def exec()
+  def job_size
+    # Count the number of changed _.mp files
+    Dir.entries(".").delete_if { |f|
+      (/\.mp$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
+    }.size
+  end
+
+  def exec(progress)
     # Command to process metapost files if necessary.
     mpost = '"mpost -tex=#{@params[:engine]} -file-line-error -interaction=nonstopmode \"#{f}\" 2>&1"'
 
@@ -44,19 +48,13 @@ class MetaPost < Extension
 
     # Run mpost for each remaining file
     log = ""
-    c = 1
     begin # TODO move gem checking/loading to a central place?
       gem "parallel"
       require 'parallel'
       
       log = Parallel.map(mp_files) { |f|
         ilog = compile(mpost, f)
-        # Output up to ten dots
-        # TODO: make nicer output! Eg: [5/10]
-        if ( c % [1, (mp_files.size / 10)].max == 0 )
-          progress()
-        end
-        c += 1
+        progress.call
         ilog
       }.transpose
     rescue Gem::LoadError
@@ -66,12 +64,7 @@ class MetaPost < Extension
       
       mp_files.each { |f|
         log += compile(mpost, f)
-        # Output up to ten dots
-        # TODO: make nicer output! Eg: [5/10]
-        if ( c % [1, (mp_files.size / 10)].max == 0 )
-          progress()
-        end
-        c += 1
+        progress.call
       }
       log = log.transpose
     end

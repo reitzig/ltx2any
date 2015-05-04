@@ -16,12 +16,23 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-class Output
-  def initialize(name)
-    @shortcode = "[#{name}]"
+require 'singleton'
+
+class Output 
+  include Singleton
+  
+  def self.dependencies
+    return [["ruby-progressbar", :gem, :recommended, "for nice progress indicators"]]
+  end
+                  
+  def initialize() 
     @success   = "Done"
     @error     = "Error"
     @cancel    = "Cancelled"
+  end
+  
+  def name=(s)
+    @shortcode = "[#{s}]"
   end
 
   private
@@ -31,25 +42,40 @@ class Output
       }
     end
 
-  public
+  public    
     def msg(*msg)
       if ( msg.size > 0 )
         puts "#{@shortcode} #{msg[0]}"
-        if ( msg.length > 1 )
-          puts_indented(msg.drop(1))
-        end
+        puts_indented(msg.drop(1)) if msg.size > 1
       end
       STDOUT.flush
     end
     
-    def start(msg)
+    def start(msg, count=1)
+      # Set up progress bar if needed
+      if ( count > 1 && DependencyManager.available?(:gem, 'ruby-progressbar') )
+        progress = ProgressBar.create(:title => "#{@shortcode} #{msg} ...", 
+                                      :total => count,
+                                      :format => "%t [%c/%C]",
+                                      :autofinish => false)
+        return [lambda { progress.increment }, 
+                lambda { |state, *msgs| 
+                  progress.format("#{@shortcode} #{msg} ... #{instance_variable_get(("@#{state}").intern).to_s}" + (" " * 5)) # Add some spaces to hide all for up to 999 steps
+                  # TODO We *know* that we need 2*ceil(log_2(count)) - 1 spaces...
+                  progress.stop
+                  puts_indented(*msgs) if msgs.size > 0
+                  STDOUT.flush 
+                  }]
+      end  
+      # Fallback if progress bar not needed, or gem not available
       print "#{@shortcode} #{msg} ... "
       STDOUT.flush
+      return [lambda {}, lambda { |state, *msgs| stop(state, *msgs) }]
     end
     
     def stop(state, *msg)
       puts instance_variable_get(("@#{state}").intern).to_s
-      puts_indented(msg)
+      puts_indented(msg) if msg.size > 0
       STDOUT.flush
     end
     

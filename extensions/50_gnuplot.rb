@@ -27,13 +27,17 @@ class Gnuplot < Extension
   end
 
   def do?
-    # Check whether there are any _.gnuplot files that have changed
-    !Dir.entries(".").delete_if { |f|
-      (/\.gnuplot$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
-    }.empty?
+    job_size > 0
   end
 
-  def exec()
+  def job_size
+    # Check whether there are any _.gnuplot files that have changed
+    Dir.entries(".").delete_if { |f|
+      (/\.gnuplot$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
+    }.size
+  end
+
+  def exec(progress)
     # Command to process gnuplot files if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
@@ -46,19 +50,13 @@ class Gnuplot < Extension
 
     # Run gnuplot for each remaining file
     log = ""
-    c = 1
     begin # TODO move gem checking/loading to a central place?
       gem "parallel"
       require 'parallel'
       
       log = Parallel.map(gnuplot_files) { |f|
         ilog = compile(gnuplot, f)
-        # Output up to ten dots
-        # TODO: make nicer output! Eg: [5/10]
-        if ( c % [1, (gnuplot_files.size / 10)].max == 0 )
-          progress()
-        end
-        c += 1
+        progress.call
         ilog
       }.transpose
     rescue Gem::LoadError
@@ -68,12 +66,7 @@ class Gnuplot < Extension
       
       gnuplot_files.each { |f|
         log += compile(gnuplot, f)
-        # Output up to ten dots
-        # TODO: make nicer output! Eg: [5/10]
-        if ( c % [1, (gnuplot_files.size / 10)].max == 0 )
-          progress()
-        end
-        c += 1
+        progress.call
       }
       log = log.transpose
     end

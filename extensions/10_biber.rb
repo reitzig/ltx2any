@@ -67,12 +67,11 @@ class Biber < Extension
     return usesbib && needrerun
   end
 
-  def exec()
+  def exec(progress)
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
     biber = '"biber \"#{@params[:jobname]}\""'
-    progress(3)
 
     f = IO::popen(eval(biber))
     log = f.readlines

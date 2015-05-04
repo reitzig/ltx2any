@@ -28,13 +28,22 @@ class TikZExt < Extension
   end
 
   def do?
-    File.exist?("#{@params[:jobname]}.figlist") && (@params[:imagerebuild] || 
-      IO.readlines("#{@params[:jobname]}.figlist").select { |fig|
-        !File.exist?("#{fig.strip}.pdf")
-      }.size > 0 )
+    job_size > 0
+  end
+  
+  def job_size
+    count = 0
+    
+    if ( File.exist?("#{@params[:jobname]}.figlist") )
+      count = IO.readlines("#{@params[:jobname]}.figlist").select { |fig|
+        @params[:imagerebuild] || !File.exist?("#{fig.strip}.pdf")
+      }.size
+    end
+      
+    return count
   end
 
-  def exec()
+  def exec(progress)
     # Command to process externalised TikZ images if necessary.
     # Uses the following variables:
     # * $params["engine"] -- Engine used by the main job.
@@ -53,19 +62,13 @@ class TikZExt < Extension
     
     # Run (latex) engine for each figure
     log = [[], ""]
-    c = 1
     begin # TODO move gem checking/loading to a central place?
       gem "parallel"
       require 'parallel'
       
       log = Parallel.map(figures) { |fig|
         ilog = compile(pdflatex, fig)
-        # Output up to ten dots
-        # TODO: make nicer output! Eg: [5/10]
-        if ( c % [1, (figures.size / 10)].max == 0 )
-          progress()
-        end
-        c += 1
+        progress.call
         ilog
       }.transpose
     rescue Gem::LoadError
@@ -75,12 +78,7 @@ class TikZExt < Extension
       
       figures.each { |fig|
         log += compile(pdflatex, fig)
-        # Output up to ten dots
-        # TODO: make nicer output! Eg: [5/10]
-        if ( c % [1, (figures.size / 10)].max == 0 )
-          progress()
-        end
-        c += 1
+        progress.call
       }
       log = log.transpose
     end
