@@ -166,7 +166,7 @@ class ParameterManager
       code = @values[key].code
 
       if ( @values[key].type == String )
-        @values[key].value = val
+        @values[key].value = val.strip
       elsif ( @values[key].type == Integer )
         if ( val.is_a?(Integer) )
           @values[key].value = val

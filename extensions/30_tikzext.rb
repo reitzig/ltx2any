@@ -22,13 +22,14 @@ class TikZExt < Extension
     
     @name = "tikzext"
     @description = "Compiles externalized TikZ images"
-    @parameters = [ Parameter.new(:imagerebuild, "ir", Boolean, false, "If set, externalised TikZ images are rebuilt.") ]
+    @parameters = [ Parameter.new(:imagerebuild, "ir", String, "",
+                      "Specify externalised TikZ images to rebuild, separated by ';'. Set to 'all' to rebuild all.") ]
     @dependencies = [["pdflatex", :binary, :essential],
                      ["parallel", :gem, :recommended, "for better performance"]]
   end
 
   def do?
-    File.exist?("#{@params[:jobname]}.figlist") && (@params[:imagerebuild] || 
+    File.exist?("#{@params[:jobname]}.figlist") && (@params[:imagerebuild].length > 0 || 
       IO.readlines("#{@params[:jobname]}.figlist").select { |fig|
         !File.exist?("#{fig.strip}.pdf")
       }.size > 0 )
@@ -41,83 +42,111 @@ class TikZExt < Extension
     # * params[:jobname] -- name of the main LaTeX file (without file ending)
     pdflatex = '"#{@params[:engine]} -shell-escape -file-line-error -interaction=batchmode -jobname \"#{fig}\" \"\\\def\\\tikzexternalrealjob{#{@params[:jobname]}}\\\input{#{@params[:jobname]}}\" 2>&1"'
 
+    # Collect all externalised figures
     figures = IO.readlines("#{@params[:jobname]}.figlist").map { |fig|
       if ( fig.strip != "" )
         fig.strip
       else
         nil
       end
-    }.compact.select { |fig|
-      @params[:imagerebuild] || !File.exist?("#{fig}.pdf")
+    }.compact
+
+    # Remove results of figures that we want to rebuild
+    rebuildlog = [[], ""]
+    rebuild = []
+    if ( @params[:imagerebuild] == "all" )
+      rebuild = figures
+    else
+      @params[:imagerebuild].split(";").map { |s| s.strip }.each { |fig|
+        if ( figures.include?(fig) )
+          rebuild.push(fig)
+        else
+          msg = "User requested rebuild of figure `#{fig}` which does not exist."
+          rebuildlog[0].push(LogMessage.new(:warning, nil, nil, nil, msg))
+          rebuildlog[1] += "#{msg}\n\n"
+        end
+      }      
+    end
+    
+    
+    figures.select! { |fig|
+      !File.exist?("#{fig}.pdf") || rebuild.include?(fig)
     }
     
-    # Run (latex) engine for each figure
-    log = [[], ""]
-    c = 1
-    begin # TODO move gem checking/loading to a central place?
-      gem "parallel"
-      require 'parallel'
+    log = [[], []]
+    if ( figures.size > 0 )
+      # Run (latex) engine for each figure
       
-      log = Parallel.map(figures) { |fig|
-        ilog = compile(pdflatex, fig)
-        # Output up to ten dots
-        # TODO: make nicer output! Eg: [5/10]
-        if ( c % [1, (figures.size / 10)].max == 0 )
-          progress()
-        end
-        c += 1
-        ilog
-      }.transpose
-    rescue Gem::LoadError
-      hint = "Hint: install gem 'parallel' to speed up jobs with many externalized figures."
-      log = [[[LogMessage.new(:info, nil, nil, nil, hint)], 
-              "#{hint}\n\n"]]
-      
-      figures.each { |fig|
-        log += compile(pdflatex, fig)
-        # Output up to ten dots
-        # TODO: make nicer output! Eg: [5/10]
-        if ( c % [1, (figures.size / 10)].max == 0 )
-          progress()
-        end
-        c += 1
-      }
-      log = log.transpose
-    end
-  
-    # Log line numbers are wrong since every compile determines log line numbers
-    # w.r.t. its own contribution. Later steps will only add the offset of the
-    # whole tikzext block, not those inside.
-    offset = 0
-    (0..(log[0].size - 1)).each { |i|
-      if ( log[0][i].size > 0 )
-        internal_offset = 5 # Stuff we print per figure before log excerpt (see :compile)
-        log[0][i].map! { |m|
-          LogMessage.new(m.type, m.srcfile, m.srcline, 
-                         if ( m.logline != nil ) then
-                           m.logline.map { |ll| ll + offset + internal_offset - 1} # -1 because we drop first line!
-                         else
-                           nil
-                         end,
-                         m.msg, if ( m.formatted? ) then :fixed else :none end)
+      begin # TODO move gem checking/loading to a central place?
+        gem "parallel"
+        require 'parallel'
+        gem "atomic"
+        require 'atomic'
+
+        c = Atomic.new(1)
+        log = Parallel.map(figures) { |fig|
+          ilog = compile(pdflatex, fig)
+          # Output up to ten dots
+          # TODO: make nicer output! Eg: [5/10]
+          # Use progress bar recommended by parallel?
+          if ( c.value % [1, (figures.size / 10)].max == 0 )
+            progress()
+          end
+          c.update { |v| v + 1 } # TODO does never update the global c
+          ilog
+        }.transpose
+      rescue Gem::LoadError
+        hint = "Hint: install gems 'parallel' and 'atomic' to speed up jobs with many externalized figures."
+        log = [[[LogMessage.new(:info, nil, nil, nil, hint)], 
+                "#{hint}\n\n"]]
+
+        c = 1
+        figures.each { |fig|
+          log += compile(pdflatex, fig)
+          # Output up to ten dots
+          # TODO: make nicer output! Eg: [5/10]
+          if ( c % [1, (figures.size / 10)].max == 0 )
+            progress()
+          end
+          c += 1
         }
-        
-        log[0][i] = [LogMessage.new(:info, nil, nil, nil, 
-                                    "The following messages refer to figure\n  #{figures[i]}.\n" + 
-                                    "See\n  #{@params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
-                    ] + log[0][i]
-      else
-        log[0][i] += [LogMessage.new(:info, nil, nil, nil, 
-                                     "No messages for figure\n  #{figures[i]}.\nfound. " + 
-                                     "See\n  #{@params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
-                     ]
+        log = log.transpose
       end
-      offset += log[1][i].count(?\n) 
-    }
+  
+      # Log line numbers are wrong since every compile determines log line numbers
+      # w.r.t. its own contribution. Later steps will only add the offset of the
+      # whole tikzext block, not those inside.
+      offset = 0
+      (0..(log[0].size - 1)).each { |i|
+        if ( log[0][i].size > 0 )
+          internal_offset = 5 # Stuff we print per figure before log excerpt (see :compile)
+          log[0][i].map! { |m|
+            LogMessage.new(m.type, m.srcfile, m.srcline, 
+                           if ( m.logline != nil ) then
+                             m.logline.map { |ll| ll + offset + internal_offset - 1} # -1 because we drop first line!
+                           else
+                             nil
+                           end,
+                           m.msg, if ( m.formatted? ) then :fixed else :none end)
+          }
+          
+          log[0][i] = [LogMessage.new(:info, nil, nil, nil, 
+                                      "The following messages refer to figure\n  #{figures[i]}.\n" + 
+                                      "See\n  #{@params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
+                      ] + log[0][i]
+        else
+          log[0][i] += [LogMessage.new(:info, nil, nil, nil, 
+                                       "No messages for figure\n  #{figures[i]}.\nfound. " + 
+                                       "See\n  #{@params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
+                       ]
+        end
+        offset += log[1][i].count(?\n) 
+      }
+    end
     
     log[0].flatten!
     errors = log[0].count { |m| m.type == :error }
-    return [errors <= 0, log[0], log[1].join]
+    return [errors <= 0, rebuildlog[0] + log[0], rebuildlog[1] + log[1].join]
   end
   
   private
@@ -127,7 +156,10 @@ class TikZExt < Extension
              
       # Run twice to clean up log?
       # IO::popen(eval(cmd)).readlines
-      io = IO::popen(eval(cmd)).readlines
+      IO::popen(eval(cmd)) { |io|
+        io.readlines
+        # Closes IO
+      }
       # Shell output does not contain error messages -> read log
       output = File.open("#{fig}.log", "r") { |f|
         f.readlines.map { |s| Log.fix(s) }

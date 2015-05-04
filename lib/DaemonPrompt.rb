@@ -28,7 +28,15 @@ class DaemonPrompt
           else
             value = command[2,command.size-1].join(" ")
             params[command[1].to_sym] = value
-            respond "Set parameter '#{command[1]}' to '#{value}'."
+            respond "Set parameter '#{command[1]}' to '#{params[command[1].to_sym]}'."
+          end
+        when :add
+          if ( command.size < 3 )
+            respond "Please supply a parameter name and a value."
+          else
+            value = command[2,command.size-1].join(" ")
+            params.add(command[1].to_sym, value)
+            respond "Changed parameter '#{command[1]}' to '#{params[command[1].to_sym]}'."
           end
         when :show
           respond "#{command[0]} = #{params[command[1].to_sym]}"
@@ -52,10 +60,8 @@ class DaemonPrompt
       end
 
       # TODO process commands/options:
-
       #  open (log|result|source) -- open specified files
-      #  show <name> -- shows current value of parameter
-      #  set [once] <name> <value> -- sets parameter to value
+      #  set/add once <name> <value> -- sets parameter to value for one run
       #  listen -- commence listening for file changes (?)
       
       command = getCommand
