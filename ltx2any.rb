@@ -43,7 +43,7 @@ hashes    = ".hashes"
 params = ParameterManager.new # Out here for visibility at the end
 
 begin
-  puts "#{shortcode} Initialising ..." # TODO abstract away printing
+  print "#{shortcode} Initialising ..." # TODO abstract away printing
 
   # params = ParameterManager.new
 
@@ -297,7 +297,8 @@ begin
     $changetime = Time.now
     $jobfilelistener.start
   end
-
+  puts " Done"
+  
   begin # demon loop
     begin # inner block that can be cancelled by user
       # Reset
@@ -306,20 +307,41 @@ begin
       log.level = params[:loglevel]
       start_time = Time.now
 
+      print "#{shortcode} Copying files to tmp ..."
       # Copy all files to tmp directory (some LaTeX packages fail to work with output dir)
+      # excepting those we ignore anyways. Oh, and don't recurse outside the main
+      # directory, duh.
       exceptions = $ignoredfiles + $ignoredfiles.map { |s| "./#{s}" } + [".", ".."]
 
-      Dir.entries(".").delete_if { |f| exceptions.include?(f) }.each { |f|
-        # Avoid trouble with symlink loops
-        if ( File.symlink?(f) )
-          if ( !File.exists?("#{params[:tmpdir]}/#{f}") )
-            File.symlink("#{params[:jobpath]}/#{f}", "#{params[:tmpdir]}/#{f}")
+      define_singleton_method(:copy2tmp) { |files| 
+        files.each { |f|
+          if ( File.symlink?(f) )
+            # Avoid trouble with symlink loops
+            
+            # If a proper file or directory has been replaced with a symlink,
+            # remove the obsolete stuff
+            if (     File.exists?("#{params[:tmpdir]}/#{f}") \
+                 && !File.symlink?("#{params[:tmpdir]}/#{f}") )
+              FileUtils::rm_rf("#{params[:tmpdir]}/#{f}")
+            end
+            
+            # Create new symlink instead of copying 
+            if ( !File.exists?("#{params[:tmpdir]}/#{f}") )
+              File.symlink("#{params[:jobpath]}/#{f}", "#{params[:tmpdir]}/#{f}")
+            end
+          elsif ( File.directory?(f) )
+            copy2tmp(Dir.entries(f)\
+                        .delete_if { |s| [".", ".."]\
+                        .include?(s) }.map { |s| "#{f}/#{s}" })
+            # TODO Is this necessary? Why not just copy? (For now, safer and more adaptable.)
+          else
+            FileUtils::cp(f,"#{params[:tmpdir]}/")
           end
-        else
-          FileUtils::rm_rf("#{params[:tmpdir]}/#{f}")
-          FileUtils::cp_r(f,"#{params[:tmpdir]}/")
-        end
+        }
       }
+
+      copy2tmp(Dir.entries(".").delete_if { |f| exceptions.include?(f) })
+      puts " Done"
 
       # Move into temporary directory
       Dir.chdir(params[:tmpdir])
