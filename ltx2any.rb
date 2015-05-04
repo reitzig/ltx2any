@@ -239,6 +239,7 @@ begin
   end
   
   # Setup daemon mode
+  $vanishedfiles = []
   if ( params[:daemon] )
     # Main listener: this one checks job files for changes and prompts recompilation.
     #                (indirectly: The Loop below checks $changetime.)
@@ -249,6 +250,10 @@ begin
                           /\A(\.\/)?(#{$ignoredfiles.map { |s| Regexp.escape(s) }.join("|")})/ ],
                ) \
       do |modified, added, removed|
+        # TODO cruel hack; can we do better?
+        removed.each { |r|
+          $vanishedfiles.push File.path(r.to_s).sub(params[:jobpath], params[:tmpdir])
+        }
         $changetime = Time.now
       end
       
@@ -330,6 +335,7 @@ begin
         }
       }
 
+      $vanishedfiles.each { |f| FileUtils.rm_rf(f) if f.start_with?(params[:tmpdir]) && File.exists?(f) } # to be sure
       copy2tmp(Dir.entries(".").delete_if { |f| exceptions.include?(f) })
       output.stop(:success)
 
