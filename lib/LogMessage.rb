@@ -17,6 +17,10 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class LogMessage
+  def self.dependencies
+    return []
+  end
+  
   # Parameter type: one of :error, :warning, :info
   # Parameter srcfile: name of the source file the message originated at
   #                    nil if not available

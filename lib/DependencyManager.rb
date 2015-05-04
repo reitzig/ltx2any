@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -16,39 +16,23 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-class Extension  
-  def self.dependencies
-    return []
-  end
-  
-  def initialize(params)
-    @name = "Dummy name"
-    @description = "Dummy description"
-    @parameters = []
-    @dependencies = []
-    @params = params
-  end
-  
-  public
-    def do?()
-      false
-    end
-    
-    def job_size
-      return 1
-    end
+require 'rubygems'
 
-    def exec(progress)
-      return [true, "No execution code, need to overwrite!"]
+class DependencyManager
+  def self.available?(type, name)
+    if ( type == :gem )
+      begin # TODO move gem checking/loading to a central place?
+        gem "#{name}"
+        require name
+        return true
+      rescue Gem::LoadError
+        Output.instance.msg("gem #{name} not available")
+      end
+      return false
+    elsif ( type == :binary )
+      Output.instance.msg("illegal dependency type")
+    else
+      Output.instance.msg("illegal dependency type")
     end
-
-    def to_s
-      @name
-    end
-    
-    attr_accessor :name, :description, :codes, :parameters
-    
-  protected
-    attr_reader :params, :dependencies
-    attr_writer :name, :description, :codes, :parameters
+  end
 end

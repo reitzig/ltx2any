@@ -17,6 +17,10 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class ParameterManager
+  def self.dependencies
+    return []
+  end
+  
 # TODO Make it so that keys are (also) "long" codes as fas as users are concerned. Interesting for DaemonPrompt!
   def initialize
     parameters = [
@@ -79,19 +83,24 @@ class ParameterManager
       # Check for input file first
       # Try to find an existing file by attaching common endings
       original = ARGV.last
-      endings = ["tex", "ltx", "latex"]
+      endings = ["tex", "ltx", "latex", ".tex", ".ltx", ".latex"]
       jobfile = original
-      while ( !File.exist?(jobfile) )
+      while ( !File.exist?(jobfile) || File.directory?(jobfile) )
         if ( endings.length == 0 )
           raise ParameterException.new("No input file fitting #{original} exists.")
         end
 
-        jobfile = "#{original}.#{endings.pop}"
+        jobfile = "#{original}#{endings.pop}"
       end
       # TODO do basic checks as to whether we really have a LaTeX file?
 
       addParameter(Parameter.new(:jobpath, "", String, File.dirname(File.expand_path(jobfile)), 
                                  "Absolute path of source directory"))
+      addHook(:tmpdir) { |key,val|
+        if ( self[:jobpath].start_with?(File.expand_path(val)) )
+          raise ParameterException.new("Temporary directory may not contain job directory.")
+        end
+      }
       addParameter(Parameter.new(:jobfile, "", String, File.basename(jobfile), "Name of the main input file"))
       set(:jobname, /\A(.+?)\.\w+\z/.match(self[:jobfile])[1])
 
@@ -186,8 +195,8 @@ class ParameterManager
       elsif ( @values[key].type == Boolean )
         if ( val.is_a?(Boolean) )
           @values[key].value = val
-        elsif ( val.to_sym == :true || val.to_sym == :false )
-          @values[key].value = ( val.to_sym == :true )
+        elsif ( val.to_s.to_sym == :true || val.to_s.to_sym == :false )
+          @values[key].value = ( val.to_s.to_sym == :true )
         else
           raise ParameterException.new("Parameter -#{code} requires a boolean ('#{val}' given).")
         end

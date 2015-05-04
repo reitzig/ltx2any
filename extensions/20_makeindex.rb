@@ -33,7 +33,7 @@ class MakeIndex < Extension
        )
   end
 
-  def exec()
+  def exec(progress)
     # Command to create the index if necessary. Provide two versions,
     # one without and one with stylefile
     # Uses the following variables:
@@ -41,7 +41,6 @@ class MakeIndex < Extension
     # * mistyle -- name of the makeindex style file (with file ending)
     makeindex = { "default" => '"makeindex -q \"#{@params[:jobname]}\" 2>&1"',
                   "styled"  => '"makeindex -q -s \"#{mistyle}\" \"#{@params[:jobname]}\" 2>&1"'}
-    progress(3)
   
     version = "default"
     mistyle = nil

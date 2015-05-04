@@ -80,12 +80,11 @@ class BibTeX < Extension
     return usesbib && needsrerun
   end
 
-  def exec()
+  def exec(progress)
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
     bibtex = '"bibtex \"#{@params[:jobname]}\""'
-    progress(3)
 
     f = IO::popen(eval(bibtex))
     log = f.readlines

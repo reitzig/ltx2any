@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 # Version 1.0 beta
 #
@@ -19,10 +19,9 @@
 
 require 'io/console'
 require 'fileutils'
-require 'rubygems'
 require 'digest'
 require 'yaml'
-Dir[File.dirname(__FILE__) + '/lib/*.rb'].each { |f| require f }
+Dir[File.dirname(__FILE__) + '/lib/*.rb'].each { |f| require f } # TODO load dependencies
 
 # Set process name to something less cumbersome
 $0="ltx2any.rb"
@@ -31,19 +30,16 @@ $0="ltx2any.rb"
 # TODO move somewhere nice
 name      = "ltx2any"
 version   = "0.9a"
-shortcode = "[#{name}]"
-running   = "running"
-done      = "Done"
-error     = "Error"
-cancelled = "Cancelled"
 tmpsuffix = "_tmp"
 ignorefile = ".#{name}ignore_"
 hashes    = ".hashes"
 
 params = ParameterManager.new # Out here for visibility at the end
+output = Output.instance
+output.name = name
 
 begin
-  puts "#{shortcode} Initialising ..." # TODO abstract away printing
+  output.start("Initialising")
 
   # params = ParameterManager.new
 
@@ -140,7 +136,7 @@ begin
     Process.exit
   elsif ( ARGV[0] == "--version" )
     puts "#{name} #{version}"
-    puts "Copyright \u00A9 Raphael Reitzig 2013".encode('utf-8')
+    puts "Copyright \u00A9 Raphael Reitzig 2015".encode('utf-8')
     puts "This is free software; see the source for copying conditions."
     puts "There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
     Process.exit
@@ -150,7 +146,7 @@ begin
   begin
     params.processArgs(ARGV)
   rescue ParameterException => e
-    puts "#{shortcode} #{e.message}"
+    output.message("#{e.message}")
     Process.exit
   end
 
@@ -171,7 +167,7 @@ begin
   }
 
   if ( `which #{params[:engine]}` == "" ) # TODO make obsolete by proper dependency check
-    puts "#{shortcode} Engine not available. Please install #{params[:engine]} and make sure it is in the executable path."
+    output.message("Engine not available. Please install #{params[:engine]} and make sure it is in the executable path.")
     Process.exit
   end
 
@@ -180,18 +176,13 @@ begin
   if ( !File.exist?(params[:tmpdir]) )
     Dir.mkdir(params[:tmpdir])
   elsif ( !File.directory?(params[:tmpdir]) )
-    puts "#{shortcode} File #{params[:tmpdir]} exists but is no directory"
+    output.message("File #{params[:tmpdir]} exists but is no directory")
     Process.exit
   end
 
   # Hash function that can be used by engines and extensions
   def filehash(f)
     Digest::MD5.file(f).to_s
-  end
-
-  def progress(steps=1) # TODO improve
-    print "." * steps
-    STDOUT.flush
   end
 
   $ignoredfiles = ["#{ignorefile}#{params[:jobname]}",
@@ -234,17 +225,16 @@ begin
       require 'listen'
     rescue Gem::LoadError
       params[:daemon] = false
-      print "#{shortcode} Daemon mode requires gem 'listen'"
+      msg = "#{shortcode} Daemon mode requires gem 'listen'"
       
       begin
         gem "listen"
-        puts " 2.2.0 or higher."
+        msg += " 2.2.0 or higher."
       rescue Gem::LoadError
-        puts "."
+        msg += "."
       end
       
-      puts (" " * shortcode.length) + 
-           " Please install the latest version with 'gem install listen'."
+      output.message(msg, "Please install the latest version with 'gem install listen'.")
     end
   end
   
@@ -296,7 +286,8 @@ begin
     $changetime = Time.now
     $jobfilelistener.start
   end
-
+  output.stop(:success)
+  
   begin # daemon loop
     begin # inner block that can be cancelled by user
       # Reset
@@ -305,20 +296,42 @@ begin
       log.level = params[:loglevel]
       start_time = Time.now
 
+      output.start("Copying files to tmp")
       # Copy all files to tmp directory (some LaTeX packages fail to work with output dir)
+      # excepting those we ignore anyways. Oh, and don't recurse outside the main
+      # directory, duh.
       exceptions = $ignoredfiles + $ignoredfiles.map { |s| "./#{s}" } + [".", ".."]
 
-      Dir.entries(".").delete_if { |f| exceptions.include?(f) }.each { |f|
-        # Avoid trouble with symlink loops
-        if ( File.symlink?(f) )
-          if ( !File.exists?("#{params[:tmpdir]}/#{f}") )
+      define_singleton_method(:copy2tmp) { |files| 
+        files.each { |f|
+          if ( File.symlink?(f) )
+            # Avoid trouble with symlink loops
+            
+            # Delete old symlink if there is one, because:
+            # If a proper file or directory has been replaced with a symlink,
+            # remove the obsolete stuff.
+            # If there already is a symlink, delete because it might have been
+            # relinked.
+            if ( File.exists?("#{params[:tmpdir]}/#{f}") )
+              FileUtils::rm("#{params[:tmpdir]}/#{f}")
+            end
+            
+            # Create new symlink instead of copying 
             File.symlink("#{params[:jobpath]}/#{f}", "#{params[:tmpdir]}/#{f}")
+          elsif ( File.directory?(f) )
+            FileUtils::mkdir_p("#{params[:tmpdir]}/#{f}")
+            copy2tmp(Dir.entries(f)\
+                        .delete_if { |s| [".", ".."]\
+                        .include?(s) }.map { |s| "#{f}/#{s}" })
+            # TODO Is this necessary? Why not just copy? (For now, safer and more adaptable.)
+          else
+            FileUtils::cp(f,"#{params[:tmpdir]}/#{f}")
           end
-        else
-          FileUtils::rm_rf("#{params[:tmpdir]}/#{f}")
-          FileUtils::cp_r(f,"#{params[:tmpdir]}/")
-        end
+        }
       }
+
+      copy2tmp(Dir.entries(".").delete_if { |f| exceptions.include?(f) })
+      output.stop(:success)
 
       # Move into temporary directory
       Dir.chdir(params[:tmpdir])
@@ -329,11 +342,9 @@ begin
       end
 
       # First engine run
-      print "#{shortcode} #{engine.name}(1) #{running} ..."
-      STDOUT.flush
+      output.start("#{engine.name}(1) running")
       r = engine.exec
-      puts " #{if r[0] then done else error end}"
-      STDOUT.flush
+      output.stop(if r[0] then :success else :error end)
 
       if ( engine.do? && File.exist?("#{params[:jobname]}.#{engine.extension}") )
         # The first run produced some output so the input is hopefully
@@ -360,11 +371,9 @@ begin
         # Run all extensions in order
         extensions.each { |e| 
           if ( e.do? ) # TODO check dependencies
-            print "#{shortcode} #{e.name} #{running} "
-            STDOUT.flush
-            r = e.exec()
-            puts " #{if r[0] then done else error end}"
-            STDOUT.flush
+            progress, stop = output.start("#{e.name} running", e.job_size)
+            r = e.exec(progress)
+            stop.call(if r[0] then :success else :error end)
             log.add_messages(e.name, :extension, r[1], r[2])
           end
         }
@@ -373,11 +382,9 @@ begin
         run = 2
         while (  (params[:runs] > 0 && run <= params[:runs]) ||
                  (params[:runs] <= 0 && engine.do?) )
-          print "#{shortcode} #{engine.name}(#{run}) #{running} ..."
-          STDOUT.flush
+          output.start("#{engine.name}(#{run}) running")
           r = engine.exec
-          puts " #{if r[0] then done else error end}"
-          STDOUT.flush
+          output.stop(if r[0] then :success else :error end)
           run += 1
         end
 
@@ -403,20 +410,20 @@ begin
       
       errorS = if ( log.count(:error) != 1 ) then "s" else "" end
       warningS = if ( log.count(:warning) != 1 ) then "s" else "" end
-      puts "#{shortcode} There were #{log.count(:error)} error#{errorS} " + 
-                        "and #{log.count(:warning)} warning#{warningS}."
+      output.msg("There were #{log.count(:error)} error#{errorS} " + 
+                 "and #{log.count(:warning)} warning#{warningS}.")
       
       # Pick up output if present
       if ( File.exist?("#{params[:jobname]}.#{engine.extension}") )
         FileUtils::cp("#{params[:jobname]}.#{engine.extension}", "#{params[:jobpath]}/")
-        puts "#{shortcode} Output generated at #{params[:jobname]}.#{engine.extension}"
+        output.msg("Output generated at #{params[:jobname]}.#{engine.extension}")
       else
-        puts "#{shortcode} No output generated due to fatal errors."
+        output.msg("No output generated, probably due to fatal errors.")
       end
             
       # Write log
       if ( !log.empty? )
-        print "#{shortcode} Assembling log files ... "
+        output.start("Assembling log files")
         
         # Manage messages from extensions
         extensions.each { |ext|
@@ -437,7 +444,6 @@ begin
         }
         
         target = params[:log]
-        STDOUT.flush
         tmpsrc = "#{params[:log]}.#{params[:logformat].to_s}"
         log.to_s("#{params[:log]}.raw")
         
@@ -451,11 +457,10 @@ begin
               target = "#{params[:log]}.pdf"
             end
           rescue RuntimeError => e
-            puts "\n#{shortcode} Failed to build PDF log:\n" +
-                 (" " * shortcode.length) + " " + e.message
+            output.stop(:error, "Failed to build PDF log:", e.message)
                  
             # Fall back to Markdown log
-            print "#{shortcode} Falling back to Markdown log ... "
+            output.start("Falling back to Markdown log")
             tmpsrc = "#{params[:log]}.md"
             mdfallback = true
           end
@@ -465,23 +470,22 @@ begin
           
           # Sucks, but viewers can not choose proper highlighting otherwise
           if ( !params[:log].end_with?(".md") )
-              target = "#{params[:log]}.md"
-            end
+            target = "#{params[:log]}.md"
+          end
         end
                 
         FileUtils::cp(tmpsrc, "#{params[:jobpath]}/#{target}")
-        puts done
-        puts "#{shortcode} Log file generated at #{target}"
-        STDOUT.flush
+        output.stop(:success)
+        output.msg("Log file generated at #{target}")
         
         runtime = Time.now - start_time
         # Don't show runtimes of less than 5s (arbitrary)
         if ( runtime / 60 >= 1 || runtime % 60 >= 5 )
-          puts "#{shortcode} Took #{sprintf("%d min ", runtime / 60)} #{sprintf("%d sec", runtime % 60)}"
+          output.msg("Took #{sprintf("%d min ", runtime / 60)} #{sprintf("%d sec", runtime % 60)}")
         end
       end
     rescue Interrupt, SystemExit # User cancelled current run
-      puts "\n#{shortcode} #{cancelled}"
+      output.stop(:cancel)
     ensure 
       # Return from temporary directory
       Dir.chdir(params[:jobpath])
@@ -490,7 +494,7 @@ begin
     if ( params[:daemon] )
       # Wait until sources changes
       # TODO if check interval is negative (option to come), never wait.
-      print "#{shortcode} Waiting for file changes... "
+      output.start("Waiting for file changes")
        
       files = Thread.new do
         while ( $changetime <= start_time || Time.now - $changetime < 2 )
@@ -506,7 +510,7 @@ begin
       begin
         STDIN.noecho(&:gets)
         files.kill
-        puts cancelled
+        output.stop(:cancel)
 
         # Delegate. The method returns if the user
         # prompts a rerun. It throws a SystemExit
@@ -514,18 +518,18 @@ begin
         DaemonPrompt.run(params)
       rescue Interrupt => e
         # We have file changes, rerun!
-        puts "done"
+        output.stop(:success)
       end
       
       # Rerun!
-      puts ""
+      output.separate
     end
   end while ( params[:daemon] )
 rescue Interrupt, SystemExit
-  puts "\n#{shortcode} Shutdown"
+  output.separate.msg("Shutdown")
 rescue Exception => e
   if ( params[:jobname] != nil )
-    puts "\n#{shortcode} ERROR: #{e.message} (see #{params[:jobname]}.err for details)"
+    output.separate.msg("ERROR: #{e.message} (see #{params[:jobname]}.err for details)")
     File.open("#{params[:jobpath]}/#{params[:jobname]}.err", "w") { |file| 
       file.write("#{e.inspect}\n\n#{e.backtrace.join("\n")}") 
     }

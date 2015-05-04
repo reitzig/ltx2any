@@ -29,13 +29,22 @@ class TikZExt < Extension
   end
 
   def do?
-    File.exist?("#{@params[:jobname]}.figlist") && (@params[:imagerebuild].length > 0 || 
-      IO.readlines("#{@params[:jobname]}.figlist").select { |fig|
-        !File.exist?("#{fig.strip}.pdf")
-      }.size > 0 )
+    job_size > 0
+  end
+  
+  def job_size
+    count = 0
+    
+    if ( File.exist?("#{@params[:jobname]}.figlist") )
+      count = IO.readlines("#{@params[:jobname]}.figlist").select { |fig|
+        @params[:imagerebuild] || !File.exist?("#{fig.strip}.pdf") # TODO check if figname in rebuild list
+      }.size
+    end
+      
+    return count
   end
 
-  def exec()
+  def exec(progress)
     # Command to process externalised TikZ images if necessary.
     # Uses the following variables:
     # * $params["engine"] -- Engine used by the main job.
@@ -73,76 +82,58 @@ class TikZExt < Extension
       !File.exist?("#{fig}.pdf") || rebuild.include?(fig)
     }
     
+    # Run (latex) engine for each figure
     log = [[], []]
-    if ( figures.size > 0 )
-      # Run (latex) engine for each figure
+    begin # TODO move gem checking/loading to a central place?
+      gem "parallel"
+      require 'parallel'
       
-      begin # TODO move gem checking/loading to a central place?
-        gem "parallel"
-        require 'parallel'
-        gem "atomic"
-        require 'atomic'
-
-        c = Atomic.new(1)
-        log = Parallel.map(figures) { |fig|
-          ilog = compile(pdflatex, fig)
-          # Output up to ten dots
-          # TODO: make nicer output! Eg: [5/10]
-          # Use progress bar recommended by parallel?
-          if ( c.value % [1, (figures.size / 10)].max == 0 )
-            progress()
-          end
-          c.update { |v| v + 1 } # TODO does never update the global c
-          ilog
-        }.transpose
-      rescue Gem::LoadError
-        hint = "Hint: install gems 'parallel' and 'atomic' to speed up jobs with many externalized figures."
-        log = [[[LogMessage.new(:info, nil, nil, nil, hint)], 
-                "#{hint}\n\n"]]
-
-        c = 1
-        figures.each { |fig|
-          log += compile(pdflatex, fig)
-          # Output up to ten dots
-          # TODO: make nicer output! Eg: [5/10]
-          if ( c % [1, (figures.size / 10)].max == 0 )
-            progress()
-          end
-          c += 1
-        }
-        log = log.transpose
-      end
-  
-      # Log line numbers are wrong since every compile determines log line numbers
-      # w.r.t. its own contribution. Later steps will only add the offset of the
-      # whole tikzext block, not those inside.
-      offset = 0
-      (0..(log[0].size - 1)).each { |i|
-        if ( log[0][i].size > 0 )
-          internal_offset = 5 # Stuff we print per figure before log excerpt (see :compile)
-          log[0][i].map! { |m|
-            LogMessage.new(m.type, m.srcfile, m.srcline, 
-                           if ( m.logline != nil ) then
-                             m.logline.map { |ll| ll + offset + internal_offset - 1} # -1 because we drop first line!
-                           else
-                             nil
-                           end,
-                           m.msg, if ( m.formatted? ) then :fixed else :none end)
-          }
-          
-          log[0][i] = [LogMessage.new(:info, nil, nil, nil, 
-                                      "The following messages refer to figure\n  #{figures[i]}.\n" + 
-                                      "See\n  #{@params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
-                      ] + log[0][i]
-        else
-          log[0][i] += [LogMessage.new(:info, nil, nil, nil, 
-                                       "No messages for figure\n  #{figures[i]}.\nfound. " + 
-                                       "See\n  #{@params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
-                       ]
-        end
-        offset += log[1][i].count(?\n) 
+      log = Parallel.map(figures) { |fig|
+        ilog = compile(pdflatex, fig)
+        progress.call
+        ilog
+      }.transpose
+    rescue Gem::LoadError
+      hint = "Hint: install gem 'parallel' to speed up jobs with many externalized figures."
+      log = [[[LogMessage.new(:info, nil, nil, nil, hint)], 
+              "#{hint}\n\n"]]
+      
+      figures.each { |fig|
+        log += compile(pdflatex, fig)
+        progress.call
       }
+      log = log.transpose
     end
+  
+    # Log line numbers are wrong since every compile determines log line numbers
+    # w.r.t. its own contribution. Later steps will only add the offset of the
+    # whole tikzext block, not those inside.
+    offset = 0
+    (0..(log[0].size - 1)).each { |i|
+      if ( log[0][i].size > 0 )
+        internal_offset = 5 # Stuff we print per figure before log excerpt (see :compile)
+        log[0][i].map! { |m|
+          LogMessage.new(m.type, m.srcfile, m.srcline, 
+                         if ( m.logline != nil ) then
+                           m.logline.map { |ll| ll + offset + internal_offset - 1} # -1 because we drop first line!
+                         else
+                           nil
+                         end,
+                         m.msg, if ( m.formatted? ) then :fixed else :none end)
+        }
+        
+        log[0][i] = [LogMessage.new(:info, nil, nil, nil, 
+                                    "The following messages refer to figure\n  #{figures[i]}.\n" + 
+                                    "See\n  #{@params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
+                    ] + log[0][i]
+      else
+        log[0][i] += [LogMessage.new(:info, nil, nil, nil, 
+                                     "No messages for figure\n  #{figures[i]}.\nfound. " + 
+                                     "See\n  #{@params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
+                     ]
+      end
+      offset += log[1][i].count(?\n) 
+    }
     
     log[0].flatten!
     errors = log[0].count { |m| m.type == :error }

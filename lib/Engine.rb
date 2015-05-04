@@ -17,6 +17,10 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class Engine
+  def self.dependencies
+    return []
+  end
+  
   def initialize(params)
     @name = "Dummy Name"
     @extension = "dummy"
