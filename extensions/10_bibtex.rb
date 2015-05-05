@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -16,26 +16,29 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+DependencyManager.add("bibtex", :binary, :essential)
+
 class BibTeX < Extension
-  def initialize(params)
-    super(params)
-    
-    @name = "bibtex"
-    @description = "Creates bibliography"
-    @dependencies = [["bibtex", :binary, :essential]]
+  def initialize
+    super    
+    @name = "BibTeX"
+    @description = "Creates bibliography (old)"
     
     # For checking whether bibtex has to rerun, we need to keep the 
     # relevant parts of the _.aux file handy.
+    # TODO use internal store?
     @grepfile = "bibtex_aux_grep"
   end
 
   def do?
+    params = ParameterManager.instance
+    
     # Collect used bibdata files and style file
     stylefile = []
     bibdata = []
     grepdata = []
-    if ( File.exist?("#{@params[:jobname]}.aux") )
-      File.open("#{@params[:jobname]}.aux", "r") { |file|
+    if ( File.exist?("#{params[:jobname]}.aux") )
+      File.open("#{params[:jobname]}.aux", "r") { |file|
         while ( line = file.gets )
           if ( /^\\bibdata\{(.+?)\}$/ =~ line )
             # If commas occur, add both a split version (multiple files)
@@ -61,7 +64,7 @@ class BibTeX < Extension
     usesbib = bibdata.size > 0
     
     # Check whether a (re)run is needed
-    needsrerun = !File.exist?("#{@params[:jobname]}.bbl") # Is result still there?
+    needsrerun = !File.exist?("#{params[:jobname]}.bbl") # Is result still there?
     # Check more closely
     if ( usesbib && !needsrerun )
       fileschanged = false
@@ -81,10 +84,12 @@ class BibTeX < Extension
   end
 
   def exec(progress)
+    params = ParameterManager.instance
+    
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
-    bibtex = '"bibtex \"#{@params[:jobname]}\""'
+    bibtex = '"bibtex \"#{params[:jobname]}\""'
 
     f = IO::popen(eval(bibtex))
     log = f.readlines
@@ -117,4 +122,4 @@ class BibTeX < Extension
   end
 end
   
-$extension = BibTeX
+Extension.add BibTeX

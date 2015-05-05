@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -16,24 +16,25 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+DependencyManager.add("biber", :binary, :essential)
+
 class Biber < Extension
-  def initialize(params)
-    super(params)
-    
-    @name = "biber"
-    @description = "Creates bibliography"
-    @dependencies = [["biber", :binary, :essential]]
-    
+  def initialize
+    super
+    @name = "Biber"
+    @description = "Creates bibliography (recommended)"  
     @sources = []
   end
 
   def do?
-    usesbib = File.exist?("#{@params[:jobname]}.bcf")
+    params = ParameterManager.instance
+    
+    usesbib = File.exist?("#{params[:jobname]}.bcf")
     
     if ( usesbib )
       # Collect sources (needed for log parsing)
       @sources = []
-      IO.foreach("#{@params[:jobname]}.bcf") { |line|
+      IO.foreach("#{params[:jobname]}.bcf") { |line|
         if ( /<bcf:datasource[^>]*type="file"[^>]*>(.*?)<\/bcf:datasource>/ =~ line )
           @sources.push($~[1])
         end
@@ -41,7 +42,7 @@ class Biber < Extension
       @sources.uniq!
     end    
       
-    needrerun = !File.exist?("#{@params[:jobname]}.bbl") # Is this the first run?
+    needrerun = !File.exist?("#{params[:jobname]}.bbl") # Is this the first run?
     if ( usesbib && !needrerun )
       # There are two things that prompt us to rerun:
       #  * changes to the bcf file (which includes all kinds of things,
@@ -49,7 +50,7 @@ class Biber < Extension
       #  * changes to the bib sources (which are listed in the bcf file)
       
       # Has the bcf file changed?
-      needrerun ||= !$hashes.has_key?("#{@params[:jobname]}.bcf") || filehash("#{@params[:jobname]}.bcf") != $hashes["#{@params[:jobname]}.bcf"]
+      needrerun ||= !$hashes.has_key?("#{params[:jobname]}.bcf") || filehash("#{params[:jobname]}.bcf") != $hashes["#{params[:jobname]}.bcf"]
       
       if ( !needrerun )
         # Have bibliography files changes?
@@ -71,7 +72,7 @@ class Biber < Extension
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
-    biber = '"biber \"#{@params[:jobname]}\""'
+    biber = '"biber \"#{params[:jobname]}\""'
 
     f = IO::popen(eval(biber))
     log = f.readlines
@@ -99,4 +100,4 @@ class Biber < Extension
   end
 end
   
-$extension = Biber
+Extension.add Biber

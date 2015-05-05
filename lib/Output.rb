@@ -18,12 +18,10 @@
 
 require 'singleton'
 
+DependencyManager.add("ruby-progressbar", :gem, :recommended, "for nice progress indicators", ">=1.7.5")
+
 class Output 
   include Singleton
-  
-  def self.dependencies
-    return [["ruby-progressbar", :gem, :recommended, "for nice progress indicators"]]
-  end
                   
   def initialize() 
     @success   = "Done"
@@ -53,7 +51,7 @@ class Output
     
     def start(msg, count=1)
       # Set up progress bar if needed
-      if ( count > 1 && DependencyManager.available?(:gem, 'ruby-progressbar') )
+      if ( count > 1 && DependencyManager.available?('ruby-progressbar', :gem) )
         progress = ProgressBar.create(:title => "#{@shortcode} #{msg} ...", 
                                       :total => count,
                                       :format => "%t [%c/%C]",

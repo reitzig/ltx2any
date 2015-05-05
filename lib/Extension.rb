@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -17,16 +17,36 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class Extension  
-  def self.dependencies
-    return []
-  end
+  @@list = {}
   
-  def initialize(params)
+  def self.add(e)
+    @@list[e.to_sym] = e
+  end
+
+  def self.list
+    return @@list.values
+  end
+
+  def self.[](key) 
+    return @@list[key]
+  end
+
+  def self.to_sym
+    self.new.to_sym
+  end
+ 
+  def initialize
     @name = "Dummy name"
     @description = "Dummy description"
-    @parameters = []
-    @dependencies = []
-    @params = params
+  end
+
+  # Hacky hack? Need to refactor this
+  def self.name
+    self.new.name
+  end
+  
+  def self.description
+    self.new.description
   end
   
   public
@@ -45,10 +65,14 @@ class Extension
     def to_s
       @name
     end
+
+    def to_sym
+      self.class.name.downcase.to_sym
+    end
     
-    attr_accessor :name, :description, :codes, :parameters
+    attr_accessor :name, :description
     
   protected
-    attr_reader :params, :dependencies
-    attr_writer :name, :description, :codes, :parameters
+    attr_reader :params
+    attr_writer :name, :description
 end

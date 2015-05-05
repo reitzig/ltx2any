@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -16,14 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+DependencyManager.add("gnuplot", :binary, :essential)
+
 class Gnuplot < Extension
-  def initialize(params)
-    super(params)
-    
-    @name = "gnuplot"
+  def initialize
+    super
+    @name = "Gnuplot"
     @description = "Executes generated gnuplot files"
-    @dependencies = [["gnuplot", :binary, :essential],
-                     ["parallel", :gem, :recommended, "for better performance"]]
+    @dependencies = [["parallel", :gem, :recommended, "for better performance"]]
   end
 
   def do?
@@ -98,6 +98,8 @@ class Gnuplot < Extension
   
   private 
     def compile(cmd, f)
+      params = ParameterManager.instance
+      
       log = ""
       msgs = []
       
@@ -132,7 +134,7 @@ class Gnuplot < Extension
         # So I'm going to assume that multiple error messages
         # are separated by empty lines.
         if ( /^"(.+?)", line (\d+): (.*)$/ =~ line )
-          msgs.push(LogMessage.new(:error, "#{@params[:tmpdir]}/#{$~[1]}", 
+          msgs.push(LogMessage.new(:error, "#{ParameterManager.instance[:tmpdir]}/#{$~[1]}", 
                                    [Integer($~[2])], [[contextline, linectr].min, linectr], 
                                    "#{context}#{$~[3].strip}", :fixed))
         elsif ( line.strip == "" )
@@ -152,4 +154,4 @@ class Gnuplot < Extension
     end
 end
 
-$extension = Gnuplot
+Extension.add Gnuplot

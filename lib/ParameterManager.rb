@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -16,12 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+require 'singleton'
+
 class ParameterManager
-  def self.dependencies
-    return []
-  end
-  
-# TODO Make it so that keys are (also) "long" codes as fas as users are concerned. Interesting for DaemonPrompt!
+  include Singleton
+
+  # TODO Make it so that keys are (also) "long" codes as fas as users are concerned. Interesting for DaemonPrompt!
   def initialize
     parameters = [
       Parameter.new(:jobname,        "j",        String,                         nil,
@@ -204,7 +204,7 @@ class ParameterManager
         if ( @values[key].type.include?(val.to_sym) )
           @values[key].value = val.to_sym
         else
-          raise ParameterException.new("Invalid value '#{val}' for parameter -#{code}; choose one of [#{@values[key].type.map { |e| e.to_s }.join(", ")}].")
+          raise ParameterException.new("Invalid value '#{val}' for parameter -#{code}\nChoose one of [#{@values[key].type.map { |e| e.to_s }.join(", ")}].")
         end
       else
         # This should never happen
@@ -237,15 +237,19 @@ class ParameterManager
     end
 
     def addHook(key, &block)
-      if ( @values.has_key?(key) )
-        if ( block.arity == 2 )
-          @hooks[key].push(block)
-        else
-          raise ParameterException.new("Parameter hooks need to take two parameters.")
-        end
-      else
-        raise ParameterException.new("Parameter #{key} does not exist.")
+      #if ( @values.has_key?(key) )
+      if ( !@hooks.has_key?(key) )
+        @hooks[key] = []
       end
+      
+      if ( block.arity == 2 )
+        @hooks[key].push(block)
+      else
+        raise ParameterException.new("Parameter hooks need to take two parameters (key, new value).")
+      end
+      #else
+      #  raise ParameterException.new("Parameter #{key} does not exist.")
+      #end
     end
 
     def keys

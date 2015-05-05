@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -16,16 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+DependencyManager.add("pdflatex", :binary, :essential)
+ParameterManager.instance.addParameter(Parameter.new(
+  :imagerebuild, "ir", String, "", "Specify externalised TikZ images to rebuild, separated by ';'. Set to 'all' to rebuild all."))
+
 class TikZExt < Extension
-  def initialize(params)
-    super(params)
-    
-    @name = "tikzext"
+  def initialize
+    super
+    @name = "TikZ externalization"
     @description = "Compiles externalized TikZ images"
-    @parameters = [ Parameter.new(:imagerebuild, "ir", String, "",
-                      "Specify externalised TikZ images to rebuild, separated by ';'. Set to 'all' to rebuild all.") ]
-    @dependencies = [["pdflatex", :binary, :essential],
-                     ["parallel", :gem, :recommended, "for better performance"]]
+    @parameters = [  ]
+    @dependencies = [["parallel", :gem, :recommended, "for better performance"]]
   end
 
   def do?
@@ -34,10 +35,11 @@ class TikZExt < Extension
   
   def job_size
     count = 0
+    params = ParameterManager.instance
     
-    if ( File.exist?("#{@params[:jobname]}.figlist") )
-      count = IO.readlines("#{@params[:jobname]}.figlist").select { |fig|
-        @params[:imagerebuild] || !File.exist?("#{fig.strip}.pdf") # TODO check if figname in rebuild list
+    if ( File.exist?("#{params[:jobname]}.figlist") )
+      count = IO.readlines("#{params[:jobname]}.figlist").select { |fig|
+        params[:imagerebuild] || !File.exist?("#{fig.strip}.pdf") # TODO check if figname in rebuild list
       }.size
     end
       
@@ -45,14 +47,16 @@ class TikZExt < Extension
   end
 
   def exec(progress)
+    params = ParameterManager.instance
+    
     # Command to process externalised TikZ images if necessary.
     # Uses the following variables:
     # * $params["engine"] -- Engine used by the main job.
     # * params[:jobname] -- name of the main LaTeX file (without file ending)
-    pdflatex = '"#{@params[:engine]} -shell-escape -file-line-error -interaction=batchmode -jobname \"#{fig}\" \"\\\def\\\tikzexternalrealjob{#{@params[:jobname]}}\\\input{#{@params[:jobname]}}\" 2>&1"'
+    pdflatex = '"#{params[:engine]} -shell-escape -file-line-error -interaction=batchmode -jobname \"#{fig}\" \"\\\def\\\tikzexternalrealjob{#{params[:jobname]}}\\\input{#{params[:jobname]}}\" 2>&1"'
 
     # Collect all externalised figures
-    figures = IO.readlines("#{@params[:jobname]}.figlist").map { |fig|
+    figures = IO.readlines("#{params[:jobname]}.figlist").map { |fig|
       if ( fig.strip != "" )
         fig.strip
       else
@@ -63,10 +67,10 @@ class TikZExt < Extension
     # Remove results of figures that we want to rebuild
     rebuildlog = [[], ""]
     rebuild = []
-    if ( @params[:imagerebuild] == "all" )
+    if ( params[:imagerebuild] == "all" )
       rebuild = figures
     else
-      @params[:imagerebuild].split(";").map { |s| s.strip }.each { |fig|
+      params[:imagerebuild].split(";").map { |s| s.strip }.each { |fig|
         if ( figures.include?(fig) )
           rebuild.push(fig)
         else
@@ -124,12 +128,12 @@ class TikZExt < Extension
         
         log[0][i] = [LogMessage.new(:info, nil, nil, nil, 
                                     "The following messages refer to figure\n  #{figures[i]}.\n" + 
-                                    "See\n  #{@params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
+                                    "See\n  #{params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
                     ] + log[0][i]
       else
         log[0][i] += [LogMessage.new(:info, nil, nil, nil, 
                                      "No messages for figure\n  #{figures[i]}.\nfound. " + 
-                                     "See\n  #{@params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
+                                     "See\n  #{params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
                      ]
       end
       offset += log[1][i].count(?\n) 
@@ -142,8 +146,10 @@ class TikZExt < Extension
   
   private
     def compile(cmd, fig)
+      params = ParameterManager.instance
+      
       msgs = []
-      log = "# #\n# Figure: #{fig}\n#   See #{@params[:tmpdir]}/#{fig}.log for full log.\n\n"
+      log = "# #\n# Figure: #{fig}\n#   See #{ParameterManager.instance[:tmpdir]}/#{fig}.log for full log.\n\n"
              
       # Run twice to clean up log?
       # IO::popen(eval(cmd)).readlines
@@ -188,4 +194,4 @@ class TikZExt < Extension
     end
 end
 
-$extension = TikZExt
+Extension.add TikZExt

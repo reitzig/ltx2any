@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -16,17 +16,23 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+DependencyManager.add("lualatex", :binary, :recommended)
+ParameterManager.instance.addHook(:engine) { |key, val|
+  if ( val == :lualatex )
+    DependencyManager.make_essential("lualatex", binary)
+    DependencyManager.add("cat", :binary, :essential)
+    DependencyManager.add("grep", :binary, :essential)
+  end
+}
+
 class LuaLaTeX < Engine
 
-  def initialize(params)
-    super(params)
-    
-    @name = "lualatex"
+  def initialize
+    super
+    @heap = []
+    @binary = "lualatex"
     @extension = "pdf"
     @description = "Uses lualatex to create a PDF"
-    @dependencies = [["lualatex", :binary, :essential],
-                     ["cat", :binary, :essential],
-                     ["grep", :binary, :essential]]
   end
   
   def do?
@@ -38,10 +44,12 @@ class LuaLaTeX < Engine
       @heap = [false, ""]
     end
 
+    params = ParameterManager.instance
+
     # Command for the main LaTeX compilation work.
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
-    lualatex = '"lualatex -file-line-error -interaction=nonstopmode \"#{@params[:jobfile]}\""'
+    lualatex = '"lualatex -file-line-error -interaction=nonstopmode \"#{params[:jobfile]}\""'
 
     f = IO::popen(eval(lualatex))
     log = f.readlines.map! { |s| Log.fix(s) }
@@ -49,6 +57,7 @@ class LuaLaTeX < Engine
     newHash = -1
     if ( File.exist?("#{params[:jobname]}.#{extension}") )
       newHash = Digest::MD5.hexdigest(`cat "#{params[:jobname]}.#{extension}" | grep -a -v "/CreationDate|/ModDate|/ID|/Type/XRef/Index"`.strip)
+      # TODO remove binary dependencies
     end
 
     @heap[0] = @heap[1] == newHash
@@ -58,4 +67,4 @@ class LuaLaTeX < Engine
   end
 end
 
-$engine = LuaLaTeX
+Engine.add LuaLaTeX

@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -19,9 +19,6 @@
 require "#{File.dirname(__FILE__)}/LogMessage.rb"
 
 class TeXLogParser
-  def self.dependencies
-    return []
-  end
   
   # Input: 
   #  * log -- string array (one entry per line)

@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -17,18 +17,41 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class Engine
-  def self.dependencies
-    return []
+  @@list = {}
+  
+  def self.add(e)
+    @@list[e.to_sym] = e
+  end
+
+  def self.list
+    return @@list.values
+  end
+
+  def self.[](key) 
+    return @@list[key]
+  end
+
+  def self.to_sym
+    self.new.to_sym
+  end
+
+  # Hacky hack? Need to refactor this
+  def self.description
+    self.new.description
+  end
+
+  def self.binary
+    self.new.binary
+  end
+
+  def self.extension
+    self.new.extension
   end
   
-  def initialize(params)
-    @name = "Dummy Name"
+  def initialize
+    @binary = "dummy"
     @extension = "dummy"
     @description = "Dummy Description"
-    @parameters = []
-    @heap = []
-    @dependencies = []
-    @params = params
   end
 
   public
@@ -46,15 +69,20 @@ class Engine
       return [true, ["No execution code, need to overwrite!"], "No execution code, need to overwrite!"]
     end
 
+    def name
+      self.class.name
+    end
+
     def to_s
       @name
     end
+
+    def to_sym
+      @binary.to_sym
+    end
   
-  
-    attr_reader :name, :extension, :description, :codes, :parameters, :heap, :dependencies
-    attr_writer :heap
+    attr_reader :binary, :extension, :description
     
   protected
-    attr_reader :params
-    attr_writer :name, :extension, :description, :codes, :parameters, :dependencies
+    attr_writer :binary, :extension, :description
 end

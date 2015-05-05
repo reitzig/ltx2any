@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -18,16 +18,17 @@
 
 require "#{File.dirname(__FILE__)}/LogMessage.rb"
 
-class Log
-  def self.dependencies
-    return [["pandoc", :binary, if ( params[:logformat] == :pdf ) 
-                                         then :essential
-                                         else :recommended end, "for PDF logs"], 
-             ["pdflatex", :binary, if ( params[:logformat] == :pdf ) 
-                                   then :essential
-                                   else :recommended end, "for PDF logs"]]
-  end
-  
+DependencyManager.add("pandoc", :binary, :recommended, "for PDF logs")
+DependencyManager.add("pdflatex", :binary, :recommended, "for PDF logs")
+# TODO If we get into trouble with Markdown fallback, this makes the dependencies mandatory:
+#ParameterManager.addHook(:logformat) { |key, val|
+#  if ( val == :pdf )
+#    DependencyManager.make_essential("pandoc", :binary)
+#    DependencyManager.make_essential("pdflatex", :binary)
+#  end
+#}
+
+class Log 
   def initialize(params)
     @messages = {}
     @counts = { :error => {:total => 0}, 
@@ -37,7 +38,6 @@ class Log
     @level = :warning # or :error, :info
     @rawoffsets = nil
     @mode = :structured # or :flat
-    @params = params
   end
   
   def only_level(level = @level)
@@ -103,15 +103,16 @@ class Log
       if ( @rawoffsets == nil ) 
         to_s # Determines offsets in raw log
       end
+      params = ParameterManager.instance
     
-      result = "# Log for `#{@params[:jobname]}`\n\n"
+      result = "# Log for `#{params[:jobname]}`\n\n"
       messages = only_level
       
       result << "**Disclaimer:**  \nThis is  but a digest of the original log file.\n" +
-                "For full detail, check out `#{@params[:tmpdir]}/#{@params[:log]}.raw`.\n" +
+                "For full detail, check out `#{params[:tmpdir]}/#{params[:log]}.raw`.\n" +
                 "In case we failed to pick up an error or warning, please " +
                 "[report it to us](https://github.com/akerbos/ltx2any/issues/new).\n\n" 
-      # TODO get rid of ugly dependency on globals and code cross-dep.
+      
       result << "We found **#{count(:error)} error#{pls(count(:error))}**, " +
                           "*#{count(:warning)} warning#{pls(count(:warning))}* " +
                        "and #{count(:info)} other message#{pls(count(:info))} in total.\n\n"
@@ -194,29 +195,29 @@ class Log
       return result
     end
     
-    def to_pdf(target_file = "#{@params[:jobname]}.log.pdf") # TODO once central binary check is there, remove these.
-      if ( `which pandoc` == "" )
+    def to_pdf(target_file = "#{params[:jobname]}.log.pdf")
+      if ( !DependencyManager.available?('pandoc', :binary) )
         raise "You need pandoc for PDF logs."
       end
-      if ( `which pdflatex` == "" )
+      if ( !DependencyManager.available?('pdflatex', :binary)  )
         raise "You need pdflatex for PDF logs."
       end
             
       template = "#{File.dirname(__FILE__)}/logtemplate.tex"
-      pandoc = '"pandoc -f markdown --template=\"#{template}\" -V papersize:a4paper -V geometry:margin=3cm -V fulllog:\"#{@params[:tmpdir]}/#{@params[:log]}.raw\" -o \"#{target_file}\" 2>&1"' 
+      pandoc = '"pandoc -f markdown --template=\"#{template}\" -V papersize:a4paper -V geometry:margin=3cm -V fulllog:\"#{params[:tmpdir]}/#{params[:log]}.raw\" -o \"#{target_file}\" 2>&1"' 
 
       panout = IO::popen(eval(pandoc), "w+") { |f|
         markdown = to_md
         
         # Perform some cosmetic tweaks and add LaTeX hooks
-        if ( @params[:loglevel] != :error )
+        if ( params[:loglevel] != :error )
           # When there are messages other than errors, provide error navigation
           markdown.gsub!(/(We found) \*\*(\d+ errors?)\*\*/, 
                          "\\1 \\errlink{\\textbf{\\2}}")
         end
         markdown.gsub!(/^ \*  \*\*Error\*\*(?:\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`)?$/) { |match|
           # When there are messages other than errors, provide error navigation
-          linked = if ( @params[:loglevel] != :error ) then "linked" else "" end
+          linked = if ( params[:loglevel] != :error ) then "linked" else "" end
           " \*  \\blockitem\\#{linked}error#{makeFileref($1, $2, $3)}"
         } 
         markdown.gsub!(/^ \*  \*Warning\*(?:\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`)?$/) { |match|
@@ -226,7 +227,7 @@ class Log
           " \*  \\blockitem\\info#{makeFileref($1, $2, $3)}"
         } 
         markdown.gsub!(/^\s+`log:(\d+)(?:--(\d+))?`$/,  "\\logref{\\1}{\\2}\\endblockitem")
-        markdown.gsub!(/`#{@params[:tmpdir]}\/#{@params[:log]}.raw`/, "\\loglink")
+        markdown.gsub!(/`#{params[:tmpdir]}\/#{params[:log]}.raw`/, "\\loglink")
       
         f.puts(markdown)
         f.close_write
@@ -237,8 +238,8 @@ class Log
         # That should never happen
         File.open("#{target_file}.log", "w") { |f| f.write(panout) }
         msg = "Pandoc encountered errors!"
-        if ( @params[:daemon] || !@params[:clean] )
-          msg += " See #{@params[:tmpdir]}/#{target_file}.log."
+        if ( params[:daemon] || !params[:clean] )
+          msg += " See #{params[:tmpdir]}/#{target_file}.log."
         end
         raise msg
       end

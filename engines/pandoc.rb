@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -16,13 +16,25 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+DependencyManager.add("pandoc", :binary, :recommended)
+ParameterManager.instance.addHook(:engine) { |key, val|
+  if ( val == :pandoc )
+    DependencyManager.make_essential("pandoc", binary)
+    DependencyManager.add("cat", :binary, :essential)
+    DependencyManager.add("grep", :binary, :essential)
+  end
+}
+ParameterManager.instance.addParameter(
+  Parameter.new(:targetformat, "f", String, nil, "Selects one of the target formats of pandoc.")
+  # TODO add only if pandoc is used? where to show it then?
+)
+
 class Pandoc < Engine 
-  def initialize(params)
-    super(params)
+  def initialize
+    super
     
-    @name = "pandoc"
+    @binary = "pandoc"
     @description = "Translates into many formats (see 'pandoc --help')"
-    @parameters = [ Parameter.new(:targetformat, "f", String, nil, "Selects one of the target formats of pandoc.") ]
     
     @format2ending = {
       "native" => "txt",
@@ -58,8 +70,6 @@ class Pandoc < Engine
       "org" => "org", 
       "asciidoc" => "txt"
     }
-    
-    @dependencies = [["pandoc", :binary, :essential]]
   end
 
   def extension 
@@ -71,6 +81,8 @@ class Pandoc < Engine
   end
 
   def exec()
+    params = ParameterManager.instance
+  
     if ( params[:targetformat] == nil )
       msg = "Specify a target format by adding '-f <format>' as parameter."
       return [false, [LogMessage.new(:error, nil, nil, nil, msg)], msg]
@@ -84,7 +96,7 @@ class Pandoc < Engine
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
     # * tmpdir  -- the output directory
-    pandoc = '"pandoc -s -f latex -t #{params[:targetformat]} -o \"#{params[:jobname]}.#{extension}\" #{@params[:jobfile]} 2>&1"'
+    pandoc = '"pandoc -s -f latex -t #{params[:targetformat]} -o \"#{params[:jobname]}.#{extension}\" #{params[:jobfile]} 2>&1"'
 
     f = IO::popen(eval(pandoc))
     log = f.readlines + [""] # One empty line to finalize the last message
@@ -116,4 +128,4 @@ class Pandoc < Engine
   end
 end
 
-$engine = Pandoc
+Engine.add Pandoc

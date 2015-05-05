@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -16,31 +16,36 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+DependencyManager.add("makeindex", :binary, :essential)
+
 class MakeIndex < Extension
-  def initialize(params)
-    super(params)
+  def initialize
+    super
     
     @name = "makeindex"
     @description = "Creates an index"
-    @dependencies = [["makeindex", :binary, :essential]]
   end
 
   def do?
-       File.exist?("#{@params[:jobname]}.idx") \
-    && (    !File.exist?("#{@params[:jobname]}.ind") \
-         || !$hashes.has_key?("#{@params[:jobname]}.idx") \
-         || filehash("#{@params[:jobname]}.idx") != $hashes["#{@params[:jobname]}.idx"] \
+    params = ParameterManager.instance
+    
+       File.exist?("#{params[:jobname]}.idx") \
+    && (    !File.exist?("#{params[:jobname]}.ind") \
+         || !$hashes.has_key?("#{params[:jobname]}.idx") \
+         || filehash("#{params[:jobname]}.idx") != $hashes["#{params[:jobname]}.idx"] \
        )
   end
 
   def exec(progress)
+    params = ParameterManager.instance
+    
     # Command to create the index if necessary. Provide two versions,
     # one without and one with stylefile
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
     # * mistyle -- name of the makeindex style file (with file ending)
-    makeindex = { "default" => '"makeindex -q \"#{@params[:jobname]}\" 2>&1"',
-                  "styled"  => '"makeindex -q -s \"#{mistyle}\" \"#{@params[:jobname]}\" 2>&1"'}
+    makeindex = { "default" => '"makeindex -q \"#{params[:jobname]}\" 2>&1"',
+                  "styled"  => '"makeindex -q -s \"#{mistyle}\" \"#{params[:jobname]}\" 2>&1"'}
   
     version = "default"
     mistyle = nil
@@ -57,7 +62,7 @@ class MakeIndex < Extension
     }
 
     log2 = []
-    File.open("#{@params[:jobname]}.ilg", "r") { |f|
+    File.open("#{params[:jobname]}.ilg", "r") { |f|
       log2 = f.readlines
     }
 
@@ -92,4 +97,4 @@ class MakeIndex < Extension
   end
 end
 
-$extension = MakeIndex
+Extension.add MakeIndex

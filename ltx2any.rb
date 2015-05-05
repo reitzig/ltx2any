@@ -17,12 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-require 'io/console'
-require 'fileutils'
-require 'digest'
-require 'yaml'
-Dir[File.dirname(__FILE__) + '/lib/*.rb'].each { |f| require f } # TODO load dependencies
-
 # Set process name to something less cumbersome
 $0="ltx2any.rb"
 
@@ -34,74 +28,51 @@ tmpsuffix = "_tmp"
 ignorefile = ".#{name}ignore_"
 hashes    = ".hashes"
 
-params = ParameterManager.new # Out here for visibility at the end
-output = Output.instance
-output.name = name
+# Load stuff from standard library
+require 'io/console'
+require 'fileutils'
+require 'digest'
+require 'yaml'
+
+# Load these first so other classes can add their dependencies and hooks
+require File.dirname(__FILE__) + '/lib/DependencyManager.rb'
+require File.dirname(__FILE__) + '/lib/ParameterManager.rb'
+  params = ParameterManager.instance
+# Load rest of utility classes
+Dir[File.dirname(__FILE__) + '/lib/*.rb'].each { |f| require f } # TODO load dependencies
+  output = Output.instance
+  output.name = name
+
+# Add global dependencies
+DependencyManager.add("listen", :gem, :recommended, "for daemon mode")
 
 begin
-  output.start("Initialising")
-
-  # params = ParameterManager.new
-
-  dependencies =  [["which", :binary, :essential],
-                   ["listen", :gem, :recommended, "for daemon mode"]]
+  output.start("Initialising")  
                                  
   # Load all extensions
-  # TODO exchange for registering process once this code is in some class
-  extensions = []
-  $extension = nil
   Dir[File.dirname(__FILE__) + '/extensions/*.rb'].sort.each { |f|
     if ( !(/^\d\d/ !~ File.basename(f)) )
       load(f)
-
-      if ( $extension != nil && $extension.superclass == Extension )
-        extensions.push($extension.new(params))
-      end
-
-      $extension = nil
     end
   }
 
   # Load all engines
-  # TODO exchange for registering process once this code is in some class
-  engines = []
-  $engine = nil
   Dir[File.dirname(__FILE__) + '/engines/*.rb'].sort.each { |f|
     load(f)
-
-    if ( $engine != nil && $engine.superclass == Engine )
-      engines.push($engine.new(params))
-    end
-
-    $engine = nil
   }
 
-  params.addParameter(Parameter.new(:engine, "e", engines.map { |e| e.name.to_sym }, :pdflatex,
+  params.addParameter(Parameter.new(:engine, "e", Engine.list.map { |e| e.to_sym }, :pdflatex,
                                     "The output engine. Call with --engines for a list."))
-
-  # Read additional parameters from extensions
-  extensions.each { |e|
-    e.parameters.each { |p|
-      params.addParameter(p)
-    }
-  }
-  
-  # Read additional parameters from engines
-  engines.each { |e|
-    e.parameters.each { |p|
-      params.addParameter(p)
-    }
-  }
-
-  # TODO collect all dependencies (from above, extensions, engines, lib/*)
 
   # TODO Move code to the appropriate places, prettify
   # Check for help/usage commands
   if ( ARGV.length == 0 || /--help|--h/ =~ ARGV[0] )
+    output.stop(:success)
     puts "\nUsage: "
     puts "  #{name} [options] inputfile\tNormal execution (see below)"
     puts "  #{name} --extensions\t\tList of extensions"
     puts "  #{name} --engines\t\tList of target engines"
+    puts "  #{name} --dependencies\t\tList of dependencies"
     puts "  #{name} --version\t\tPrints version information"
     puts "  #{name} --help\t\tThis message"
 
@@ -116,25 +87,33 @@ begin
     # TODO output unsatisfied dependencies
 
     Process.exit
-  elsif ( ARGV[0] == "--extensions" ) # TODO check dependencies
+  elsif ( ARGV[0] == "--extensions" )
+    output.stop(:success)
     puts "Installed extensions in execution order:"
-    extensions.each { |e|
-      puts "  #{e.name}\t#{e.description}"
+    maxwidth = Extension.list.map { |e| e.name.length }.max
+    Extension.list.each { |e|
+      puts "  #{e.name}#{" " * (maxwidth - e.name.length)}\t#{e.description}"
     }
     Process.exit
-  elsif ( ARGV[0] == "--engines" ) # TODO check dependencies in better way
+  elsif ( ARGV[0] == "--engines" )
+    output.stop(:success)
     puts "Installed engines:"
-    engines.each { |t|
-      if ( `which #{t.name}` != "" )
-        print "  #{t.name}\t#{t.description}"
-        if ( t.name == params[:engine] )
+    Engine.list.each { |e|
+      if ( DependencyManager.available?(e.binary, :binary) )
+        print "  #{e.name}\t#{e.description}"
+        if ( e.to_sym == params[:engine] )
           print " (default)"
         end
         puts ""
       end
     }
     Process.exit
+  elsif ( ARGV[0] == "--dependencies" )
+    DependencyManager.add("bla", :binary, :essential)
+    puts DependencyManager.to_s
+    Process.exit
   elsif ( ARGV[0] == "--version" )
+    output.stop(:success)
     puts "#{name} #{version}"
     puts "Copyright \u00A9 Raphael Reitzig 2015".encode('utf-8')
     puts "This is free software; see the source for copying conditions."
@@ -145,49 +124,33 @@ begin
   # At this point, we are sure we want to compile -- process arguments!
   begin
     params.processArgs(ARGV)
+    # Kill command line parameters in order to discourage abuse by extensions
+    ARGV.clear
   rescue ParameterException => e
-    output.message("#{e.message}")
+    output.separate.msg(*e.message.split("\n"))
     Process.exit
   end
 
-  # Kill command line parameters in order to discourage abuse by extensions
-  ARGV.clear
+  # Make sure all essential dependencies are here
+  begin
+    DependencyManager.load_essentials
+  rescue => e
+    output.separate.msg(e.message)
+    Process.exit
+  end
 
   # Switch working directory to jobfile residence
   Dir.chdir(params[:jobpath])
 
-  # Find used engine
-  #  Note: always succeeds, we check for that in ParameterManager::processArgs
-  engine = nil
-  engines.each { |t|
-    if ( t.name.to_sym == params[:engine] )
-      engine = t
-      break
-    end
-  }
-
-  if ( `which #{params[:engine]}` == "" ) # TODO make obsolete by proper dependency check
-    output.message("Engine not available. Please install #{params[:engine]} and make sure it is in the executable path.")
-    Process.exit
-  end
-
-  # Make sure that target directory is available
-  # TODO move into loop; parameter may change during the run!
-  if ( !File.exist?(params[:tmpdir]) )
-    Dir.mkdir(params[:tmpdir])
-  elsif ( !File.directory?(params[:tmpdir]) )
-    output.message("File #{params[:tmpdir]} exists but is no directory")
-    Process.exit
-  end
-
   # Hash function that can be used by engines and extensions
+  # TODO factor out
   def filehash(f)
     Digest::MD5.file(f).to_s
   end
 
   $ignoredfiles = ["#{ignorefile}#{params[:jobname]}",
                    "#{params[:tmpdir]}", 
-                   "#{params[:jobname]}.#{engine.extension}",
+                   "#{params[:jobname]}.#{Engine[params[:engine]].extension}",
                    "#{params[:log]}",
                    "#{params[:jobname]}.err",
                    ".listen_test"] # That is some artifact of listen -.-
@@ -296,7 +259,7 @@ begin
   begin # daemon loop
     begin # inner block that can be cancelled by user
       # Reset
-      engine.heap = []
+      engine = Engine[params[:engine]].new
       log = Log.new(params) # TODO check dependencies
       log.level = params[:loglevel]
       start_time = Time.now
@@ -335,9 +298,19 @@ begin
         }
       }
 
-      $vanishedfiles.each { |f| FileUtils.rm_rf(f) if f.start_with?(params[:tmpdir]) && File.exists?(f) } # to be sure
+      # Remove files reported missing since last run from tmp (so we don't hide errors)
+      # Be extra careful, we don't want to delete non-tmp files!
+      $vanishedfiles.each { |f| FileUtils.rm_rf(f) if f.start_with?(params[:tmpdir]) && File.exists?(f) }
+      
       # tmp dir may have been removed (either by DaemonPrompt or the outside)
-      FileUtils.mkdir_p(params[:tmpdir])
+      if ( !File.exist?(params[:tmpdir]) )
+        FileUtils.mkdir_p(params[:tmpdir])
+      elsif ( !File.directory?(params[:tmpdir]) )
+        output.message("File #{params[:tmpdir]} exists but is no directory")
+        Process.exit
+      end
+
+      # (Re-)Copy content to tmp
       copy2tmp(Dir.entries(".").delete_if { |f| exceptions.include?(f) })
       output.stop(:success)
 
@@ -377,8 +350,9 @@ begin
         end
         
         # Run all extensions in order
-        extensions.each { |e| 
-          if ( e.do? ) # TODO check dependencies
+        Extension.list.each { |e|
+          e = e.new
+          if ( e.do? ) # TODO check dependencies here?
             progress, stop = output.start("#{e.name} running", e.job_size)
             r = e.exec(progress)
             stop.call(if r[0] then :success else :error end)
@@ -434,7 +408,7 @@ begin
         output.start("Assembling log files")
         
         # Manage messages from extensions
-        extensions.each { |ext|
+        Extension.list.each { |ext|
           if (   !log.has_messages?(ext.name) \
               && File.exist?(".#{name}_extensionmsg_#{ext.name}") )
             # Extension did not run but has run before; load messages from then!
@@ -544,7 +518,9 @@ rescue Exception => e
   else
     # This is reached due to programming errors or if ltx2any quits early,
     # i.e. if no feasible input file has been specified.
-    # Neither case warrants action.
+    # Neither case warrants special action.
+    # For debugging purposes, reraise so we don't die silently.
+    # raise e
   end
   # Exit immediately. Don't clean up, logs may be necessary for debugging.
   Kernel.exit!(FALSE) 

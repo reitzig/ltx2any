@@ -1,4 +1,4 @@
-# Copyright 2010-2013, Raphael Reitzig
+# Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -17,10 +17,6 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class DaemonPrompt
-  def self.dependencies
-    return []
-  end
-  
   def self.run(params)
     command = getCommand
     while ( command.size > 0 )
