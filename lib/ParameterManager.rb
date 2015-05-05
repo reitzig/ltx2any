@@ -221,7 +221,7 @@ class ParameterManager
     def add(key, val, once=false) # TODO implement "once" behaviour
       if ( @values.has_key?(key) ) 
         if ( @values[key].type == String )
-          @values[key].value += val.to_s
+          @values[key].value += val.to_s # TODO should we add separating `:`?
 
           @hooks[key].each { |b|
             b.call(key, @values[key].value)

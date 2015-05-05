@@ -34,7 +34,7 @@ class DaemonPrompt
           if ( command.size < 3 )
             respond "Please supply a parameter name and a value."
           else
-            value = command[2,command.size-1].join(" ")
+            value = command[2,command.size-1].join(" ") # TODO join with `:` instead?
             params.add(command[1].to_sym, value)
             respond "Changed parameter '#{command[1]}' to '#{params[command[1].to_sym]}'."
           end

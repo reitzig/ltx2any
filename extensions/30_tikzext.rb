@@ -18,7 +18,7 @@
 
 DependencyManager.add("pdflatex", :binary, :essential)
 ParameterManager.instance.addParameter(Parameter.new(
-  :imagerebuild, "ir", String, "", "Specify externalised TikZ images to rebuild, separated by ';'. Set to 'all' to rebuild all."))
+  :imagerebuild, "ir", String, "", "Specify externalised TikZ images to rebuild, separated by ':'. Set to 'all' to rebuild all."))
 
 class TikZExt < Extension
   def initialize
@@ -109,7 +109,7 @@ class TikZExt < Extension
         if ( params[:imagerebuild] == "all" )
           rebuild = figures
         else
-          params[:imagerebuild].split(";").map { |s| s.strip }.each { |fig|
+          params[:imagerebuild].split(":").map { |s| s.strip }.each { |fig|
             if ( figures.include?(fig) )
               rebuild.push(fig)
             else
