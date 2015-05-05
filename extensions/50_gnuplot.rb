@@ -23,7 +23,6 @@ class Gnuplot < Extension
     super
     @name = "Gnuplot"
     @description = "Executes generated gnuplot files"
-    @dependencies = [["parallel", :gem, :recommended, "for better performance"]]
   end
 
   def do?
@@ -49,26 +48,12 @@ class Gnuplot < Extension
     }
 
     # Run gnuplot for each remaining file
-    log = ""
-    begin # TODO move gem checking/loading to a central place?
-      gem "parallel"
-      require 'parallel'
-      
-      log = Parallel.map(gnuplot_files) { |f|
-        ilog = compile(gnuplot, f)
-        progress.call
-        ilog
-      }.transpose
-    rescue Gem::LoadError
-      hint = "Hint: install gem 'parallel' to speed up jobs with many plots."
-      log = [[[LogMessage.new(:info, nil, nil, nil, hint)], 
-              "#{hint}\n\n"]]
-      
-      gnuplot_files.each { |f|
-        log += compile(gnuplot, f)
-        progress.call
-      }
-      log = log.transpose
+    log = [[], []]
+    if ( !gnuplot_files.empty? )
+      # Run (latex) engine for each figure
+      log = self.class.execute_parts(gnuplot_files, progress) { |f|
+              compile(gnuplot, f)
+            }.transpose
     end
 
     # Log line numbers are wrong since every compile determines log line numbers
@@ -103,8 +88,10 @@ class Gnuplot < Extension
       log = ""
       msgs = []
       
-      io = IO::popen(eval(cmd))
-      lines = io.readlines
+      lines = IO::popen(eval(cmd)) { |io|
+        io.readlines
+        # Closes IO
+      }
       output = lines.join("").strip
 
       log << "# #\n# #{f}\n\n"

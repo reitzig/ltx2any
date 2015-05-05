@@ -109,7 +109,7 @@ begin
     }
     Process.exit
   elsif ( ARGV[0] == "--dependencies" )
-    DependencyManager.add("bla", :binary, :essential)
+    output.stop(:success)
     puts DependencyManager.to_s
     Process.exit
   elsif ( ARGV[0] == "--version" )
@@ -520,7 +520,7 @@ rescue Exception => e
     # i.e. if no feasible input file has been specified.
     # Neither case warrants special action.
     # For debugging purposes, reraise so we don't die silently.
-    # raise e
+     raise e
   end
   # Exit immediately. Don't clean up, logs may be necessary for debugging.
   Kernel.exit!(FALSE) 

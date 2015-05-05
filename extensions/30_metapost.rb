@@ -23,7 +23,6 @@ class MetaPost < Extension
     super
     @name = "MetaPost"
     @description = "Compiles generated MetaPost files"
-    @dependencies = [["parallel", :gem, :recommended, "for better performance"]]
   end
 
   def do?
@@ -32,6 +31,7 @@ class MetaPost < Extension
 
   def job_size
     # Count the number of changed _.mp files
+    # TODO check for (non-)existing result? incorporate ir parameter?
     Dir.entries(".").delete_if { |f|
       (/\.mp$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
     }.size
@@ -43,37 +43,23 @@ class MetaPost < Extension
     # Command to process metapost files if necessary.
     mpost = '"mpost -tex=#{params[:engine]} -file-line-error -interaction=nonstopmode \"#{f}\" 2>&1"'
 
-    # Filter out non-gnuplot files and such that did not change since last run
+    # Filter out non-metapost files and such that did not change since last run
     mp_files = Dir.entries(".").delete_if { |f|
       (/\.mp$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
     }
 
     # Run mpost for each remaining file
-    log = ""
-    begin # TODO move gem checking/loading to a central place?
-      gem "parallel"
-      require 'parallel'
-      
-      log = Parallel.map(mp_files) { |f|
-        ilog = compile(mpost, f)
-        progress.call
-        ilog
-      }.transpose
-    rescue Gem::LoadError
-      hint = "Hint: install gem 'parallel' to speed up jobs with many plots."
-      log = [[[LogMessage.new(:info, nil, nil, nil, hint)], 
-              "#{hint}\n\n"]]
-      
-      mp_files.each { |f|
-        log += compile(mpost, f)
-        progress.call
-      }
-      log = log.transpose
+    log = [[], []]
+    if ( !mp_files.empty? )
+      # Run (latex) engine for each figure
+      log = self.class.execute_parts(mp_files, progress) { |f|
+              compile(mpost, f)
+            }.transpose
     end
 
     # Log line numbers are wrong since every compile determines log line numbers
     # w.r.t. its own contribution. Later steps will only add the offset of the
-    # whole gnuplot block, not those inside.
+    # whole metapost block, not those inside.
     offset = 0
     (0..(log[0].size - 1)).each { |i|
       if ( log[0][i].size > 0 )
@@ -104,9 +90,14 @@ class MetaPost < Extension
       msgs = []
       
       # Run twice to get LaTeX bits right
-      IO::popen(eval(cmd)).readlines
-      io = IO::popen(eval(cmd))
-      lines = io.readlines
+      IO::popen(eval(cmd)) { |io|
+        io.readlines
+        # Closes IO
+      }
+      lines = IO::popen(eval(cmd)) { |io|
+        io.readlines
+        # Closes IO
+      }
       output = lines.join("").strip
 
       log << "# #\n# #{f}\n\n"

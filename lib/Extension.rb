@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+DependencyManager.add('parallel', :gem, :recommended, "faster execution", ">=1.4.1")
+
 class Extension  
   @@list = {}
   
@@ -47,6 +49,41 @@ class Extension
   
   def self.description
     self.new.description
+  end
+
+  if ( !DependencyManager.available?('parallel', :gem) )
+    # Define skeleton class for graceful sequential fallback
+    module Parallel
+      class << self
+        def each(hash, options={}, &block)
+          hash.each { |k,v|
+            block.call(k, v)
+            options[:finish].call(nil, nil, nil)
+          }
+          array
+        end
+      end
+    end
+  end
+
+  # Wrap execution of many items
+  def self.execute_parts(jobs, when_done, &block)
+    parallel = true
+    if ( !DependencyManager.available?('parallel', :gem) )
+      parallel = false
+    end
+
+    Parallel.map(jobs, :finish  => lambda { |a,b,c| when_done.call }) { |job|
+      begin
+        block.call(job)
+      rescue Interrupt
+        raise Interrupt if !parallel # Sequential fallback needs exception!
+      rescue => e
+        Output.instance.msg("\tAn error occurred: #{e.to_s}")
+        # TODO Should we break? Let's see what kinds of errors we get...
+      end
+    }
+    # TODO do we have to care about Parallel::DeadWorker?
   end
   
   public

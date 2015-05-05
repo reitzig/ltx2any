@@ -25,8 +25,6 @@ class TikZExt < Extension
     super
     @name = "TikZ externalization"
     @description = "Compiles externalized TikZ images"
-    @parameters = [  ]
-    @dependencies = [["parallel", :gem, :recommended, "for better performance"]]
   end
 
   def do?
@@ -34,16 +32,7 @@ class TikZExt < Extension
   end
   
   def job_size
-    count = 0
-    params = ParameterManager.instance
-    
-    if ( File.exist?("#{params[:jobname]}.figlist") )
-      count = IO.readlines("#{params[:jobname]}.figlist").select { |fig|
-        params[:imagerebuild] || !File.exist?("#{fig.strip}.pdf") # TODO check if figname in rebuild list
-      }.size
-    end
-      
-    return count
+    return collect_pending[0].size
   end
 
   def exec(progress)
@@ -56,59 +45,16 @@ class TikZExt < Extension
     pdflatex = '"#{params[:engine]} -shell-escape -file-line-error -interaction=batchmode -jobname \"#{fig}\" \"\\\def\\\tikzexternalrealjob{#{params[:jobname]}}\\\input{#{params[:jobname]}}\" 2>&1"'
 
     # Collect all externalised figures
-    figures = IO.readlines("#{params[:jobname]}.figlist").map { |fig|
-      if ( fig.strip != "" )
-        fig.strip
-      else
-        nil
-      end
-    }.compact
+    figures,rebuildlog = collect_pending
 
-    # Remove results of figures that we want to rebuild
-    rebuildlog = [[], ""]
-    rebuild = []
-    if ( params[:imagerebuild] == "all" )
-      rebuild = figures
-    else
-      params[:imagerebuild].split(";").map { |s| s.strip }.each { |fig|
-        if ( figures.include?(fig) )
-          rebuild.push(fig)
-        else
-          msg = "User requested rebuild of figure `#{fig}` which does not exist."
-          rebuildlog[0].push(LogMessage.new(:warning, nil, nil, nil, msg))
-          rebuildlog[1] += "#{msg}\n\n"
-        end
-      }      
-    end
-    
-    
-    figures.select! { |fig|
-      !File.exist?("#{fig}.pdf") || rebuild.include?(fig)
-    }
-    
-    # Run (latex) engine for each figure
     log = [[], []]
-    begin # TODO move gem checking/loading to a central place?
-      gem "parallel"
-      require 'parallel'
-      
-      log = Parallel.map(figures) { |fig|
-        ilog = compile(pdflatex, fig)
-        progress.call
-        ilog
-      }.transpose
-    rescue Gem::LoadError
-      hint = "Hint: install gem 'parallel' to speed up jobs with many externalized figures."
-      log = [[[LogMessage.new(:info, nil, nil, nil, hint)], 
-              "#{hint}\n\n"]]
-      
-      figures.each { |fig|
-        log += compile(pdflatex, fig)
-        progress.call
-      }
-      log = log.transpose
+    if ( !figures.empty? )
+      # Run (latex) engine for each figure
+      log = self.class.execute_parts(figures, progress) { |fig|
+              compile(pdflatex, fig)
+            }.transpose
     end
-  
+
     # Log line numbers are wrong since every compile determines log line numbers
     # w.r.t. its own contribution. Later steps will only add the offset of the
     # whole tikzext block, not those inside.
@@ -145,6 +91,44 @@ class TikZExt < Extension
   end
   
   private
+    def collect_pending
+      params = ParameterManager.instance
+
+      figures,rebuildlog = [], [[], ""]
+      if ( File.exists?("#{params[:jobname]}.figlist") )
+        figures = IO.readlines("#{params[:jobname]}.figlist").map { |fig|
+          if ( fig.strip != "" )
+            fig.strip
+          else
+            nil
+          end
+        }.compact
+
+        # Remove results of figures that we want to rebuild
+        rebuild = []
+        if ( params[:imagerebuild] == "all" )
+          rebuild = figures
+        else
+          params[:imagerebuild].split(";").map { |s| s.strip }.each { |fig|
+            if ( figures.include?(fig) )
+              rebuild.push(fig)
+            else
+              msg = "User requested rebuild of figure `#{fig}` which does not exist."
+              rebuildlog[0].push(LogMessage.new(:warning, nil, nil, nil, msg))
+              rebuildlog[1] += "#{msg}\n\n"
+            end
+          }      
+        end
+        
+        
+        figures.select! { |fig|
+          !File.exist?("#{fig}.pdf") || rebuild.include?(fig)
+        }
+      end
+      
+      return [figures, rebuildlog]
+    end
+    
     def compile(cmd, fig)
       params = ParameterManager.instance
       
