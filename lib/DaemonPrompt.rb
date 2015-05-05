@@ -46,8 +46,10 @@ class DaemonPrompt
           respond "#{command[0]} = #{params[command[1].to_sym]}"
         when :clean
           FileUtils::rm_rf(params[:tmpdir])
+          respond "Temporary files deleted"
           if ( command.size > 1 && command[1].to_sym == :all )
             FileUtils::rm("#{params[:log]}.#{params[:logformat].to_s}") # TODO may fail when MD fallback?
+            respond "Log file deleted"
             # TODO remove result
           end
         when :run

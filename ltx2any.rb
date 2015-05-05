@@ -336,6 +336,8 @@ begin
       }
 
       $vanishedfiles.each { |f| FileUtils.rm_rf(f) if f.start_with?(params[:tmpdir]) && File.exists?(f) } # to be sure
+      # tmp dir may have been removed (either by DaemonPrompt or the outside)
+      FileUtils.mkdir_p(params[:tmpdir])
       copy2tmp(Dir.entries(".").delete_if { |f| exceptions.include?(f) })
       output.stop(:success)
 
