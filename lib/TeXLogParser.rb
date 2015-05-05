@@ -66,6 +66,13 @@ class TeXLogParser
           current.logline[1] = linectr
           messages += [current.get_msg].compact 
         end
+      elsif ( /^<\*> (.*)$/ =~ line )
+        # Some messages end with a line of the form '<*> file'
+        if ( current.type != nil )
+          current.srcfile = $~[1].strip
+          current.logline[1] = linectr
+          messages += [current.get_msg].compact
+        end
       elsif ( /^(\([^()]*\)|[^()])*\)/ =~ line )
         # End of messages regarding current file
         if ( collecting )
@@ -186,6 +193,13 @@ class TeXLogParser
           current.logline = [linectr]
           current.message = line.strip + "\n"
           current.format = :fixed
+        elsif ( /^! (.*?)(after line (\d+).)?$/ =~ line )
+          messages += [current.get_msg].compact
+          current.type = :error
+          current.srcfile = filestack.last
+          current.srcline = if ( $~[3] ) then [Integer($~[3])] else nil end 
+          current.logline = [linectr]
+          current.message = $~[1] + (if ( $~[2] ) then $~[2] else "" end)
         elsif ( current.type != nil )
           if ( current.slicer != nil )
             line = line.gsub(current.slicer, "")
