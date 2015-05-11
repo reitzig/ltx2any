@@ -69,6 +69,8 @@ class Biber < Extension
   end
 
   def exec(progress)
+    params = ParameterManager.instance
+    
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
