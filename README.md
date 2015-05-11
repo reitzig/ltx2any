@@ -52,12 +52,13 @@ A typical run may look like this:
 
 ```
 $> ltx2any bibtex_test.tex 
-[ltx2any] Initialising ...
-[ltx2any] pdflatex(1) running ... Done
-[ltx2any] bibtex running ... Error
-[ltx2any] pdflatex(2) running ... Done
-[ltx2any] pdflatex(3) running ... Done
-[ltx2any] pdflatex(4) running ... Done
+[ltx2any] Initialising ... Done
+[ltx2any] Copying files to tmp ... Done
+[ltx2any] PdfLaTeX(1) running ... Done
+[ltx2any] BibTeX running ... Error
+[ltx2any] PdfLaTeX(2) running ... Done
+[ltx2any] PdfLaTeX(3) running ... Done
+[ltx2any] PdfLaTeX(4) running ... Done
 [ltx2any] There were 1 error and 3 warnings.
 [ltx2any] Output generated at bibtex_test.pdf
 [ltx2any] Assembling log files ... Done
@@ -140,16 +141,27 @@ long as LaTeX engines are used. Here is what you need to do in order get it runn
 ### Parallel Compilation ###
 
 Alas, LaTeX engines themselves can not run in parallel. But some extensions can, namely
-such that create many small jobs (e.g. TikZ externalization).
+such that create many small, independent jobs (e.g. TikZ externalization).
 You only have to install Ruby gem [parallel](https://github.com/grosser/parallel/) for
-making the best out of your multicode CPU.
+making the best out of your multicore CPU.
 
 ### Daemon Mode ###
 
-Install Ruby gem [listen](https://github.com/guard/listen) to make daemon mode available
-with option `-d`.
+Install Ruby gem [listen](https://github.com/guard/listen) to make daemon mode available.
+Option `-d` then causes `ltx2any` to wait for files in the working directory to change;
+if that happens, the compilation process starts over.
 
-TODO: describe what happens, trickeries, limitations, prompt
+By default, `ltx2any` will ignore changes to files it creates itself (even across instances).
+Everything else in the current tree *is* listened to, though -- with some restrictions
+around symlinks -- so take care if there is lots of stuff.  
+As a general rule, `ltx2any` works best if the document you want to compile resides in
+its own directory; use symlinks for shared resources.
+
+While `ltx2any` waits for files to change, you can hit ENTER to get an interactive prompt;
+hit ENTER again (with empty command) to close the prompt and recompile.  
+Command `help` will tell you what you can do in the prompt; right now the most relevant use is
+probably to force recompilation.
+This feature is still subject to development and far from finished.
 
 ## For Developers
 
