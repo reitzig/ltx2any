@@ -19,17 +19,17 @@
 require "#{File.dirname(__FILE__)}/LogMessage.rb"
 
 DependencyManager.add("pandoc", :binary, :recommended, "for PDF logs")
-DependencyManager.add("pdflatex", :binary, :recommended, "for PDF logs")
+DependencyManager.add("xelatex", :binary, :recommended, "for PDF logs")
 # TODO If we get into trouble with Markdown fallback, this makes the dependencies mandatory:
 #ParameterManager.addHook(:logformat) { |key, val|
 #  if ( val == :pdf )
 #    DependencyManager.make_essential("pandoc", :binary)
-#    DependencyManager.make_essential("pdflatex", :binary)
+#    DependencyManager.make_essential("xelatex", :binary)
 #  end
 #}
 
 class Log 
-  def initialize(params)
+  def initialize
     @messages = {}
     @counts = { :error => {:total => 0}, 
                 :warning => {:total => 0},
@@ -195,16 +195,17 @@ class Log
       return result
     end
     
-    def to_pdf(target_file = "#{params[:jobname]}.log.pdf")
+    def to_pdf(target_file = "#{ParameterManager.instance[:jobname]}.log.pdf")
       if ( !DependencyManager.available?('pandoc', :binary) )
         raise "You need pandoc for PDF logs."
       end
-      if ( !DependencyManager.available?('pdflatex', :binary)  )
-        raise "You need pdflatex for PDF logs."
+      if ( !DependencyManager.available?('xelatex', :binary)  )
+        raise "You need xelatex for PDF logs."
       end
+      params = ParameterManager.instance
             
       template = "#{File.dirname(__FILE__)}/logtemplate.tex"
-      pandoc = '"pandoc -f markdown --template=\"#{template}\" -V papersize:a4paper -V geometry:margin=3cm -V fulllog:\"#{params[:tmpdir]}/#{params[:log]}.raw\" -o \"#{target_file}\" 2>&1"' 
+      pandoc = '"pandoc --latex-engine=xelatex -f markdown --template=\"#{template}\" -V papersize:a4paper -V geometry:margin=3cm -V fulllog:\"#{params[:tmpdir]}/#{params[:log]}.raw\" -o \"#{target_file}\" 2>&1"' 
 
       panout = IO::popen(eval(pandoc), "w+") { |f|
         markdown = to_md

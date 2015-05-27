@@ -260,7 +260,7 @@ begin
     begin # inner block that can be cancelled by user
       # Reset
       engine = Engine[params[:engine]].new
-      log = Log.new(params) # TODO check dependencies
+      log = Log.new # TODO check dependencies
       log.level = params[:loglevel]
       start_time = Time.now
 
