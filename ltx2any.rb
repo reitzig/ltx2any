@@ -209,7 +209,7 @@ begin
       Listen.to('.',
                 latency: params[:listeninterval],
                 ignore: [ /(\.\/)?#{Regexp.escape(ignorefile)}[^\/]+/,
-                          /(\.\/)?\..*/, # ignore hidden files, e.g. .git
+                          #/(\.\/)?\..*/, # ignore hidden files, e.g. .git
                           /\A(\.\/)?(#{$ignoredfiles.map { |s| Regexp.escape(s) }.join("|")})/ ],
                ) \
       do |modified, added, removed|
@@ -268,7 +268,8 @@ begin
       # Copy all files to tmp directory (some LaTeX packages fail to work with output dir)
       # excepting those we ignore anyways. Oh, and don't recurse outside the main
       # directory, duh.
-      exceptions = $ignoredfiles + $ignoredfiles.map { |s| "./#{s}" } +  Dir["./.*"]
+      exceptions = $ignoredfiles + $ignoredfiles.map { |s| "./#{s}" } + 
+                   Dir[".*"] + Dir["./.*"] # drop hidden files, in p. . and ..
 
       define_singleton_method(:copy2tmp) { |files| 
         files.each { |f|
