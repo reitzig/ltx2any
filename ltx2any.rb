@@ -152,8 +152,7 @@ begin
                    "#{params[:tmpdir]}", 
                    "#{params[:jobname]}.#{Engine[params[:engine]].extension}",
                    "#{params[:log]}",
-                   "#{params[:jobname]}.err",
-                   ".listen_test"] # That is some artifact of listen -.-
+                   "#{params[:jobname]}.err"]
   # Write ignore list for other processes
   File.open("#{params[:jobpath]}/#{ignorefile}#{params[:jobname]}", "w") { |file| 
     file.write($ignoredfiles.join("\n"))
@@ -210,6 +209,7 @@ begin
       Listen.to('.',
                 latency: params[:listeninterval],
                 ignore: [ /(\.\/)?#{Regexp.escape(ignorefile)}[^\/]+/,
+                          /(\.\/)?\..*/, # ignore hidden files, e.g. .git
                           /\A(\.\/)?(#{$ignoredfiles.map { |s| Regexp.escape(s) }.join("|")})/ ],
                ) \
       do |modified, added, removed|
@@ -268,7 +268,7 @@ begin
       # Copy all files to tmp directory (some LaTeX packages fail to work with output dir)
       # excepting those we ignore anyways. Oh, and don't recurse outside the main
       # directory, duh.
-      exceptions = $ignoredfiles + $ignoredfiles.map { |s| "./#{s}" } + [".", ".."]
+      exceptions = $ignoredfiles + $ignoredfiles.map { |s| "./#{s}" } +  Dir["./.*"]
 
       define_singleton_method(:copy2tmp) { |files| 
         files.each { |f|
