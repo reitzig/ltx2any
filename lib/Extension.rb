@@ -68,10 +68,7 @@ class Extension
 
   # Wrap execution of many items
   def self.execute_parts(jobs, when_done, &block)
-    parallel = true
-    if ( !DependencyManager.available?('parallel', :gem) )
-      parallel = false
-    end
+    parallel = DependencyManager.available?('parallel', :gem)
 
     Parallel.map(jobs, :finish  => lambda { |a,b,c| when_done.call }) { |job|
       begin

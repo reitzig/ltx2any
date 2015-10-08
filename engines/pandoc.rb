@@ -96,7 +96,7 @@ class Pandoc < Engine
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
     # * tmpdir  -- the output directory
-    pandoc = '"pandoc -s -f latex -t #{params[:targetformat]} -o \"#{params[:jobname]}.#{extension}\" #{params[:jobfile]} 2>&1"'
+    pandoc = '"pandoc #{params[:enginepar]} -s -f latex -t #{params[:targetformat]} -o \"#{params[:jobname]}.#{extension}\" \"#{params[:jobfile]}\" 2>&1"'
 
     f = IO::popen(eval(pandoc))
     log = f.readlines + [""] # One empty line to finalize the last message

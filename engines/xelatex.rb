@@ -49,7 +49,7 @@ class XeLaTeX < Engine
     # Command for the main LaTeX compilation work.
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
-    xelatex = '"xelatex -file-line-error -interaction=nonstopmode \"#{params[:jobfile]}\""'
+    xelatex = '"xelatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} \"#{params[:jobfile]}\""'
 
     f = IO::popen(eval(xelatex))
     log = f.readlines.map! { |s| Log.fix(s) }

@@ -49,7 +49,7 @@ class PdfLaTeX < Engine
     # Command for the main LaTeX compilation work.
     # Uses the following variables:
     # * jobfile -- name of the main LaTeX file (with file ending)
-    pdflatex = '"pdflatex -file-line-error -interaction=nonstopmode \"#{params[:jobfile]}\""'
+    pdflatex = '"pdflatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} \"#{params[:jobfile]}\""'
 
     f = IO::popen(eval(pdflatex))
     log = f.readlines.map! { |s| Log.fix(s) }

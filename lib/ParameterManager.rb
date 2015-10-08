@@ -31,7 +31,7 @@ class ParameterManager
       Parameter.new(:daemon,         "d",        Boolean,                        false,
                     "Re-compiles automatically when files change."),
       Parameter.new(:listeninterval, "di",       Float,                          0.5,
-                    "Re-compiles automatically when files change."),
+                    "Time after which daemon mode checks for changes (in seconds)."),
       Parameter.new(:enginepar,      "ep",       String,                         "",
                     "Parameters passed to the engine, separated by spaces."),
       Parameter.new(:log,            "l",        String,                         '"#{self[:jobname]}.log"',
@@ -41,8 +41,8 @@ class ParameterManager
       Parameter.new(:loglevel,       "ll",       [:error, :warning, :info],      :warning,
                     "Set to 'error' to see only errors, to 'warning' to see also warnings, or to 'info' for everything."),
       Parameter.new(:runs,           "n",        Integer,                        0,
-                    "How often the LaTeX compiler runs. Values smaller than one will cause it to run until the resulting file no longer changes. May not apply to all engines."),
-      Parameter.new(:tmpdir,         "t",        String,                         '"#{self[:jobname]}_tmp"',
+                    "How often the LaTeX engine runs. Values smaller than one will cause it to run until the resulting file no longer changes. May not apply to all engines."),
+      Parameter.new(:tmpdir,         "t",        String,                       '"#{self[:jobname]}_tmp"',
                     "Directory for intermediate results")
     ]
 
