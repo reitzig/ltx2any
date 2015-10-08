@@ -39,7 +39,7 @@ class DaemonPrompt
             respond "Changed parameter '#{command[1]}' to '#{params[command[1].to_sym]}'."
           end
         when :show
-          respond "#{command[0]} = #{params[command[1].to_sym]}"
+          respond "#{command[1]} = #{params[command[1].to_sym]}"
         when :clean
           FileUtils::rm_rf(params[:tmpdir])
           respond "Temporary files deleted"
