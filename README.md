@@ -20,7 +20,6 @@ It is easy to extend ltx2any with additional LaTeX engines and secondary tools.
 We currently have support for the following implemented:
 
  * Engines `pdflatex` (default), `xelatex` and `lualatex` for creating PDFs.
- * Engine `pandoc` for many target formats, including EPUB and ODT.
  * Extensions for `bibtex`, `biber`, `makeindex`, Metapost, TikZ externalization and `gnuplot`.
  
 Pull requests with new engines or extensions are appreciated. Please make sure
@@ -33,15 +32,14 @@ bug-free or reliable. Take care!
 
 For using ltx2any without any bells and whistles, you should have
 
- * GNU/Linux,
- * Ruby 1.9.3 or higher, and
+ * Ruby 2.0.0 or higher and
  * LaTeX and friends.
 
 Any of the major (La)TeX distributions should provide the binaries you need.
 
-You can print a complete list of useful but optional gems and binaries by calling ltx2any with
-the `--dependencies` option; some provide improved speed or usability, others
-are necessary for only some engines or extensions.
+You can print a complete list of useful but optional gems and binaries by calling 
+ltx2any with the `--dependencies` option; some provide improved speed or usability, 
+others are necessary for only some engines or extensions.
 
 ### Basic Use ###
 
@@ -65,11 +63,6 @@ $> ltx2any bibtex_test.tex
 [ltx2any] Log file generated at bibtex_test.log.md
 ```
 
-This is what the PDF log looks like (add option `-lf pdf`; requires
-[pandoc](https://github.com/jgm/pandoc)):
-
-![Example PDF log](https://f.cloud.github.com/assets/1488534/937836/3e58c1e4-00ec-11e3-961c-9166c9c8d3c2.png)
-
 Note that ltx2any figured out the necessary number of runs and external programs: 
 because of some references, three runs of `pdflatex` are needed (and we 
 need a fourth to realise that the PDF has converged) and `bibtex` was
@@ -79,6 +72,16 @@ Rerun the command and see how this automatism speeds up subsequent runs!
 Using another engine is as easy as typing e.g. `ltx2any -e lualatex <file>`. The
 current default is `pdflatex` though that is easily changed. See a full list of
 supported engines by passing the `--engines` option.
+
+By the way, this is what a PDF log looks like (add option `-lf pdf`; requires
+[pandoc](https://github.com/jgm/pandoc)):
+
+![Example PDF log](https://f.cloud.github.com/assets/1488534/937836/3e58c1e4-00ec-11e3-961c-9166c9c8d3c2.png)
+
+Note how you get clickable links to the referenced files. 
+You can also navigate from error to error using the error count at the top
+and the small arrows.
+
 
 ## Extensions ##
 
@@ -107,9 +110,9 @@ long as LaTeX engines are used. Here is what you need to do in order get it runn
     3. Delete the corresponding PDFs from the temp directory to have specific
       images rebuilt.
       
-   There is currently no support for the new support in TikZ for detecting when images have to be
-   rebuilt due to changes. You can, however, change the set of rebuild images in daemon mode
-   (see below).
+   There is currently no support for the new support in TikZ for detecting when 
+   images have to be rebuilt due to changes (cf #47). 
+   You can, however, change the set of rebuild images in daemon mode (see below).
      
  * *Hint:* You may want to turn off externalization while you work on an image 
     like this:
@@ -125,8 +128,9 @@ long as LaTeX engines are used. Here is what you need to do in order get it runn
     such as [todonotes](http://ctan.org/pkg/todonotes) can slow down compilation
     considerably.
     
-    Therefore, you may want to enable externalization only for specific, complex images
-    (recommended) or redefine troublesome commands, e.g. like this:
+    Therefore, you may want to enable externalization only for specific, 
+    complex images (recommended) or redefine troublesome commands, 
+    e.g. like this:
 
     ```latex
     \usepackage{letltxmacro}
@@ -165,4 +169,5 @@ This feature is still subject to development and far from finished.
 
 ## For Developers
 
-TODO: describe Extension and Engine interfaces -- once they have stabilized and are less likely to hurt people.
+TODO: describe Extension and Engine interfaces -- once they have stabilized and 
+are less likely to hurt people.
