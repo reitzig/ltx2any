@@ -50,12 +50,12 @@ class Biber < Extension
       #  * changes to the bib sources (which are listed in the bcf file)
       
       # Has the bcf file changed?
-      needrerun ||= !$hashes.has_key?("#{params[:jobname]}.bcf") || filehash("#{params[:jobname]}.bcf") != $hashes["#{params[:jobname]}.bcf"]
+      needrerun ||= !$hashes.has_key?("#{params[:jobname]}.bcf") || HashManager.hash_file("#{params[:jobname]}.bcf") != $hashes["#{params[:jobname]}.bcf"]
       
       if ( !needrerun )
         # Have bibliography files changes?
         @sources.each { |f|
-          needrerun ||= !$hashes.has_key?(f) || filehash(f) != $hashes[f]
+          needrerun ||= !$hashes.has_key?(f) || HashManager.hash_file(f) != $hashes[f]
           
           # Don't do more than necessary!
           if ( needrerun )

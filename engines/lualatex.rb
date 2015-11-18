@@ -20,8 +20,6 @@ DependencyManager.add("lualatex", :binary, :recommended)
 ParameterManager.instance.addHook(:engine) { |key, val|
   if ( val == :lualatex )
     DependencyManager.make_essential("lualatex", binary)
-    DependencyManager.add("cat", :binary, :essential)
-    DependencyManager.add("grep", :binary, :essential)
   end
 }
 
@@ -56,8 +54,8 @@ class LuaLaTeX < Engine
 
     newHash = -1
     if ( File.exist?("#{params[:jobname]}.#{extension}") )
-      newHash = Digest::MD5.hexdigest(`cat "#{params[:jobname]}.#{extension}" | grep -a -v "/CreationDate|/ModDate|/ID|/Type/XRef/Index"`.strip)
-      # TODO remove binary dependencies
+      newHash = HashManager.hash_file("#{params[:jobname]}.#{extension}",
+                                      without: /\/CreationDate|\/ModDate|\/ID|\/Type\/XRef\/Index/)
     end
 
     @heap[0] = @heap[1] == newHash

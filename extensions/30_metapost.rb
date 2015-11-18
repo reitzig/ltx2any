@@ -33,7 +33,7 @@ class MetaPost < Extension
     # Count the number of changed _.mp files
     # TODO check for (non-)existing result? incorporate ir parameter?
     Dir.entries(".").delete_if { |f|
-      (/\.mp$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
+      (/\.mp$/ !~ f) || ($hashes.has_key?(f) && HashManager.hash_file(f) == $hashes[f])
     }.size
   end
 
@@ -45,7 +45,7 @@ class MetaPost < Extension
 
     # Filter out non-metapost files and such that did not change since last run
     mp_files = Dir.entries(".").delete_if { |f|
-      (/\.mp$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
+      (/\.mp$/ !~ f) || ($hashes.has_key?(f) && HashManager.hash_file(f) == $hashes[f])
     }
 
     # Run mpost for each remaining file

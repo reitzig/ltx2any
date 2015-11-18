@@ -20,8 +20,6 @@ DependencyManager.add("pdflatex", :binary, :recommended)
 ParameterManager.instance.addHook(:engine) { |key, val|
   if ( val == :pdflatex )
     DependencyManager.make_essential("pdflatex", binary)
-    DependencyManager.add("cat", :binary, :essential)
-    DependencyManager.add("grep", :binary, :essential)
   end
 }
 
@@ -56,8 +54,8 @@ class PdfLaTeX < Engine
 
     newHash = -1
     if ( File.exist?("#{params[:jobname]}.#{extension}") )
-      newHash = Digest::MD5.hexdigest(`cat "#{params[:jobname]}.#{extension}" | grep -a -v "/CreationDate\\|/ModDate\\|/ID"`.strip)
-      # TODO remove binary dependencies
+      newHash = HashManager.hash_file("#{params[:jobname]}.#{extension}",
+                                      without: /\/CreationDate|\/ModDate|\/ID/)
     end
 
     @heap[0] = @heap[1] == newHash

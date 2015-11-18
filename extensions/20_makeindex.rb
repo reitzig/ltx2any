@@ -32,7 +32,7 @@ class MakeIndex < Extension
        File.exist?("#{params[:jobname]}.idx") \
     && (    !File.exist?("#{params[:jobname]}.ind") \
          || !$hashes.has_key?("#{params[:jobname]}.idx") \
-         || filehash("#{params[:jobname]}.idx") != $hashes["#{params[:jobname]}.idx"] \
+         || HashManager.hash_file("#{params[:jobname]}.idx") != $hashes["#{params[:jobname]}.idx"] \
        )
   end
 

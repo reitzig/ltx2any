@@ -56,8 +56,8 @@ class XeLaTeX < Engine
 
     newHash = -1
     if ( File.exist?("#{params[:jobname]}.#{extension}") )
-      newHash = Digest::MD5.hexdigest(`cat -A "#{params[:jobname]}.#{extension}" | awk '/CIDFontType0C|Type1C/ {exit} {print}'`.strip)
-      # TODO remove binary dependencies
+      newHash = HashManager.hash_file("#{params[:jobname]}.#{extension}",
+                                      drop_from: /CIDFontType0C|Type1C/)
     end
     # TODO This is only a hack! What else can be embedded and changing?
 

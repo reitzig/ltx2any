@@ -71,11 +71,11 @@ class BibTeX < Extension
       
       # Any changes in style or library?
       (stylefile + bibdata).each { |f|
-        fileschanged ||= File.exist?(f) && (!$hashes.has_key?(f) || filehash(f) != $hashes[f])
+        fileschanged ||= File.exist?(f) && (!$hashes.has_key?(f) || HashManager.hash_file(f) != $hashes[f])
       }
       
       # Any relevant changes in the main document?
-      documentchanged = !$hashes.has_key?(@grepfile) || filehash(@grepfile) != $hashes[@grepfile]
+      documentchanged = !$hashes.has_key?(@grepfile) || HashManager.hash_file(@grepfile) != $hashes[@grepfile]
 
       needsrerun = fileschanged || documentchanged
     end

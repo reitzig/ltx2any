@@ -32,7 +32,7 @@ class Gnuplot < Extension
   def job_size
     # Check whether there are any _.gnuplot files that have changed
     Dir.entries(".").delete_if { |f|
-      (/\.gnuplot$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
+      (/\.gnuplot$/ !~ f) || ($hashes.has_key?(f) && HashManager.hash_file(f) == $hashes[f])
     }.size
   end
 
@@ -44,7 +44,7 @@ class Gnuplot < Extension
 
     # Filter out non-gnuplot files and such that did not change since last run
     gnuplot_files = Dir.entries(".").delete_if { |f|
-      (/\.gnuplot$/ !~ f) || ($hashes.has_key?(f) && filehash(f) == $hashes[f])
+      (/\.gnuplot$/ !~ f) || ($hashes.has_key?(f) && HashManager.hash_file(f) == $hashes[f])
     }
 
     # Run gnuplot for each remaining file

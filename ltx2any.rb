@@ -26,12 +26,11 @@ name      = "ltx2any"
 version   = "0.9a"
 tmpsuffix = "_tmp"
 ignorefile = ".#{name}ignore_"
-hashes    = ".hashes"
+hashes = ".hashes" # TODO get rid of
 
 # Load stuff from standard library
 require 'io/console'
 require 'fileutils'
-require 'digest'
 require 'yaml'
 
 # Load these first so other classes can add their dependencies and hooks
@@ -141,12 +140,6 @@ begin
 
   # Switch working directory to jobfile residence
   Dir.chdir(params[:jobpath])
-
-  # Hash function that can be used by engines and extensions
-  # TODO factor out
-  def filehash(f)
-    Digest::MD5.file(f).to_s
-  end
 
   $ignoredfiles = ["#{ignorefile}#{params[:jobname]}",
                    "#{params[:tmpdir]}", 
@@ -339,6 +332,7 @@ begin
         end
 
         # Read hashes
+        # TODO move to HashManager; do only once per run (even in daemon mode)
         $hashes = {}
         hashfile = hashes
         if ( File.exist?(hashfile) )
@@ -383,10 +377,11 @@ begin
       end
 
       # Write new hashes
+      # TODO move to HashManager; do only once per run (even in daemon mode)
       File.open(hashes, "w") { |file|
         Dir.entries(".").sort.each { |f|
           if ( File::file?(f) )
-            file.write(f + "," + filehash(f) + "\n")
+            file.write(f + "," + HashManager.hash_file(f) + "\n")
           end
         }
       }
