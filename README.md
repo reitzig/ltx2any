@@ -11,7 +11,7 @@ Yet another LaTeX build wrapper, with one or two nifty features:
    speed up compilation on multi-core machines.
  * Can run as daemon, recompiling when files change.
  * Aggregates error messages and warnings from all tools into a nicely formatted 
-   log (Markdown or [PDF](https://f.cloud.github.com/assets/1488534/937836/3e58c1e4-00ec-11e3-961c-9166c9c8d3c2.png)) 
+   log (Markdown or [PDF](https://cloud.githubusercontent.com/assets/1488534/11242606/06ed381a-8e03-11e5-99be-7b1312d59420.png)) 
    with references to source files and original logs.
  * Adding additional phases is easy due to modular design.
  * Keeps your main directory clean by default.
@@ -76,7 +76,8 @@ supported engines by passing the `--engines` option.
 By the way, this is what a PDF log looks like (add option `-lf pdf`; requires
 [pandoc](https://github.com/jgm/pandoc)):
 
-![Example PDF log](https://f.cloud.github.com/assets/1488534/937836/3e58c1e4-00ec-11e3-961c-9166c9c8d3c2.png)
+![Example PDF log](https://cloud.githubusercontent.com/assets/1488534/11242606/06ed381a-8e03-11e5-99be-7b1312d59420.png)
+
 
 Note how you get clickable links to the referenced files. 
 You can also navigate from error to error using the error count at the top
