@@ -205,7 +205,7 @@ class Log
       params = ParameterManager.instance
             
       template = "#{File.dirname(__FILE__)}/logtemplate.tex"
-      pandoc = '"pandoc --latex-engine=xelatex -f markdown --template=\"#{template}\" -V papersize:a4paper -V geometry:margin=3cm -V fulllog:\"#{params[:tmpdir]}/#{params[:log]}.raw\" -o \"#{target_file}\" 2>&1"' 
+      pandoc = '"pandoc --latex-engine=xelatex -f markdown --template=\"#{template}\" -V fulllog:\"#{params[:tmpdir]}/#{params[:log]}.raw\" -V title:\"Log for #{params[:jobname]}\" -o \"#{target_file}\" 2>&1"' 
 
       panout = IO::popen(eval(pandoc), "w+") { |f|
         markdown = to_md
