@@ -17,17 +17,14 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 require 'digest'
+require 'singleton'
 
 class HashManager
-  private
-    @@dependencies = {}
-    # Format: [name, (:gem|:binary|:file) => {
-    #   :relevance => (:essential|:recommended)
-    #   :reasons   => [*string]
-    #   :version   => ">=..."
-    # }
-    
-    @@hashfile = ".hashes" # TODO necessary?
+  include Singleton
+  
+  def initialize
+    @hashes = {}
+  end  
     
   public
   
@@ -47,7 +44,9 @@ class HashManager
   #
   # Important: drop_from is applied first!
   def self.hash_file(filename, drop_from: nil, without: nil)
-    if drop_from == nil && without == nil
+    if !File.exist?(filename)
+      return nil
+    elsif drop_from == nil && without == nil
       Digest::MD5.file(filename).to_s
     else
       string = File.open(filename, "r") { |f| f.read }
@@ -74,5 +73,56 @@ class HashManager
       
       hash(string.strip)
     end
+  end
+  
+  # Returns true if (and only if) any of the specified files has been
+  # created, changed or deleted between this and the last call of 
+  # the method of which it was a parameter.
+  def files_changed?(*files)    
+    result = false
+    
+    files.each { |f|
+      # TODO allow arrays with parameters for hash_file?
+      if !File.exist?(f) 
+        if @hashes.has_key?(f)
+          @hashes.remove(f)
+          result = true
+        end
+      else
+        hash = self.class.hash_file(f)
+        result = result || !@hashes.has_key?(f) || hash != @hashes[f]
+        # puts "new or changed file #{f}" if !@@hashes.has_key?(f) || hash != @@hashes[f]
+        @hashes[f] = hash  
+      end    
+    }
+    
+    return result
+  end
+  
+  # Reads hashes from a file in format
+  #   filename,hash
+  # Overwrites any hashes that are already known.
+  def from_file(filename)
+    if File.exist?(filename)
+      File.open(filename, "r") { |f|
+        f.readlines.each { |l|
+          parts = l.split(",")
+          # Comma may appear as filename, so we have to make sure to only
+          # use the last component as hash
+          @hashes[parts.take(parts.size - 1).join(",").strip] = parts.last.strip
+        }
+      }
+    end
+  end
+  
+  # Writes hashes to a file in format 
+  #   filename,hash
+  # Overwrites existing file.
+  def to_file(filename)
+    File.open(filename, "w") { |f|
+      @hashes.each_pair { |k,v|
+        f.write("#{k},#{v}\n")
+      }
+    }
   end
 end

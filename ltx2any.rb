@@ -22,11 +22,11 @@ $0="ltx2any.rb"
 
 # Some frontend strings
 # TODO move somewhere nice
-name      = "ltx2any"
-version   = "0.9a"
-tmpsuffix = "_tmp"
+name       = "ltx2any"
+version    = "0.9a"
+tmpsuffix  = "_tmp"
 ignorefile = ".#{name}ignore_"
-hashes = ".hashes" # TODO get rid of
+hashfile   = ".hashes" # relative to tmp directory
 
 # Load stuff from standard library
 require 'io/console'
@@ -315,6 +315,9 @@ begin
       if ( File.exist?("#{params[:jobname]}.#{engine.extension}") )
         FileUtils::rm("#{params[:jobname]}.#{engine.extension}")
       end
+      
+      # Read hashes
+      HashManager.instance.from_file("#{hashfile}")
 
       # First engine run
       output.start("#{engine.name}(1) running")
@@ -329,19 +332,6 @@ begin
         # Save the first log if it is the last one (should be before the extensions)
         if ( params[:runs] ==  1 )
           log.add_messages(engine.name, :engine, r[1], r[2])
-        end
-
-        # Read hashes
-        # TODO move to HashManager; do only once per run (even in daemon mode)
-        $hashes = {}
-        hashfile = hashes
-        if ( File.exist?(hashfile) )
-          File.open(hashfile, "r") { |f|
-            while ( l = f.gets )
-              l = l.strip.split(",")
-              $hashes[l[0]] = l[1]
-            end
-          }
         end
         
         # Run all extensions in order
@@ -375,16 +365,6 @@ begin
         # report failure.
         log.add_messages(engine.name, :engine, r[1], r[2])
       end
-
-      # Write new hashes
-      # TODO move to HashManager; do only once per run (even in daemon mode)
-      File.open(hashes, "w") { |file|
-        Dir.entries(".").sort.each { |f|
-          if ( File::file?(f) )
-            file.write(f + "," + HashManager.hash_file(f) + "\n")
-          end
-        }
-      }
       
       errorS = if ( log.count(:error) != 1 ) then "s" else "" end
       warningS = if ( log.count(:warning) != 1 ) then "s" else "" end
@@ -522,6 +502,11 @@ rescue Exception => e
   Kernel.exit!(FALSE) 
 end
 
+# Write current hashes
+HashManager.instance.to_file("#{params[:tmpdir]}/#{hashfile}") if !params[:clean]
+# Note: old version stored hashes for *all* files. Now we only store such
+#       that were needed earlier. Is that sufficient?
+
 # Stop file listeners
 if ( params[:daemon] )
   begin
@@ -533,7 +518,5 @@ if ( params[:daemon] )
 end
 
 # Remove temps if so desired.
-if ( params[:clean] )
-  FileUtils::rm_rf(params[:tmpdir])
-end
+FileUtils::rm_rf(params[:tmpdir]) if params[:clean] 
 FileUtils::rm_rf("#{params[:jobpath]}/#{ignorefile}#{params[:jobname]}")

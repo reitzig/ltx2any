@@ -27,41 +27,34 @@ class LuaLaTeX < Engine
 
   def initialize
     super
-    @heap = []
     @binary = "lualatex"
     @extension = "pdf"
     @description = "Uses lualatex to create a PDF"
+    
+    @target_file = "#{ParameterManager.instance[:jobname]}.#{extension}"
+    @old_hash = hash_result
   end
   
   def do?
-    !@heap[0]
+    !File.exist?(@target_file) || hash_result != @old_hash
+  end
+  
+  def hash_result
+    HashManager.hash_file(@target_file, 
+                          without: /\/CreationDate|\/ModDate|\/ID|\/Type\/XRef\/Index/)
   end
 
   def exec()
-    if ( @heap.size < 2 )
-      @heap = [false, ""]
-    end
-
+    @old_hash = hash_result
+    
+    # Command for the main LaTeX compilation work
     params = ParameterManager.instance
-
-    # Command for the main LaTeX compilation work.
-    # Uses the following variables:
-    # * jobfile -- name of the main LaTeX file (with file ending)
     lualatex = '"lualatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} \"#{params[:jobfile]}\""'
 
     f = IO::popen(eval(lualatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
-    newHash = -1
-    if ( File.exist?("#{params[:jobname]}.#{extension}") )
-      newHash = HashManager.hash_file("#{params[:jobname]}.#{extension}",
-                                      without: /\/CreationDate|\/ModDate|\/ID|\/Type\/XRef\/Index/)
-    end
-
-    @heap[0] = @heap[1] == newHash
-    @heap[1] = newHash
-
-    return [File.exist?("#{params[:jobname]}.#{extension}"), TeXLogParser.parse(log), log.join("").strip!]
+    return [File.exist?(@target_file), TeXLogParser.parse(log), log.join("").strip!]
   end
 end
 

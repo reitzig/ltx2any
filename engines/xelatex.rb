@@ -20,8 +20,6 @@ DependencyManager.add("xelatex", :binary, :recommended)
 ParameterManager.instance.addHook(:engine) { |key, val|
   if ( val == :xelatex )
     DependencyManager.make_essential("xelatex", binary)
-    DependencyManager.add("cat", :binary, :essential)
-    DependencyManager.add("awk", :binary, :essential)
   end
 }
 
@@ -29,42 +27,33 @@ class XeLaTeX < Engine
 
   def initialize
     super
-    @heap = []
     @binary = "xelatex"
     @extension = "pdf"
     @description = "Uses xelatex to create a PDF"
+    
+    @target_file = "#{ParameterManager.instance[:jobname]}.#{extension}"
+    @old_hash = hash_result
   end
   
   def do?
-    !@heap[0]
+    !File.exist?(@target_file) || hash_result != @old_hash
+  end
+  
+  def hash_result
+    HashManager.hash_file(@target_file, drop_from: /CIDFontType0C|Type1C/)
   end
 
   def exec()
-    if ( @heap.size < 2 )
-      @heap = [false, ""]
-    end
-
+    @old_hash = hash_result
+    
+    # Command for the main LaTeX compilation work
     params = ParameterManager.instance
-
-    # Command for the main LaTeX compilation work.
-    # Uses the following variables:
-    # * jobfile -- name of the main LaTeX file (with file ending)
     xelatex = '"xelatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} \"#{params[:jobfile]}\""'
 
     f = IO::popen(eval(xelatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
-    newHash = -1
-    if ( File.exist?("#{params[:jobname]}.#{extension}") )
-      newHash = HashManager.hash_file("#{params[:jobname]}.#{extension}",
-                                      drop_from: /CIDFontType0C|Type1C/)
-    end
-    # TODO This is only a hack! What else can be embedded and changing?
-
-    @heap[0] = @heap[1] == newHash
-    @heap[1] = newHash
-
-    return [File.exist?("#{params[:jobname]}.#{extension}"), TeXLogParser.parse(log), log.join("").strip!]
+    return [File.exist?(@target_file), TeXLogParser.parse(log), log.join("").strip!]
   end
 end
 

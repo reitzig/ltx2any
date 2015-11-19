@@ -30,9 +30,9 @@ class MakeIndex < Extension
     params = ParameterManager.instance
     
        File.exist?("#{params[:jobname]}.idx") \
-    && (    !File.exist?("#{params[:jobname]}.ind") \
-         || !$hashes.has_key?("#{params[:jobname]}.idx") \
-         || HashManager.hash_file("#{params[:jobname]}.idx") != $hashes["#{params[:jobname]}.idx"] \
+    && (   !File.exist?("#{params[:jobname]}.ind") \
+         | HashManager.instance.files_changed?("#{params[:jobname]}.idx") 
+         # Note: non-strict OR so that hashes are computed for next run
        )
   end
 

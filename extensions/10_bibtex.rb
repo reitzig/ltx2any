@@ -22,7 +22,7 @@ class BibTeX < Extension
   def initialize
     super    
     @name = "BibTeX"
-    @description = "Creates bibliography (old)"
+    @description = "Creates bibliographies (old)"
     
     # For checking whether bibtex has to rerun, we need to keep the 
     # relevant parts of the _.aux file handy.
@@ -54,31 +54,22 @@ class BibTeX < Extension
         end
       }
     end 
-      
-    # Write relevant part of the _.aux file into a separate file for hashing
-    File.open(@grepfile, "w") { |f|
-      f.write grepdata.join("\n")
-    }
-      
+    
     # Check whether bibtex is necessary at all
     usesbib = bibdata.size > 0
     
-    # Check whether a (re)run is needed
-    needsrerun = !File.exist?("#{params[:jobname]}.bbl") # Is result still there?
-    # Check more closely
-    if ( usesbib && !needsrerun )
-      fileschanged = false
-      
-      # Any changes in style or library?
-      (stylefile + bibdata).each { |f|
-        fileschanged ||= File.exist?(f) && (!$hashes.has_key?(f) || HashManager.hash_file(f) != $hashes[f])
+    # Write relevant part of the _.aux file into a separate file for hashing
+    if usesbib
+      File.open(@grepfile, "w") { |f|
+        f.write grepdata.join("\n")
       }
-      
-      # Any relevant changes in the main document?
-      documentchanged = !$hashes.has_key?(@grepfile) || HashManager.hash_file(@grepfile) != $hashes[@grepfile]
-
-      needsrerun = fileschanged || documentchanged
     end
+
+    # Check whether a (re)run is needed
+    needsrerun = !File.exist?("#{params[:jobname]}.bbl") | # Is result still there?
+                 HashManager.instance.files_changed?(*stylefile, *bibdata, @grepfile)
+                 # Note: non-strict OR so that hashes get computed and stored
+                 #       for next run!
 
     return usesbib && needsrerun
   end

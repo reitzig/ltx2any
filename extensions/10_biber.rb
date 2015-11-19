@@ -22,7 +22,7 @@ class Biber < Extension
   def initialize
     super
     @name = "Biber"
-    @description = "Creates bibliography (recommended)"  
+    @description = "Creates bibliographies (recommended)"  
     @sources = []
   end
 
@@ -30,6 +30,7 @@ class Biber < Extension
     params = ParameterManager.instance
     
     usesbib = File.exist?("#{params[:jobname]}.bcf")
+    needrerun = false
     
     if ( usesbib )
       # Collect sources (needed for log parsing)
@@ -40,31 +41,19 @@ class Biber < Extension
         end
       }
       @sources.uniq!
-    end    
+       
       
-    needrerun = !File.exist?("#{params[:jobname]}.bbl") # Is this the first run?
-    if ( usesbib && !needrerun )
-      # There are two things that prompt us to rerun:
+      # Aside from the first run (no bbl),
+      # there are two things that prompt us to rerun:
       #  * changes to the bcf file (which includes all kinds of things,
       #    including the actual citations)
       #  * changes to the bib sources (which are listed in the bcf file)
-      
-      # Has the bcf file changed?
-      needrerun ||= !$hashes.has_key?("#{params[:jobname]}.bcf") || HashManager.hash_file("#{params[:jobname]}.bcf") != $hashes["#{params[:jobname]}.bcf"]
-      
-      if ( !needrerun )
-        # Have bibliography files changes?
-        @sources.each { |f|
-          needrerun ||= !$hashes.has_key?(f) || HashManager.hash_file(f) != $hashes[f]
-          
-          # Don't do more than necessary!
-          if ( needrerun )
-            break
-          end
-        }
-      end
-    end
-    
+      needrerun =   !File.exist?("#{params[:jobname]}.bbl") | # Is this the first run?
+                    HashManager.instance.files_changed?("#{params[:jobname]}.bcf",
+                                                        *@sources)
+                  # Note: non-strict OR so that hashes are computed for next run
+    end 
+        
     return usesbib && needrerun
   end
 

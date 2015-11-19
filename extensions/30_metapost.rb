@@ -23,6 +23,8 @@ class MetaPost < Extension
     super
     @name = "MetaPost"
     @description = "Compiles generated MetaPost files"
+    
+    @mp_files = []
   end
 
   def do?
@@ -31,10 +33,14 @@ class MetaPost < Extension
 
   def job_size
     # Count the number of changed _.mp files
+    # Store because a check for changed hashes in exec later would give false!
+    # Append because job_size may be called multiple times before exec
+    @mp_files += Dir.entries(".").delete_if { |f|
+        (/\.mp$/ !~ f) || !HashManager.instance.files_changed?(f)
+      }
+    @mp_files.size
+    
     # TODO check for (non-)existing result? incorporate ir parameter?
-    Dir.entries(".").delete_if { |f|
-      (/\.mp$/ !~ f) || ($hashes.has_key?(f) && HashManager.hash_file(f) == $hashes[f])
-    }.size
   end
 
   def exec(progress)
@@ -42,20 +48,16 @@ class MetaPost < Extension
     
     # Command to process metapost files if necessary.
     mpost = '"mpost -tex=#{params[:engine]} -file-line-error -interaction=nonstopmode \"#{f}\" 2>&1"'
-
-    # Filter out non-metapost files and such that did not change since last run
-    mp_files = Dir.entries(".").delete_if { |f|
-      (/\.mp$/ !~ f) || ($hashes.has_key?(f) && HashManager.hash_file(f) == $hashes[f])
-    }
-
-    # Run mpost for each remaining file
+    
+    # Run mpost for each job file
     log = [[], []]
-    if ( !mp_files.empty? )
+    if ( !@mp_files.empty? )
       # Run (latex) engine for each figure
-      log = self.class.execute_parts(mp_files, progress) { |f|
+      log = self.class.execute_parts(@mp_files, progress) { |f|
               compile(mpost, f)
             }.transpose
     end
+    @mp_files = [] # reset for next round of checks
 
     # Log line numbers are wrong since every compile determines log line numbers
     # w.r.t. its own contribution. Later steps will only add the offset of the

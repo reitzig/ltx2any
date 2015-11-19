@@ -23,6 +23,8 @@ class Gnuplot < Extension
     super
     @name = "Gnuplot"
     @description = "Executes generated gnuplot files"
+    
+    @gnuplot_files = []
   end
 
   def do?
@@ -31,9 +33,12 @@ class Gnuplot < Extension
 
   def job_size
     # Check whether there are any _.gnuplot files that have changed
-    Dir.entries(".").delete_if { |f|
-      (/\.gnuplot$/ !~ f) || ($hashes.has_key?(f) && HashManager.hash_file(f) == $hashes[f])
-    }.size
+    # Store because check for changed hashes in exec later would give false!
+    # Append because job_size may be called multiple times before exec
+    @gnuplot_files += Dir.entries(".").delete_if { |f|
+      (/\.gnuplot$/ !~ f) || !HashManager.instance.files_changed?(f)
+    }
+    @gnuplot_files.size
   end
 
   def exec(progress)
@@ -42,16 +47,10 @@ class Gnuplot < Extension
     # * jobname -- name of the main LaTeX file (without file ending)
     gnuplot = '"gnuplot \"#{f}\" 2>&1"'
 
-    # Filter out non-gnuplot files and such that did not change since last run
-    gnuplot_files = Dir.entries(".").delete_if { |f|
-      (/\.gnuplot$/ !~ f) || ($hashes.has_key?(f) && HashManager.hash_file(f) == $hashes[f])
-    }
-
     # Run gnuplot for each remaining file
     log = [[], []]
-    if ( !gnuplot_files.empty? )
-      # Run (latex) engine for each figure
-      log = self.class.execute_parts(gnuplot_files, progress) { |f|
+    if ( !@gnuplot_files.empty? )
+      log = self.class.execute_parts(@gnuplot_files, progress) { |f|
               compile(gnuplot, f)
             }.transpose
     end
