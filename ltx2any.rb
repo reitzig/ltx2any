@@ -503,7 +503,7 @@ rescue Exception => e
 end
 
 # Write current hashes
-HashManager.instance.to_file("#{params[:tmpdir]}/#{hashfile}") if !params[:clean]
+HashManager.instance.to_file("#{params[:tmpdir]}/#{hashfile}") if params[:jobname] != nil && !params[:clean]
 # Note: old version stored hashes for *all* files. Now we only store such
 #       that were needed earlier. Is that sufficient?
 
