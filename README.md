@@ -17,10 +17,10 @@ Yet another LaTeX build wrapper, with one or two nifty features:
  * Keeps your main directory clean by default.
  
 It is easy to extend ltx2any with additional LaTeX engines and secondary tools.
-We currently have support for the following implemented:
+Currently, we provide the following functionality:
 
  * Engines `pdflatex` (default), `xelatex` and `lualatex` for creating PDFs.
- * Extensions for `bibtex`, `biber`, `makeindex`, Metapost, TikZ externalization and `gnuplot`.
+ * Extensions for `bibtex`, `biber`, `makeindex`, SyncTex support, TikZ externalization, `gnuplot` and Metapost.
  
 Pull requests with new engines or extensions are appreciated. Please make sure
 to adhere to the specs (upcoming) and include test cases.
@@ -140,6 +140,14 @@ long as LaTeX engines are used. Here is what you need to do in order get it runn
       \tikzset{external/export next=false}\oldtodo[#1]{#2}%
     }
     ```
+    
+### SyncTeX
+
+Add the `-synctex` parameter; 
+after successful compilation, a gzipped `.synctex` file should appear in your main directory, 
+ready for other tools to use. 
+
+No additional `-ep` parameter is necessary.
 
 ## Advanced Use ##
 
