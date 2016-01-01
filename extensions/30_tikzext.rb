@@ -1,4 +1,4 @@
-# Copyright 2010-2015, Raphael Reitzig
+# Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -27,15 +27,15 @@ class TikZExt < Extension
     @description = "Compiles externalized TikZ images"
   end
 
-  def do?
-    job_size > 0
+  def do?(time)
+    time == 1 && job_size > 0
   end
   
   def job_size
     return collect_pending[0].size
   end
 
-  def exec(progress)
+  def exec(time, progress)
     params = ParameterManager.instance
     
     # Command to process externalised TikZ images if necessary.

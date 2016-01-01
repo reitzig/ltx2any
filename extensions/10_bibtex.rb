@@ -1,4 +1,4 @@
-# Copyright 2010-2015, Raphael Reitzig
+# Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -30,7 +30,9 @@ class BibTeX < Extension
     @grepfile = "bibtex_aux_grep"
   end
 
-  def do?
+  def do?(time)
+    return false unless time == 1
+    
     params = ParameterManager.instance
     
     # Collect used bibdata files and style file
@@ -74,7 +76,7 @@ class BibTeX < Extension
     return usesbib && needsrerun
   end
 
-  def exec(progress)
+  def exec(time, progress)
     params = ParameterManager.instance
     
     # Command to process bibtex bibliography if necessary.

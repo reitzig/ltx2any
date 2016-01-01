@@ -1,4 +1,4 @@
-# Copyright 2010-2015, Raphael Reitzig
+# Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -27,8 +27,8 @@ class MetaPost < Extension
     @mp_files = []
   end
 
-  def do?
-    job_size > 0
+  def do?(time)
+    time == 1 && job_size > 0
   end
 
   def job_size
@@ -43,7 +43,7 @@ class MetaPost < Extension
     # TODO check for (non-)existing result? incorporate ir parameter?
   end
 
-  def exec(progress)
+  def exec(time, progress)
     params = ParameterManager.instance
     
     # Command to process metapost files if necessary.

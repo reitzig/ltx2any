@@ -1,4 +1,4 @@
-# Copyright 2010-2015, Raphael Reitzig
+# Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -26,7 +26,9 @@ class Biber < Extension
     @sources = []
   end
 
-  def do?
+  def do?(time)
+    return false unless time == 1
+    
     params = ParameterManager.instance
     
     usesbib = File.exist?("#{params[:jobname]}.bcf")
@@ -57,7 +59,7 @@ class Biber < Extension
     return usesbib && needrerun
   end
 
-  def exec(progress)
+  def exec(time, progress)
     params = ParameterManager.instance
     
     # Command to process bibtex bibliography if necessary.

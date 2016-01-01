@@ -1,4 +1,4 @@
-# Copyright 2010-2015, Raphael Reitzig
+# Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
 # Version 1.0 beta
 #
@@ -319,53 +319,35 @@ begin
       # Read hashes
       HashManager.instance.from_file("#{hashfile}")
 
-      # First engine run
-      output.start("#{engine.name}(1) running")
-      r = engine.exec
-      output.stop(if r[0] then :success else :error end)
+      # Run extensions that may need to do something before the engine
+      Extension.run_all(:before, output, log)
 
-      if ( engine.do? && File.exist?("#{params[:jobname]}.#{engine.extension}") )
-        # The first run produced some output so the input is hopefully
-        # not completely broken -- continue with the work!
-        # (That is, if the engine says it wants to run again.)
-      
-        # Save the first log if it is the last one (should be before the extensions)
-        if ( params[:runs] ==  1 )
-          log.add_messages(engine.name, :engine, r[1], r[2])
-        end
-        
-        # Run all extensions in order
-        Extension.list.each { |e|
-          e = e.new
-          if ( e.do? ) # TODO check dependencies here?
-            progress, stop = output.start("#{e.name} running", e.job_size)
-            r = e.exec(progress)
-            stop.call(if r[0] then :success else :error end)
-            log.add_messages(e.name, :extension, r[1], r[2])
-          end
-        }
+      # Run engine as often as specified
+      run = 1
+      result = []
+      loop do 
+        # Run engine
+        output.start("#{engine.name}(#{run}) running")
+        result = engine.exec
+        output.stop(if result[0] then :success else :error end)
 
-        # Run engine as often as specified/necessary
-        run = 2
-        while (  (params[:runs] > 0 && run <= params[:runs]) ||
-                 (params[:runs] <= 0 && engine.do?) )
-          output.start("#{engine.name}(#{run}) running")
-          r = engine.exec
-          output.stop(if r[0] then :success else :error end)
-          run += 1
-        end
+        break if !File.exist?("#{params[:jobname]}.#{engine.extension}")
 
-        # Save the last log if we did not save it already
-        if ( params[:runs] !=  1 )
-          log.add_messages(engine.name, :engine, r[1], r[2])
-        end
-      else
-        # First run did not yield a result so there has been a fatal error.
-        # Don't bother with extensions or more runs, just stop and
-        # report failure.
-        log.add_messages(engine.name, :engine, r[1], r[2])
+        # Run extensions that need to do something after this iteration
+        Extension.run_all(run, output, log)
+
+        run += 1
+        break if (params[:runs] > 0 && run > params[:runs]) || # User set number of runs
+                 (params[:runs] <= 0 && !engine.do?)     # User set automatic mode
       end
+
+      # Save log messages of last engine run
+      log.add_messages(engine.name, :engine, result[1], result[2])
+
+      # Run extensions that may need to do something after all engine runs
+      Extension.run_all(:after, output, log)
       
+      # Give error/warning counts to user
       errorS = if ( log.count(:error) != 1 ) then "s" else "" end
       warningS = if ( log.count(:warning) != 1 ) then "s" else "" end
       output.msg("There were #{log.count(:error)} error#{errorS} " + 

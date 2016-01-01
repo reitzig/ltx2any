@@ -1,4 +1,4 @@
-# Copyright 2010-2015, Raphael Reitzig
+# Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -26,7 +26,9 @@ class MakeIndex < Extension
     @description = "Creates an index"
   end
 
-  def do?
+  def do?(time)
+    return false unless time == 1
+    
     params = ParameterManager.instance
     
        File.exist?("#{params[:jobname]}.idx") \
@@ -36,7 +38,7 @@ class MakeIndex < Extension
        )
   end
 
-  def exec(progress)
+  def exec(time, progress)
     params = ParameterManager.instance
     
     # Command to create the index if necessary. Provide two versions,

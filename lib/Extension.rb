@@ -1,4 +1,4 @@
-# Copyright 2010-2015, Raphael Reitzig
+# Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -82,9 +82,25 @@ class Extension
     }
     # TODO do we have to care about Parallel::DeadWorker?
   end
+
+  # Parameters
+  # - time: one of :before, :after or a positive integer
+  # - output: an instance of Output
+  # - log: an instance of Log
+  def self.run_all(time, output, log)
+    list.each { |e|
+      e = e.new
+      if ( e.do?(time) ) # TODO check dependencies here?
+        progress, stop = output.start("#{e.name} running", e.job_size)
+        r = e.exec(time, progress)
+        stop.call(if r[0] then :success else :error end)
+        log.add_messages(e.name, :extension, r[1], r[2])
+      end
+    }
+  end
   
   public
-    def do?()
+    def do?(time)
       false
     end
     
@@ -92,7 +108,7 @@ class Extension
       return 1
     end
 
-    def exec(progress)
+    def exec(time, progress)
       return [true, "No execution code, need to overwrite!"]
     end
 
