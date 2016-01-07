@@ -114,7 +114,7 @@ begin
   elsif ( ARGV[0] == "--version" )
     output.stop(:success)
     puts "#{name} #{version}"
-    puts "Copyright \u00A9 Raphael Reitzig 2015".encode('utf-8')
+    puts "Copyright \u00A9 Raphael Reitzig 2016".encode('utf-8')
     puts "This is free software; see the source for copying conditions."
     puts "There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
     Process.exit
@@ -172,15 +172,14 @@ begin
   
   
   # Load listen gem and deal with errors
-  # TODO move gem-loading/checking code somewhere central so
-  #      extensions and engines may use it?
+  # TODO migrate check to DependencyManager
   if ( params[:daemon] )
     begin
       gem "listen", ">=2.2.0"
       require 'listen'
     rescue Gem::LoadError
       params[:daemon] = false
-      msg = "#{shortcode} Daemon mode requires gem 'listen'"
+      msg = "Daemon mode requires gem 'listen'"
       
       begin
         gem "listen"
@@ -189,7 +188,7 @@ begin
         msg += "."
       end
       
-      output.message(msg, "Please install the latest version with 'gem install listen'.")
+      output.msg(msg, "Please install the latest version with 'gem install listen'.")
     end
   end
   
@@ -478,7 +477,7 @@ rescue Exception => e
     # i.e. if no feasible input file has been specified.
     # Neither case warrants special action.
     # For debugging purposes, reraise so we don't die silently.
-     raise e
+    raise e
   end
   # Exit immediately. Don't clean up, logs may be necessary for debugging.
   Kernel.exit!(FALSE) 
