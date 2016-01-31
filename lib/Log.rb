@@ -1,4 +1,4 @@
-# Copyright 2010-2015, Raphael Reitzig
+# Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -18,12 +18,18 @@
 
 require "#{File.dirname(__FILE__)}/LogMessage.rb"
 
-DependencyManager.add("pandoc", :binary, :recommended, "for PDF logs")
 DependencyManager.add("xelatex", :binary, :recommended, "for PDF logs")
+
+ParameterManager.instance.addParameter(Parameter.new(
+  :logformat, "lf", [:raw, :md, :latex, :pdf], :md,
+  "Set to 'raw' for raw, 'md' for Markdown, 'latex' for LaTeX, or 'pdf' for PDF log."))
+ParameterManager.instance.addParameter(Parameter.new(
+  :loglevel, "ll", [:error, :warning, :info], :warning,
+  "Set to 'error' to see only errors, to 'warning' to see also warnings, or to 'info' for everything."))
+
 # TODO If we get into trouble with Markdown fallback, this makes the dependencies mandatory:
-#ParameterManager.addHook(:logformat) { |key, val|
+#ParameterManager.instance.addHook(:logformat) { |key, val|
 #  if ( val == :pdf )
-#    DependencyManager.make_essential("pandoc", :binary)
 #    DependencyManager.make_essential("xelatex", :binary)
 #  end
 #}
@@ -40,11 +46,14 @@ class Log
     @mode = :structured # or :flat
   end
   
-  def only_level(level = @level)
+  def only_level(level = @level)  
     # Write messages from engine first
+    # (Since @messages contains only one entry per run engine/extension, this is fast.)
     keys = @messages.keys.select { |k| @messages[k][0] == :engine } + 
            @messages.keys.select { |k| @messages[k][0] == :extension }
-             
+
+    # TODO rewrite for efficiency: this should give an iterator without
+    #      actually doing anything.
     keys.map { |k|
       msgs = @messages[k][1].select { |m| 
         m.type == :error || # always show errors
@@ -98,11 +107,13 @@ class Log
     def count(type)
       return @counts[type][:total]
     end
-    
+
+    # Creates a Markdown-formatted log file at the specified location.
+    # Returns the generated code
+    # TODO why return? Relict from using it in to_pdf?
     def to_md(target_file = nil )
-      if ( @rawoffsets == nil ) 
-        to_s # Determines offsets in raw log
-      end
+      # TODO it should be possible to determine offsets without any file I/O
+      to_s if @rawoffsets == nil # Determines offsets in raw log
       params = ParameterManager.instance
     
       result = "# Log for `#{params[:jobname]}`\n\n"
@@ -194,58 +205,117 @@ class Log
       end
       return result
     end
-    
+
+    # Creates a LaTeX document containing all messages at the specified location.
+    def to_latex(target_file = "#{ParameterManager.instance[:jobname]}.log.tex")
+      to_s if @rawoffsets == nil # Determines offsets in raw log
+      params = ParameterManager.instance
+
+      File.open(target_file, "w") { |f|
+        # Copy template
+        File.open("#{File.dirname(__FILE__)}/logtemplate.tex", "r") { |template|
+          f.write(template.read)
+        }
+        f.write("\\def\\author{ltx2any}\n\\def\\title{Log for #{params[:jobname]}}\n")
+        f.write("\\def\\fulllog{#{params[:tmpdir]}/#{params[:log]}.raw}\n")
+        f.write("\n\n\\begin{document}")
+
+        f.write("\\section{Log for \\texttt{#{params[:jobname]}}}\n\n")
+        messages = only_level
+        
+        f.write("\\textbf{Disclaimer:} This is  but a digest of the original log file. " +
+                  "For full detail, check out \\loglink. " +
+                  "In case we failed to pick up an error or warning, please " +
+                  "\\href{https://github.com/akerbos/ltx2any/issues/new}{report it to us}.\n\n")
+        
+        f.write("We found \\errlink{\\textbf{#{count(:error)}~error#{pls(count(:error))}}}, " +
+                          "\\textsl{#{count(:warning)}~warning#{pls(count(:warning))}} " +
+                          "and #{count(:info)}~other message#{pls(count(:info))} in total.\n\n")
+                         
+        # Write everything
+        messages.keys.each { |name|
+          # We get one block per tool that ran
+          msgs = messages[name][1]
+        
+          f.write("\\subsection{\\texttt{#{name}}}\n\n")
+          
+          if ( msgs.empty? )
+            f.write("Lucky you, \\texttt{#{name}} had nothing to complain about!\n\n")
+          else 
+            f.write("\n\\begin{itemize}\n")
+
+            msgs.each { |m|
+              f.write("\n\n\\item\\blockitem\n")
+              
+              # Write the error type and source file reference
+              if m.type == :error && params[:loglevel] != :error
+                f.write("\\linkederror{")
+              else
+                f.write("\\#{m.type.to_s}{")
+              end
+              
+              srcline = m.srcline || ["",""]
+              srcline.push("") if srcline.length < 2
+              f.write("#{makeFileref(m.srcfile, srcline[0], srcline[1])}}\n\n")
+              
+              # Write the log message itself
+              f.write("\\begin{verbatim}\n")
+              if ( m.formatted? )
+                f.write(indent(m.msg.strip, 0))
+              else
+                f.write(break_at_spaces(m.msg.strip, 68, 1))
+              end
+              f.write("\n\\end{verbatim}")
+              
+              # Write the raw log reference
+              if ( m.logline != nil )
+                # We have line offsets in the raw log!
+                logline = m.logline.map { |i| i += @rawoffsets[name] }
+                logline.push("") if logline.length < 2
+                f.write("\n\n\\logref{#{logline[0]}}{#{logline[1]}}")
+              end
+              
+              f.write("\n\\endblockitem\n\n")
+            }
+            
+            f.write("\n\\end{itemize}")
+          end
+        }
+        
+        f.write("\n\n\\end{document}")
+      }
+    end
+
+    # Creates a PDF containing all messages (depending on log level) at the specified location.
     def to_pdf(target_file = "#{ParameterManager.instance[:jobname]}.log.pdf")
-      if ( !DependencyManager.available?('pandoc', :binary) )
-        raise "You need pandoc for PDF logs."
-      end
       if ( !DependencyManager.available?('xelatex', :binary)  )
         raise "You need xelatex for PDF logs."
       end
       params = ParameterManager.instance
-            
-      template = "#{File.dirname(__FILE__)}/logtemplate.tex"
-      pandoc = '"pandoc --latex-engine=xelatex -f markdown --template=\"#{template}\" -V fulllog:\"#{params[:tmpdir]}/#{params[:log]}.raw\" -V title:\"Log for #{params[:jobname]}\" -o \"#{target_file}\" 2>&1"' 
 
-      panout = IO::popen(eval(pandoc), "w+") { |f|
-        markdown = to_md
-        
-        # Perform some cosmetic tweaks and add LaTeX hooks
-        if ( params[:loglevel] != :error )
-          # When there are messages other than errors, provide error navigation
-          markdown.gsub!(/(We found) \*\*(\d+ errors?)\*\*/, 
-                         "\\1 \\errlink{\\textbf{\\2}}")
-        end
-        markdown.gsub!(/^ \*  \*\*Error\*\*(?:\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`)?$/) { |match|
-          # When there are messages other than errors, provide error navigation
-          linked = if ( params[:loglevel] != :error ) then "linked" else "" end
-          " \*  \\blockitem\\#{linked}error#{makeFileref($1, $2, $3)}"
-        } 
-        markdown.gsub!(/^ \*  \*Warning\*(?:\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`)?$/) { |match|
-          " \*  \\blockitem\\warning#{makeFileref($1, $2, $3)}"
-        }
-        markdown.gsub!(/^ \*  Info(?:\s+`([^:`]*)(?::(\d+)(?:--(\d+))?)?`)?$/) { |match|
-          " \*  \\blockitem\\info#{makeFileref($1, $2, $3)}"
-        } 
-        markdown.gsub!(/^\s+`log:(\d+)(?:--(\d+))?`$/,  "\\logref{\\1}{\\2}\\endblockitem")
-        markdown.gsub!(/`#{params[:tmpdir]}\/#{params[:log]}.raw`/, "\\loglink")
+      tmplogprefix = "#{ParameterManager.instance[:jobname]}.log."
+      to_latex("#{tmplogprefix}tex")
+
+      # TODO which engine to use?
+      xelatex = '"xelatex -file-line-error -interaction=nonstopmode \"#{tmplogprefix}tex\""'
+      IO::popen(eval(xelatex)) { |x| x.readlines }
+      # TODO parse log and rewrite a readable version?
       
-        f.puts(markdown)
-        f.close_write
-        f.read
-      }
-      
-      if ( panout.strip != "" )
-        # That should never happen
-        File.open("#{target_file}.log", "w") { |f| f.write(panout) }
-        msg = "Pandoc encountered errors!"
+      if !File.exist?("#{tmplogprefix}pdf")
+        # This should never happen!
+        msg = "Log failed to compile!"
         if ( params[:daemon] || !params[:clean] )
-          msg += " See #{params[:tmpdir]}/#{target_file}.log."
+          msg += " See #{params[:tmpdir]}/#{tmplogprefix}log."
         end
         raise msg
+      elsif "#{tmplogprefix}pdf" != target_file
+        FileUtils::cp("#{tmplogprefix}pdf", target_file)
       end
     end
-    
+
+    # Creates a raw log file containing all messages (depending on log level)
+    # at the specified location.
+    # Returns the resulting string.
     def to_s(target_file = nil)
       result = ""
       messages = only_level(:info)      
@@ -289,7 +359,7 @@ class Log
         words = s.split(/\s+/)
 
         res = ""
-        line = " " * (indent - 1)
+        line = " " * [0, indent - 1].max
         words.each { |w|
           newline = line + " " + w
           if ( newline.length > length )

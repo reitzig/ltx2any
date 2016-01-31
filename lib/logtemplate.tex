@@ -27,7 +27,7 @@
 
 % Pretty printing
 \usepackage{xcolor,xifthen}
-\newcommand{\loglink}{\href{run:$fulllog$}{the full log}}%
+\newcommand{\loglink}{\href{run:\fulllog}{the full log}}%
 \newcommand{\error}{{\color{red!80!black}\textbf{\textsc{Error}}}\hfill}
 \newcommand{\warning}{{\color{orange!90!black}\textit{Warning}}\hfill}
 \newcommand{\info}{\emph{Info}\hfill}
@@ -47,7 +47,7 @@
   }%
 }
 \newcommand{\logref}[2]{\vspace{-1em}\hfill{\footnotesize \texttt{%
-  \href{run:$fulllog$}{log}:#1\ifthenelse{\NOT\isempty{#2}}{--#2}{}%
+  \href{run:\fulllog}{log}:#1\ifthenelse{\NOT\isempty{#2}}{--#2}{}%
 }}}
 \newenvironment{blockitem}{%
   \begin{minipage}[t]{\linewidth}\leavevmode%
@@ -91,17 +91,20 @@
 \else
   \usepackage[unicode=true]{hyperref}
 \fi
-\hypersetup{breaklinks=true,
-            bookmarks=true,
-            pdfauthor={$author$},
-            pdftitle={$title$},
-            colorlinks=true,
-            urlcolor=blue,
-            linkcolor=red!75!black,
-            runcolor=blue!75!black,
-            pdfborder={0 0 0}}
-\urlstyle{same}  % don't use monospace font for urls
 
-\begin{document}
-$body$
-\end{document}
+\AtBeginDocument{
+  \hypersetup{breaklinks=true,
+              bookmarks=true,
+              pdfauthor={\author},
+              pdftitle={\title},
+              colorlinks=true,
+              urlcolor=blue,
+              linkcolor=red!75!black,
+              runcolor=blue!75!black,
+              pdfborder={0 0 0}}
+  \urlstyle{same}  % don't use monospace font for urls
+}
+
+\def\author{Author not set}
+\def\title{Title not set}
+\def\fulllog{Full log file name not set}

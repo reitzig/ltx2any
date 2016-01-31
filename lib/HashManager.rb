@@ -125,4 +125,8 @@ class HashManager
       }
     }
   end
+
+  def empty?
+    @hashes.empty?
+  end
 end

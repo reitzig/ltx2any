@@ -1,4 +1,4 @@
-# Copyright 2010-2015, Raphael Reitzig
+# Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -36,10 +36,6 @@ class ParameterManager
                     "Parameters passed to the engine, separated by spaces."),
       Parameter.new(:log,            "l",        String,                         '"#{self[:jobname]}.log"',
                     "(Base-)Name of log file."),
-      Parameter.new(:logformat,      "lf",       [:raw, :md, :pdf],              :md,
-                    "Set to 'raw' for raw, 'md' for Markdown or 'pdf' for PDF log."),
-      Parameter.new(:loglevel,       "ll",       [:error, :warning, :info],      :warning,
-                    "Set to 'error' to see only errors, to 'warning' to see also warnings, or to 'info' for everything."),
       Parameter.new(:runs,           "n",        Integer,                        0,
                     "How often the LaTeX engine runs. Values smaller than one will cause it to run until the resulting file no longer changes. May not apply to all engines."),
       Parameter.new(:tmpdir,         "t",        String,                       '"#{self[:jobname]}_tmp"',

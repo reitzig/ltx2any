@@ -1,6 +1,6 @@
 # Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
-# Version 1.0 beta
+# Version 0.9 alpha
 #
 # This file is part of ltx2any.
 #
@@ -383,14 +383,15 @@ begin
         }
         
         target = params[:log]
-        tmpsrc = "#{params[:log]}.#{params[:logformat].to_s}"
+        tmpsrc = "#{params[:log]}.raw"
         log.to_s("#{params[:log]}.raw")
         
         mdfallback = false
         if ( params[:logformat] == :pdf )
           begin
-            log.to_pdf("#{params[:log]}.pdf")
-            
+            tmpsrc = "#{params[:log]}.pdf"
+            log.to_pdf(tmpsrc)
+
             # Sucks, but OS might not offer correct apps otherwise
             if ( !params[:log].end_with?(".pdf") )
               target = "#{params[:log]}.pdf"
@@ -400,12 +401,21 @@ begin
                  
             # Fall back to Markdown log
             output.start("Falling back to Markdown log")
-            tmpsrc = "#{params[:log]}.md"
             mdfallback = true
           end
         end
+        if ( params[:logformat] == :latex )
+          tmpsrc = "#{params[:log]}.tex"
+          log.to_latex(tmpsrc)
+
+          # Sucks, but viewers can not choose proper highlighting otherwise
+          if ( !params[:log].end_with?(".tex") )
+            target = "#{params[:log]}.tex"
+          end
+        end
         if ( params[:logformat] == :md || mdfallback )
-          log.to_md("#{params[:log]}.md")
+          tmpsrc = "#{params[:log]}.md"
+          log.to_md(tmpsrc)
           
           # Sucks, but viewers can not choose proper highlighting otherwise
           if ( !params[:log].end_with?(".md") )
@@ -484,7 +494,7 @@ rescue Exception => e
 end
 
 # Write current hashes
-HashManager.instance.to_file("#{params[:tmpdir]}/#{hashfile}") if params[:jobname] != nil && !params[:clean]
+HashManager.instance.to_file("#{params[:tmpdir]}/#{hashfile}") if !params[:clean] && !HashManager.instance.empty?
 # Note: old version stored hashes for *all* files. Now we only store such
 #       that were needed earlier. Is that sufficient?
 
