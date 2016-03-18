@@ -82,6 +82,7 @@ By the way, this is what a PDF log looks like (add option `-lf pdf`; requires
 Note how you get clickable links to the referenced files. 
 You can also navigate from error to error using the error count at the top
 and the small arrows.
+For [Sumatra PDF](http://www.sumatrapdfreader.org/), you have to download [sumatrapdfrestrict.ini](https://github.com/sumatrapdfreader/sumatrapdf/blob/master/docs/sumatrapdfrestrict.ini), replace the last line by `SafeFileTypes = *` and move the file into `C:\Program Files (x86)\SumatraPDF`.
 
 
 ## Extensions ##
