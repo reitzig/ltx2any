@@ -95,7 +95,7 @@ class DependencyManager
     end
 
   public
-  
+
   def self.add(name, type, relevance=:recommended, reason="", version=">=0")
     if ( !@@dependencies.has_key?([name, type]) )
       @@dependencies[[name, type]] = { :relevance => relevance, :reasons => [reason], :version => version }
@@ -127,7 +127,7 @@ class DependencyManager
         if ( k[1] == :gem && @@dependencies[k][:version] != ">=0" )
           required_version = ", version #{@@dependencies[k][:version]}"
         end
-        raise StandardError.new("Essential dependency #{k[0]} (#{k[1].to_s}#{required_version}) unfulfilled")
+        raise MissingDependencyError.new("Essential dependency #{k[0]} (#{k[1].to_s}#{required_version}) unfulfilled")
       end
     }
   end
@@ -153,7 +153,7 @@ class DependencyManager
 
   def self.to_s
     res = ""
-    
+
     [[:gem, "gems"], [:binary, "binaries"], [:file, "files"]].each { |part|
       remainder = @@dependencies.each_key.select { |k| k[1] == part[0] }
       if ( !remainder.empty? )
@@ -177,3 +177,5 @@ class DependencyManager
     return res
   end
 end
+
+class MissingDependencyError < StandardError; end
