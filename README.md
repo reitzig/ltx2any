@@ -41,6 +41,16 @@ You can print a complete list of useful but optional gems and binaries by callin
 ltx2any with the `--dependencies` option; some provide improved speed or usability, 
 others are necessary for only some engines or extensions.
 
+#### Hints for Windows ####
+
+ * Install Ruby by using the [RubyInstaller](http://rubyinstaller.org/).
+   Ruby 2.2.4 (x64) and Ruby 2.3.0 (x64) work.
+ * Install [gnuplot](http://www.gnuplot.info/).
+   [gp503-win32-mingw.exe](https://sourceforge.net/projects/gnuplot/files/gnuplot/5.0.3/gp503-win32-mingw.exe/download) works.
+   During installation, at "Select Additional Tasks", put a checkmark at "Add application directory to your PATH environment variable" (scroll down at the window).
+ * [pandoc] works if its available in your PATH environment.
+ * Having ruby and gnuplot installed, you can run ltx2any by invoking `ruby <path-to-clone-of-ltx2any>\ltx2any.rb <file>`.
+
 ### Basic Use ###
 
 Once `ltx2any` is in your PATH, run `ltx2any <file>` to compile the specified file.
@@ -74,7 +84,7 @@ current default is `pdflatex` though that is easily changed. See a full list of
 supported engines by passing the `--engines` option.
 
 By the way, this is what a PDF log looks like (add option `-lf pdf`; requires
-[pandoc](https://github.com/jgm/pandoc)):
+[pandoc]):
 
 ![Example PDF log](https://cloud.githubusercontent.com/assets/1488534/11242606/06ed381a-8e03-11e5-99be-7b1312d59420.png)
 
@@ -180,3 +190,5 @@ This feature is still subject to development and far from finished.
 
 TODO: describe Extension and Engine interfaces -- once they have stabilized and 
 are less likely to hurt people.
+
+  [pandoc]: http://pandoc.org
