@@ -1,4 +1,4 @@
-# Copyright 2010-2015, Raphael Reitzig
+# Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -18,7 +18,7 @@
 
 class Engine
   @@list = {}
-  
+
   def self.add(e)
     @@list[e.to_sym] = e
   end
@@ -27,7 +27,7 @@ class Engine
     return @@list.values
   end
 
-  def self.[](key) 
+  def self.[](key)
     return @@list[key]
   end
 
@@ -47,7 +47,7 @@ class Engine
   def self.extension
     self.new.extension
   end
-  
+
   def initialize
     @binary = "dummy"
     @extension = "dummy"
@@ -80,9 +80,25 @@ class Engine
     def to_sym
       @binary.to_sym
     end
-  
+
     attr_reader :binary, :extension, :description
-    
+
   protected
     attr_writer :binary, :extension, :description
 end
+
+# Load all engines
+Dir["#{BASEDIR}/#{ENGDIR}/*.rb"].sort.each { |f|
+  load(f)
+}
+
+# Add engine-related parameters
+ParameterManager.instance.addParameter(Parameter.new(
+  :engine, "e", Engine.list.map { |e| e.to_sym }, :pdflatex,
+  "The output engine. Call with --engines for a list."))
+ParameterManager.instance.addParameter(Parameter.new(
+  :enginepar, "ep", String, "",
+  "Parameters passed to the engine, separated by spaces."))
+ParameterManager.instance.addParameter(Parameter.new(
+  :engineruns, "er", Integer, 0,
+  "How often the LaTeX engine runs. Values smaller than one will cause it to run until the resulting file no longer changes. May not apply to all engines."))

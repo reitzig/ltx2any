@@ -18,9 +18,9 @@
 
 DependencyManager.add('parallel', :gem, :recommended, "faster execution", ">=1.4.1")
 
-class Extension  
+class Extension
   @@list = {}
-  
+
   def self.add(e)
     @@list[e.to_sym] = e
   end
@@ -29,14 +29,14 @@ class Extension
     return @@list.values
   end
 
-  def self.[](key) 
+  def self.[](key)
     return @@list[key]
   end
 
   def self.to_sym
     self.new.to_sym
   end
- 
+
   def initialize
     @name = "Dummy name"
     @description = "Dummy description"
@@ -46,7 +46,7 @@ class Extension
   def self.name
     self.new.name
   end
-  
+
   def self.description
     self.new.description
   end
@@ -98,12 +98,12 @@ class Extension
       end
     }
   end
-  
+
   public
     def do?(time)
       false
     end
-    
+
     def job_size
       return 1
     end
@@ -119,10 +119,17 @@ class Extension
     def to_sym
       self.class.name.downcase.to_sym
     end
-    
+
     attr_accessor :name, :description
-    
+
   protected
     attr_reader :params
     attr_writer :name, :description
 end
+
+# Load all extensions
+Dir["#{BASEDIR}/#{EXTDIR}/*.rb"].sort.each { |f|
+  if ( !(/^\d\d/ !~ File.basename(f)) )
+    load(f)
+  end
+}

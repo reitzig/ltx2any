@@ -20,17 +20,15 @@ require 'singleton'
 
 DependencyManager.add("ruby-progressbar", :gem, :recommended, "for nice progress indicators", ">=1.7.5")
 
-class Output 
+class Output
   include Singleton
-                  
-  def initialize() 
+
+  def initialize()
     @success   = "Done"
     @error     = "Error"
+    @warning   = "Warning"
     @cancel    = "Cancelled"
-  end
-  
-  def name=(s)
-    @shortcode = "[#{s}]"
+    @shortcode = "[#{NAME}]"
   end
 
   private
@@ -40,7 +38,7 @@ class Output
       }
     end
 
-  public    
+  public
     def msg(*msg)
       if ( msg.size > 0 )
         puts "#{@shortcode} #{msg[0]}"
@@ -48,35 +46,42 @@ class Output
       end
       STDOUT.flush
     end
-    
+
+    def warn(*msg)
+      if ( msg.size > 0 )
+        msg[0] = "#{@warning}: #{msg[0]}"
+        msg(msg)
+      end
+    end
+
     def start(msg, count=1)
       # Set up progress bar if needed
       if ( count > 1 && DependencyManager.available?('ruby-progressbar', :gem) )
-        progress = ProgressBar.create(:title => "#{@shortcode} #{msg} ...", 
+        progress = ProgressBar.create(:title => "#{@shortcode} #{msg} ...",
                                       :total => count,
                                       :format => "%t [%c/%C]",
                                       :autofinish => false)
-        return [lambda { progress.increment }, 
-                lambda { |state, *msgs| 
+        return [lambda { progress.increment },
+                lambda { |state, *msgs|
                   progress.format("#{@shortcode} #{msg} ... #{instance_variable_get(("@#{state}").intern).to_s}" + (" " * 5)) # Add some spaces to hide all for up to 999 steps
                   # TODO We *know* that we need 2*ceil(log_2(count)) - 1 spaces...
                   progress.stop
                   puts_indented(*msgs) if msgs.size > 0
-                  STDOUT.flush 
+                  STDOUT.flush
                   }]
-      end  
+      end
       # Fallback if progress bar not needed, or gem not available
       print "#{@shortcode} #{msg} ... "
       STDOUT.flush
       return [lambda {}, lambda { |state, *msgs| stop(state, *msgs) }]
     end
-    
+
     def stop(state, *msg)
       puts instance_variable_get(("@#{state}").intern).to_s
       puts_indented(msg) if msg.size > 0
       STDOUT.flush
     end
-    
+
     def separate
       puts ""
       return self
