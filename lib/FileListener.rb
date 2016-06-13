@@ -139,7 +139,7 @@ class FileListener
   end
 
   def waitForChanges
-    OUTPUT.start("Waiting for file changes")
+    OUTPUT.start("Waiting for file changes (press ENTER to pause)")
     files = Thread.new do
       while ( $changetime <= start_time || Time.now - $changetime < 2 )
         sleep(params[:listeninterval])
