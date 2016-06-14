@@ -32,7 +32,7 @@ bug-free or reliable. Take care!
 
 For using ltx2any without any bells and whistles, you should have
 
- * Ruby 2.2.0 or higher and
+ * Ruby 2.3.0 or higher and
  * LaTeX and friends.
 
 Any of the major (La)TeX distributions should provide the binaries you need.
@@ -40,6 +40,8 @@ Any of the major (La)TeX distributions should provide the binaries you need.
 You can print a complete list of useful but optional gems and binaries by calling 
 ltx2any with the `--dependencies` option; some provide improved speed or usability, 
 others are necessary for only some engines or extensions.
+
+See [here](https://github.com/akerbos/ltx2any/wiki) for slightly more elaborate installation instructions.
 
 ### Basic Use ###
 
