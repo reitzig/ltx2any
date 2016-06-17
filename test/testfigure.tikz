@@ -1,5 +1,0 @@
-\tikzsetnextfilename{externalerrortest}
-\begin{tikzpicture}[]
-  \node[draw,circle]{\Rightarrow}
-  \path (a) -- ;
-\end{tikzpicture}
