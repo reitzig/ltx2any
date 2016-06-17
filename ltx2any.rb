@@ -65,11 +65,11 @@ begin
   # Switch working directory to jobfile residence
   Dir.chdir(PARAMS[:jobpath])
 
-  # Some files we don't want to ignore
+  # Some files we don't want to listen to
   toignore = [ "#{PARAMS[:tmpdir]}",
-    "#{PARAMS[:jobname]}.#{Engine[PARAMS[:engine]].extension}",
+    "#{PARAMS[:user_jobname]}.#{Engine[PARAMS[:engine]].extension}",
     "#{PARAMS[:log]}",
-    "#{PARAMS[:jobname]}.err"
+    "#{PARAMS[:user_jobname]}.err"
   ]
 
   begin
@@ -182,8 +182,8 @@ begin
 
       # Pick up output if present
       if ( File.exist?("#{PARAMS[:jobname]}.#{engine.extension}") )
-        FileUtils::cp("#{PARAMS[:jobname]}.#{engine.extension}", "#{PARAMS[:jobpath]}/")
-        OUTPUT.msg("Output generated at #{PARAMS[:jobname]}.#{engine.extension}")
+        FileUtils::cp("#{PARAMS[:jobname]}.#{engine.extension}", "#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.#{engine.extension}")
+        OUTPUT.msg("Output generated at #{PARAMS[:user_jobname]}.#{engine.extension}")
       else
         OUTPUT.msg("No output generated, probably due to fatal errors.")
       end
@@ -278,9 +278,9 @@ begin
 rescue Interrupt, SystemExit
   OUTPUT.separate.msg("Shutdown")
 rescue Exception => e
-  if ( PARAMS[:jobname] != nil )
-    OUTPUT.separate.msg("ERROR: #{e.message} (see #{PARAMS[:jobname]}.err for details)")
-    File.open("#{PARAMS[:jobpath]}/#{PARAMS[:jobname]}.err", "w") { |file|
+  if ( PARAMS[:user_jobname] != nil )
+    OUTPUT.separate.msg("ERROR: #{e.message} (see #{PARAMS[:user_jobname]}.err for details)")
+    File.open("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err", "w") { |file|
       file.write("#{e.inspect}\n\n#{e.backtrace.join("\n")}")
     }
   else

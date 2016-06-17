@@ -116,7 +116,7 @@ class Log
       to_s if @rawoffsets == nil # Determines offsets in raw log
       params = ParameterManager.instance
     
-      result = "# Log for `#{params[:jobname]}`\n\n"
+      result = "# Log for `#{params[:user_jobname]}`\n\n"
       messages = only_level
       
       result << "**Disclaimer:**  \nThis is  but a digest of the original log file.\n" +
@@ -216,11 +216,11 @@ class Log
         File.open("#{File.dirname(__FILE__)}/logtemplate.tex", "r") { |template|
           f.write(template.read)
         }
-        f.write("\\def\\author{ltx2any}\n\\def\\title{Log for #{params[:jobname]}}\n")
+        f.write("\\def\\author{ltx2any}\n\\def\\title{Log for #{params[:user_jobname]}}\n")
         f.write("\\def\\fulllog{#{File.join(params[:tmpdir], "#{params[:log]}.full")}}\n")
         f.write("\n\n\\begin{document}")
 
-        f.write("\\section{Log for \\texttt{#{params[:jobname]}}}\n\n")
+        f.write("\\section{Log for \\texttt{#{params[:user_jobname]}}}\n\n")
         messages = only_level
         
         f.write("\\textbf{Disclaimer:} This is  but a digest of the original log file. " +
