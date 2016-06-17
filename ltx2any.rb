@@ -211,8 +211,8 @@ begin
         }
 
         target = PARAMS[:log]
-        tmpsrc = "#{PARAMS[:log]}.raw"
-        log.to_s("#{PARAMS[:log]}.raw")
+        tmpsrc = "#{PARAMS[:log]}.full"
+        log.to_s("#{PARAMS[:log]}.full")
 
         mdfallback = false
         if ( PARAMS[:logformat] == :pdf )

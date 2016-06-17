@@ -120,7 +120,7 @@ class Log
       messages = only_level
       
       result << "**Disclaimer:**  \nThis is  but a digest of the original log file.\n" +
-                "For full detail, check out `#{params[:tmpdir]}/#{params[:log]}.raw`.\n" +
+                "For full detail, check out `#{params[:tmpdir]}/#{params[:log]}.full`.\n" +
                 "In case we failed to pick up an error or warning, please " +
                 "[report it to us](https://github.com/akerbos/ltx2any/issues/new).\n\n" 
       
@@ -217,7 +217,7 @@ class Log
           f.write(template.read)
         }
         f.write("\\def\\author{ltx2any}\n\\def\\title{Log for #{params[:jobname]}}\n")
-        f.write("\\def\\fulllog{#{params[:tmpdir]}/#{params[:log]}.raw}\n")
+        f.write("\\def\\fulllog{#{File.join(params[:tmpdir], "#{params[:log]}.full")}}\n")
         f.write("\n\n\\begin{document}")
 
         f.write("\\section{Log for \\texttt{#{params[:jobname]}}}\n\n")

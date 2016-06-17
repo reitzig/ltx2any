@@ -26,12 +26,12 @@
 % error navigation.
 
 % Pretty printing
-\usepackage{xcolor,xifthen}
+\usepackage{xcolor,xifthen,xparse}
 \newcommand{\loglink}{\href{run:\fulllog}{the full log}}%
 \newcommand{\error}{{\color{red!80!black}\textbf{\textsc{Error}}}\hfill}
 \newcommand{\warning}{{\color{orange!90!black}\textit{Warning}}\hfill}
 \newcommand{\info}{\emph{Info}\hfill}
-\newcommand{\fileref}[3]{%
+\NewDocumentCommand{\fileref}{v m m}{%
   \texttt{%
     \ifthenelse{\NOT\equal{#1}{dummy}}{% If the log parser was dumb, we lost the file reference
       \href{run:#1}{#1}%
