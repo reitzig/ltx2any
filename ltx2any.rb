@@ -73,7 +73,7 @@ begin
   ]
 
   begin
-    FileListener.instance.start(PARAMS[:jobname], toignore) if PARAMS[:daemon]
+    FileListener.instance.start(PARAMS[:user_jobname], toignore) if PARAMS[:daemon]
   rescue MissingDependencyError => e
     OUTPUT.warn(e.message)
     PARAMS[:daemon] = false
@@ -127,7 +127,7 @@ begin
       if ( !File.exist?(PARAMS[:tmpdir]) )
         FileUtils.mkdir_p(PARAMS[:tmpdir])
       elsif ( !File.directory?(PARAMS[:tmpdir]) )
-        OUTPUT.message("File #{PARAMS[:tmpdir]} exists but is no directory")
+        OUTPUT.message("File #{PARAMS[:tmpdir]} exists but is not a directory")
         Process.exit
       end
 
@@ -258,7 +258,7 @@ begin
         runtime = Time.now - start_time
         # Don't show runtimes of less than 5s (arbitrary)
         if ( runtime / 60 >= 1 || runtime % 60 >= 5 )
-          OUTPUT.msg("Took #{sprintf("%d min ", runtime / 60)} #{sprintf("%d sec", runtime % 60)}")
+          OUTPUT.msg("Took " + sprintf("%d min ", runtime / 60) + " " + sprintf("%d sec", runtime % 60))
         end
       end
     rescue Interrupt, SystemExit # User cancelled current run
