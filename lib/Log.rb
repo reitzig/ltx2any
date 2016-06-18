@@ -220,7 +220,7 @@ class Log
         f.write("\\def\\fulllog{#{File.join(params[:tmpdir], "#{params[:log]}.full")}}\n")
         f.write("\n\n\\begin{document}")
 
-        f.write("\\section{Log for \\texttt{#{params[:user_jobname]}}}\n\n")
+        f.write("\\section{Log for \\texttt{\\detokenize{#{params[:user_jobname]}}}}\n\n")
         messages = only_level
         
         f.write("\\textbf{Disclaimer:} This is  but a digest of the original log file. " +
@@ -289,7 +289,7 @@ class Log
     # Creates a PDF containing all messages (depending on log level) at the specified location.
     def to_pdf(target_file = "#{ParameterManager.instance[:jobname]}.log.pdf")
       if ( !DependencyManager.available?('xelatex', :binary)  )
-        raise "You need xelatex for PDF logs."
+        raise MissingDependencyError.new("You need xelatex for PDF logs.")
       end
       params = ParameterManager.instance
 
@@ -298,6 +298,7 @@ class Log
 
       # TODO which engine to use?
       xelatex = '"xelatex -file-line-error -interaction=nonstopmode \"#{tmplogprefix}tex\""'
+      IO::popen(eval(xelatex)) { |x| x.readlines }
       IO::popen(eval(xelatex)) { |x| x.readlines }
       # TODO parse log and rewrite a readable version?
       
@@ -388,8 +389,8 @@ class Log
       def makeFileref(file, linefrom, lineto)
         fileref = ""
         if ( file != nil )
-          filename = file.gsub(/_/, '\_')
-          fileref = "\\fileref{#{filename}}{#{linefrom}}{#{lineto}}"
+          #file = file.gsub(/_/, '\_')
+          fileref = "\\fileref{#{file}}{#{linefrom}}{#{lineto}}"
         end
         fileref
       end
