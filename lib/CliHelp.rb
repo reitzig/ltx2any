@@ -61,7 +61,7 @@ class CliHelp
     elsif ( args[0] == "--engines" )
       puts "Installed engines:"
       Engine.list.each { |e|
-        if ( DependencyManager.available?(e.binary, :binary) ) # TODO adapt
+        if DependencyManager.list(source: [:engine, e.binary], relevance: :essential).all? { |d| d.available? }
           print "  #{e.name}\t#{e.description}"
           if ( e.to_sym == params[:engine] )
             print " (default)"
