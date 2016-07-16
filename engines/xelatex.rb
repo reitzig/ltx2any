@@ -1,4 +1,4 @@
-# Copyright 2010-2015, Raphael Reitzig
+# Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -16,12 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-DependencyManager.add("xelatex", :binary, :recommended)
-ParameterManager.instance.addHook(:engine) { |key, val|
-  if ( val == :xelatex )
-    DependencyManager.make_essential("xelatex", binary)
-  end
-}
+Dependency.new("xelatex", :binary, [:engine, "xelatex"], :essential)
 
 class XeLaTeX < Engine
 

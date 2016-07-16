@@ -16,10 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-DependencyManager.add('parallel', :gem, :recommended, "faster execution", ">=1.4.1")
+Dependency.new('parallel', :gem, [:core, "Extension"], :recommended, "Faster execution for some extensions", ">=1.9.0")
+Dependency.new('system',   :gem, [:core, "Extension"], :recommended, "Required for parallel", ">=0.1.3")
 
 class Extension
   @@list = {}
+  @@dependencies = DependencyManager.list(source: [:core, "Extension"])
 
   def self.add(e)
     @@list[e.to_sym] = e
@@ -51,10 +53,12 @@ class Extension
     self.new.description
   end
 
-  if ( !DependencyManager.available?('parallel', :gem) )
+  if !@@dependencies.all? { |d| d.available? }
     # Define skeleton class for graceful sequential fallback
     module Parallel
       class << self
+        # TODO implement map
+        # TODO test this!
         def each(hash, options={}, &block)
           hash.each { |k,v|
             block.call(k, v)
@@ -68,9 +72,12 @@ class Extension
 
   # Wrap execution of many items
   def self.execute_parts(jobs, when_done, &block)
-    parallel = DependencyManager.available?('parallel', :gem)
+    if @@dependencies.all? { |d| d.available? }
+      require 'system'
+      require 'parallel'
+    end
 
-    Parallel.map(jobs, :finish  => lambda { |a,b,c| when_done.call }) { |job|
+    Parallel.map(jobs, :finish  => lambda { |a,b,c| when_done.call }) { |job| 
       begin
         block.call(job)
       rescue Interrupt
@@ -90,11 +97,18 @@ class Extension
   def self.run_all(time, output, log)
     list.each { |e|
       e = e.new
-      if ( e.do?(time) ) # TODO check dependencies here?
-        progress, stop = output.start("#{e.name} running", e.job_size)
-        r = e.exec(time, progress)
-        stop.call(if r[0] then :success else :error end)
-        log.add_messages(e.name, :extension, r[1], r[2])
+      if e.do?(time) 
+        # TODO make dep check more efficient
+        dependencies = DependencyManager.list(source: [:extension, e.name], relevance: :essential)
+        if dependencies.all? { |d| d.available? }
+          progress, stop = output.start("#{e.name} running", e.job_size)
+          r = e.exec(time, progress)
+          stop.call(if r[0] then :success else :error end)
+          log.add_messages(e.name, :extension, r[1], r[2])
+        else
+          # TODO log message?
+          output.separate.error("Missing dependencies:", *dependencies.select { |d| !d.available? }.map { |d| d.to_s })
+        end
       end
     }
   end

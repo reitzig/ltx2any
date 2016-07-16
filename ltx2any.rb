@@ -18,7 +18,7 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 # Set process name to something less cumbersome
-$0="ltx2any.rb"
+$0="ltx2any"
 
 BASEDIR = File.dirname(__FILE__)
 require "#{BASEDIR}/constants.rb"
@@ -54,13 +54,35 @@ begin
     Process.exit
   end
 
-  # Make sure all essential dependencies are satisfied
+  # Make sure all essential dependencies of core and engine are satisfied
   begin
-    DependencyManager.load_essentials
-  rescue MissingDependencyError => e
-    OUTPUT.separate.msg(e.message)
-    Process.exit
+    missing = []
+    
+    (DependencyManager.list(source: :core, relevance: :essential) + 
+     DependencyManager.list(source: [:engine, PARAMS[:engine].to_s], relevance: :essential)).each { |d|
+      missing.push(d) if !d.available?
+    }
+    
+    if !missing.empty? # TODO enter into log?
+      OUTPUT.separate.error("Missing dependencies", missing)
+      Process.exit
+    end
   end
+  
+  # Check soft dependencies of core and engine; notify user if necessary
+  begin
+    missing = []
+    
+    (DependencyManager.list(source: :core, relevance: :recommended) + 
+     DependencyManager.list(source: [:engine, PARAMS[:engine].to_s], relevance: :recommended)).each { |d|
+      missing.push(d) if !d.available?
+    }
+    
+    if !missing.empty? # TODO enter into log?
+      OUTPUT.separate.warn("Missing dependencies", missing)
+    end
+  end
+  
 
   # Switch working directory to jobfile residence
   Dir.chdir(PARAMS[:jobpath])
@@ -83,7 +105,7 @@ begin
     begin # inner block that can be cancelled by user
       # Reset
       engine = Engine[PARAMS[:engine]].new
-      log = Log.new # TODO check dependencies
+      log = Log.new
       log.level = PARAMS[:loglevel]
       start_time = Time.now
 
@@ -279,7 +301,7 @@ rescue Interrupt, SystemExit
   OUTPUT.separate.msg("Shutdown")
 rescue Exception => e
   if ( PARAMS[:user_jobname] != nil )
-    OUTPUT.separate.msg("ERROR: #{e.message} (see #{PARAMS[:user_jobname]}.err for details)")
+    OUTPUT.separate.error(e.message, "See #{PARAMS[:user_jobname]}.err for details.")
     File.open("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err", "w") { |file|
       file.write("#{e.inspect}\n\n#{e.backtrace.join("\n")}")
     }

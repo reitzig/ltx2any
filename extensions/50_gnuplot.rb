@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-DependencyManager.add("gnuplot", :binary, :essential)
+Dependency.new("gnuplot", :binary, [:extension, "Gnuplot"], :essential)
 
 class Gnuplot < Extension
   def initialize

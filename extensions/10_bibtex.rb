@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-DependencyManager.add("bibtex", :binary, :essential)
+Dependency.new("bibtex", :binary, [:extension, "BibTeX"], :essential)
 
 class BibTeX < Extension
   def initialize

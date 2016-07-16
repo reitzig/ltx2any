@@ -18,8 +18,7 @@
 
 require 'singleton'
 
-DependencyManager.add("listen", :gem, :recommended,
-                      "for daemon mode", ">=3.1.5") 
+Dependency.new("listen", :gem, [:core, "FileListener"], :recommended, "Listening to files for automatic recompilation.", ">=3.1.5") 
 
 ParameterManager.instance.addParameter(Parameter.new(
   :daemon, "d", Boolean, false, "Re-compile automatically when files change."))
@@ -40,9 +39,12 @@ class FileListener
 
   def initialize
     @ignore = []
-    ParameterManager.instance.addHook(:listeninterval) { |_,v|
+    #ParameterManager.instance.addHook(:listeninterval) { |_,v|
       # TODO implement hook that catches changes to listen interval
-    }
+    #}
+    @jobfilelistener = nil
+    @ignfilelistener = nil
+    @dependencies = DependencyManager.list(source: [:core, self.class.to_s])
   end
 
   def ignored
@@ -61,9 +63,17 @@ class FileListener
 
   def start(jobname, ignores = [])
     # Make sure that the listen gem is available
-    if !DependencyManager.available?("listen", :gem)
-      raise MissingDependencyError.new("Daemon mode requires gem listen.")
+    @dependencies.each { |d|
+      if !d.available?
+        raise MissingDependencyError.new(d.to_s)
+      end
+    }
+        
+    if @jobfilelistener != nil 
+      # Should never happen unless I programmed crap
+      raise StandardError.new("Listener already running, what are you doing?!")
     end
+    
     params = ParameterManager.instance
 
     # Add the files to ignore from this process

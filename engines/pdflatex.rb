@@ -1,4 +1,4 @@
-# Copyright 2010-2015, Raphael Reitzig
+# Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -16,15 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-DependencyManager.add("pdflatex", :binary, :recommended)
-ParameterManager.instance.addHook(:engine) { |key, val|
-  if ( val == :pdflatex )
-    DependencyManager.make_essential("pdflatex", binary)
-  end
-}
+Dependency.new("pdflatex", :binary, [:engine, "pdflatex"], :essential)
 
-class PdfLaTeX < Engine
-  
+class PdfLaTeX < Engine  
+
   def initialize
     super
     @binary = "pdflatex"

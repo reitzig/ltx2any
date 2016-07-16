@@ -18,21 +18,14 @@
 
 require "#{File.dirname(__FILE__)}/LogMessage.rb"
 
-DependencyManager.add("xelatex", :binary, :recommended, "for PDF logs")
-
 ParameterManager.instance.addParameter(Parameter.new(
   :logformat, "lf", [:raw, :md, :latex, :pdf], :md,
   "Set to 'raw' for raw, 'md' for Markdown, 'latex' for LaTeX, or 'pdf' for PDF log."))
 ParameterManager.instance.addParameter(Parameter.new(
   :loglevel, "ll", [:error, :warning, :info], :warning,
   "Set to 'error' to see only errors, to 'warning' to see also warnings, or to 'info' for everything."))
-
-# TODO If we get into trouble with Markdown fallback, this makes the dependencies mandatory:
-#ParameterManager.instance.addHook(:logformat) { |key, val|
-#  if ( val == :pdf )
-#    DependencyManager.make_essential("xelatex", :binary)
-#  end
-#}
+  
+Dependency.new("xelatex", :binary, [:core, "Log"], :recommended, "Compilation of PDF logs")
 
 class Log 
   def initialize
@@ -44,6 +37,7 @@ class Log
     @level = :warning # or :error, :info
     @rawoffsets = nil
     @mode = :structured # or :flat
+    @dependencies = DependencyManager.list(source: [:core, self.class.to_s])
   end
   
   def only_level(level = @level)  
@@ -288,9 +282,12 @@ class Log
 
     # Creates a PDF containing all messages (depending on log level) at the specified location.
     def to_pdf(target_file = "#{ParameterManager.instance[:jobname]}.log.pdf")
-      if ( !DependencyManager.available?('xelatex', :binary)  )
-        raise MissingDependencyError.new("You need xelatex for PDF logs.")
-      end
+       @dependencies.each { |d|
+        if !d.available?
+          raise MissingDependencyError.new(d.to_s)
+        end
+      }
+
       params = ParameterManager.instance
 
       tmplogprefix = "#{ParameterManager.instance[:jobname]}.log."
