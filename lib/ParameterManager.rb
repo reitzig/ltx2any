@@ -272,7 +272,7 @@ class ParameterManager
 end
 
 class Parameter
-  # Pass code = nil for an internal parameter that is shown to users.
+  # Pass code = nil for an internal parameter that is not shown to users.
   def initialize(key, code, type, default, help)
     @key = key
     @code = code

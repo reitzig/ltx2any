@@ -117,6 +117,7 @@ class FileListener
         # jobfilelistener.latency = val
         # TODO tell change to listener; in worst case, restart?
       }
+      # TODO need hook on -i parameter?
 
       # Secondary listener: this one checks for (new) ignore files, i.e. other
       #                     jobs in the same directory. It then updates the main

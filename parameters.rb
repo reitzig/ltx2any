@@ -18,15 +18,17 @@
 
 [
   Parameter.new(:user_jobname, "j", String, '"#{self[:jobname]}"',
-                "Job name, in particular name of the resulting file."),
+                "Job name, in particular name of the resulting file"),
   Parameter.new(:clean, "c", Boolean, false,
-                "If set, temporary files are deleted."),
+                "Delete temporary files"),
   Parameter.new(:cleanall, "ca", Boolean, false,
-                "If set, temporary files and logs are deleted."),
+                "Delete temporary files and logs"),
   Parameter.new(:log, "l", String, '"#{self[:user_jobname]}.log"',
-                "(Base-)Name of log file."),
+                "(Base-)Name of log file"),
   Parameter.new(:tmpdir, "t", String, '"#{self[:user_jobname]}#{TMPSUFFIX}"',
-                "Directory for intermediate results")
+                "Directory for temporary files"),
+  Parameter.new(:ignore, "i", String, "",
+                "Files to ignore, separated by colons"),
 ].each { |p|
   ParameterManager.instance.addParameter(p)
 }

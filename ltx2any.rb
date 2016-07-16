@@ -95,7 +95,7 @@ begin
     "#{PARAMS[:user_jobname]}.#{Engine[PARAMS[:engine]].extension}",
     "#{PARAMS[:log]}",
     "#{PARAMS[:user_jobname]}.err"
-  ]
+  ] + PARAMS[:ignore].split(":")
 
   begin
     FileListener.instance.start(PARAMS[:user_jobname], toignore) if PARAMS[:daemon]
