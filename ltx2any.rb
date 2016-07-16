@@ -43,6 +43,8 @@ if CliHelp.instance.provideHelp(ARGV)
   Process.exit
 end
 
+CLEAN = []
+CLEANALL = []
 begin
   # At this point, we are sure we want to compile -- process arguments!
   begin
@@ -86,6 +88,7 @@ begin
 
   # Switch working directory to jobfile residence
   Dir.chdir(PARAMS[:jobpath])
+  CLEAN.push(PARAMS[:tmpdir])
 
   # Some files we don't want to listen to
   toignore = [ "#{PARAMS[:tmpdir]}",
@@ -276,6 +279,8 @@ begin
         FileUtils::cp(tmpsrc, "#{PARAMS[:jobpath]}/#{target}")
         OUTPUT.stop(:success)
         OUTPUT.msg("Log file generated at #{target}")
+        CLEANALL.push("#{PARAMS[:jobpath]}/#{target}")
+        CLEANALL.uniq!
 
         runtime = Time.now - start_time
         # Don't show runtimes of less than 5s (arbitrary)
@@ -305,6 +310,7 @@ rescue Exception => e
     File.open("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err", "w") { |file|
       file.write("#{e.inspect}\n\n#{e.backtrace.join("\n")}")
     }
+    CLEANALL.push("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err")
   else
     # This is reached due to programming errors or if ltx2any quits early,
     # i.e. if no feasible input file has been specified.
@@ -313,7 +319,7 @@ rescue Exception => e
     raise e
   end
   # Exit immediately. Don't clean up, logs may be necessary for debugging.
-  Kernel.exit!(FALSE)
+  # Kernel.exit!(FALSE) # Leads to inconsistent behaviour regarding -c/-ca
 end
 
 # Write current hashes
@@ -324,4 +330,5 @@ HashManager.instance.to_file("#{PARAMS[:tmpdir]}/#{HASHFILE}") if !PARAMS[:clean
 # Stop file listeners
 FileListener.instance.stop if PARAMS[:daemon]
 # Remove temps if so desired.
-FileUtils::rm_rf(PARAMS[:tmpdir]) if PARAMS[:clean]
+CLEAN.each    { |f| FileUtils::rm_rf(f) } if PARAMS[:clean]
+CLEANALL.each { |f| FileUtils::rm_rf(f) } if PARAMS[:cleanall]
