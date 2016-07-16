@@ -71,7 +71,7 @@ class CliHelp
       }
       return true
     elsif ( args[0] == "--dependencies" )
-      puts DependencyManager.to_s # TODO adapt
+      puts DependencyManager.to_s # TODO make prettier?
       return true
     elsif ( args[0] == "--version" )
       puts "#{NAME} #{VERSION}"
