@@ -12,5 +12,5 @@ end
 
 File.open(ARGV[0], "r") { |f|
   log = TeXLogParser::parse(f.readlines)
-  puts log.map { |m| m.to_s }.join("\n")
+  puts log.map { |m| m.to_s }.join("\n\n")
 }
