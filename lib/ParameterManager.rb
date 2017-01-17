@@ -23,34 +23,11 @@ class ParameterManager
 
   # TODO Make it so that keys are (also) "long" codes as fas as users are concerned. Interesting for DaemonPrompt!
   def initialize
-    parameters = [
-      Parameter.new(:jobname,        "j",        String,                         nil,
-                    "Job name, in particular name of result file."), 
-      Parameter.new(:clean,          "c",        Boolean,                        false,
-                    "If set, all intermediate results are deleted."),
-      Parameter.new(:daemon,         "d",        Boolean,                        false,
-                    "Re-compiles automatically when files change."),
-      Parameter.new(:listeninterval, "di",       Float,                          0.5,
-                    "Time after which daemon mode checks for changes (in seconds)."),
-      Parameter.new(:enginepar,      "ep",       String,                         "",
-                    "Parameters passed to the engine, separated by spaces."),
-      Parameter.new(:log,            "l",        String,                         '"#{self[:jobname]}.log"',
-                    "(Base-)Name of log file."),
-      Parameter.new(:runs,           "n",        Integer,                        0,
-                    "How often the LaTeX engine runs. Values smaller than one will cause it to run until the resulting file no longer changes. May not apply to all engines."),
-      Parameter.new(:tmpdir,         "t",        String,                       '"#{self[:jobname]}_tmp"',
-                    "Directory for intermediate results")
-    ]
-
     @values = {}
     @hooks = {}
     @code2key = {}
     @processed = false
 
-    parameters.each { |p|
-      addParameter(p)
-    }
-    
     #@frozen_copy = nil
     #@copy_dirty = false
     #frozenCopy()
@@ -90,28 +67,17 @@ class ParameterManager
       end
       # TODO do basic checks as to whether we really have a LaTeX file?
 
-      addParameter(Parameter.new(:jobpath, "", String, File.dirname(File.expand_path(jobfile)), 
+      addParameter(Parameter.new(:jobpath, nil, String, File.dirname(File.expand_path(jobfile)),
                                  "Absolute path of source directory"))
       addHook(:tmpdir) { |key,val|
         if ( self[:jobpath].start_with?(File.expand_path(val)) )
           raise ParameterException.new("Temporary directory may not contain job directory.")
         end
       }
-      addParameter(Parameter.new(:jobfile, "", String, File.basename(jobfile), "Name of the main input file"))
-      set(:jobname, /\A(.+?)\.\w+\z/.match(self[:jobfile])[1])
-
-      # Evaluate defaults that need to/can be evaluated
-      keys.each { |key|
-        val = @values[key].value
-        if ( val != nil && val.is_a?(String) && val.length > 0 )
-          begin
-            @values[key].value = eval(val)
-          rescue Exception => e
-            # Leave value unchanged
-            # puts "From eval on #{key}: #{e.message}"
-          end
-        end
-      }
+      addParameter(Parameter.new(:jobfile, nil, String, File.basename(jobfile), "Name of the main input file"))
+      addParameter(Parameter.new(:jobname, nil, String, /\A(.+?)\.\w+\z/.match(self[:jobfile])[1], 
+                                 "Internal job name, in particular name of the main file and logs."))
+      set(:user_jobname, self[:jobname]) if self[:user_jobname] == nil
 
       # Read in parameters
       # TODO use/build proper CLI and parameter handler?
@@ -142,6 +108,20 @@ class ParameterManager
           raise ParameterException.new("Don't know what to do with parameter #{ARGV[i]}.")
         end
       end
+      
+      # Evaluate remaining defaults that need to/can be evaluated
+      # TODO Parameter values now contain user input. Security risk?
+      keys.each { |key|
+        val = @values[key].value
+        if ( val != nil && val.is_a?(String) && val.length > 0 )
+          begin
+            @values[key].value = eval(val)
+          rescue Exception => e
+            # Leave value unchanged
+            # puts "From eval on #{key}: #{e.message}"
+          end
+        end
+      }
 
       if ( jobfile == nil )
         raise ParameterException.new("Please provide an input file. Call with --help for details.")
@@ -149,7 +129,7 @@ class ParameterManager
 
       @processed = true
     end
-    
+
     def [](key)
       if ( @values.has_key?(key) )
         return @values[key].value
@@ -215,14 +195,14 @@ class ParameterManager
     end
 
     def add(key, val, once=false) # TODO implement "once" behaviour
-      if ( @values.has_key?(key) ) 
+      if ( @values.has_key?(key) )
         if ( @values[key].type == String )
           @values[key].value += val.to_s # TODO should we add separating `:`?
 
           @hooks[key].each { |b|
             b.call(key, @values[key].value)
           }
-          
+
           #@copy_dirty = true
         else
           raise ParameterException.new("Parameter #{key} does not support extension.")
@@ -237,7 +217,7 @@ class ParameterManager
       if ( !@hooks.has_key?(key) )
         @hooks[key] = []
       end
-      
+
       if ( block.arity == 2 )
         @hooks[key].push(block)
       else
@@ -271,7 +251,11 @@ class ParameterManager
     #end
 
   def user_info
-    @values.keys.sort { |a,b| @values[a].code <=> @values[b].code }. map { |key|
+    @values.keys.select { |key| 
+      @values[key].code != nil 
+    }.sort { |a,b| 
+      @values[a].code <=> @values[b].code 
+    }. map { |key|
       { :code => @values[key].code, :type => @values[key].type, :help => @values[key].help }
     }
   end
@@ -288,6 +272,7 @@ class ParameterManager
 end
 
 class Parameter
+  # Pass code = nil for an internal parameter that is not shown to users.
   def initialize(key, code, type, default, help)
     @key = key
     @code = code

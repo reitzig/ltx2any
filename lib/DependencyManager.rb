@@ -1,4 +1,4 @@
-# Copyright 2010-2015, Raphael Reitzig
+# Copyright 2010-2016, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -20,12 +20,7 @@ require 'rubygems'
 
 class DependencyManager
   private
-    @@dependencies = {}
-    # Format: [name, (:gem|:binary|:file) => {
-    #   :relevance => (:essential|:recommended)
-    #   :reasons   => [*string]
-    #   :version   => ">=..."
-    # }
+    @@dependencies = []
 
     def self.more_recent(v1, v2)
       v1i = v1.gsub(/[^\d]/, "").to_i
@@ -95,85 +90,99 @@ class DependencyManager
     end
 
   public
-  
-  def self.add(name, type, relevance=:recommended, reason="", version=">=0")
-    if ( !@@dependencies.has_key?([name, type]) )
-      @@dependencies[[name, type]] = { :relevance => relevance, :reasons => [reason], :version => version }
-    elsif ( @@dependencies[[name, type]][:relevance] == relevance )
-      @@dependencies[[name, type]][:reasons].push(reason)
-      @@dependencies[[name, type]][:version] = more_recent(@@dependencies[[name, type]][:version], version)
-    elsif ( @@dependencies[[name, type]][:relevance] == :recommended && relevance == :essential )
-      @@dependencies[[name, type]][:relevance] = :essential
-      @@dependencies[[name, type]][:reasons] = [reason]
-      @@dependencies[[name, type]][:version] = more_recent(@@dependencies[[name, type]][:version], version)
-    end
 
-    if ( type != :gem && version != ">=0" )
+  
+  def self.add(dep)
+    if dep.kind_of?(Dependency)
+      @@dependencies.push(dep)
+    else
+      raise "Illegal parameter #{dep.to_s}"
+    end
+  end
+  
+  
+  def self.list(type: :all, source: :all, relevance: :all)
+    @@dependencies.select { |d|     
+         (type == :all      || d.type == type           || (type.kind_of?(Array) && type.include?(d.type)))\
+      && (source == :all    || d.source == source       || (d.source.kind_of?(Array) && d.source.include?(source)))\
+      && (relevance == :all || d.relevance == relevance || (relevance.kind_of?(Array) && relevance.include?(d.relevance)))
+    }
+  end 
+  
+
+  def self.to_s
+    @@dependencies.map { |d| d.to_s }.join("\n")
+  end
+end
+
+
+
+class MissingDependencyError < StandardError; end
+
+
+
+class Dependency
+  def initialize(name, type, source, relevance, reason = "", version = nil)
+    if ![:gem, :binary, :file].include?(type)
+      raise "Illegal dependency type #{type.to_s}"
+    elsif source != :core && (!source.kind_of?(Array) || ![:core, :extension, :engine].include?(source[0]) )
+      raise "Illegal source #{source.to_s}"
+    elsif ![:recommended, :essential].include?(relevance)
+      raise "Illegal relevance #{relevance.to_s}"
+    end
+    if ( type != :gem && !(version.nil? || version.empty?) )
       # Should not happen in production
       puts "Developer warning: versions of binaries and files are not checked!"
     end
-  end
-
-  def self.make_essential(name, type)
-    if ( @@dependencies.has_key?([name, type]) )
-      @@dependencies[[name, type]][:relevance] = :essential
-    end
-  end
-
-  def self.load_essentials
-    @@dependencies.each_key { |k|
-      if ( @@dependencies[k][:relevance] == :essential && !available?(k[0], k[1]) )
-        required_version = ""
-        if ( k[1] == :gem && @@dependencies[k][:version] != ">=0" )
-          required_version = ", version #{@@dependencies[k][:version]}"
-        end
-        raise StandardError.new("Essential dependency #{k[0]} (#{k[1].to_s}#{required_version}) unfulfilled")
-      end
-    }
-  end
-
-  def self.available?(name, type)
-    if ( type == :gem )
-      begin
-        gem "#{name}"
-        require name
-        return true
-      rescue Gem::LoadError
-        return false
-      end
-    elsif ( type == :binary )
-      return which(name) != nil
-    elsif ( type == :file )
-      return File.exists?(name)
-    else
-      # Should not happen in production
-      puts "Developer warning: illegal dependency type #{type}"
-    end
-  end
-
-  def self.to_s
-    res = ""
     
-    [[:gem, "gems"], [:binary, "binaries"], [:file, "files"]].each { |part|
-      remainder = @@dependencies.each_key.select { |k| k[1] == part[0] }
-      if ( !remainder.empty? )
-        res += "  Required #{part[1]}:\n"
-        remainder.each { |k|
-          version = ""
-          if ( @@dependencies[k][:version] != ">=0" )
-            version = "#{@@dependencies[k][:version]}, "
+    @name = name
+    @type = type
+    @source = source.kind_of?(Array) ? source : [source, ""]
+    @relevance = relevance
+    @reason = reason
+    @version = version
+    @available = nil
+    
+    DependencyManager.add(self)
+  end
+  
+  public
+  
+  def available?
+    if @available.nil?
+      @available = case @type
+        when :gem 
+          begin
+            gem "#{@name}"
+            require @name
+            true
+          rescue Gem::LoadError
+            false
           end
-          res += "\t#{k[0]} (#{version}#{@@dependencies[k][:relevance]})"
-          if ( !available?(*k) )
-            missing = "missing"
-            missing.upcase! if @@dependencies[k][:relevance] == :essential
-            res += "\t\t\t\t#{missing}"
-          end
-          res += "\n"
-        }
-      end
-    }
-
-    return res
+        when :binary
+          DependencyManager.which(@name) != nil
+        when :file 
+          File.exists?(@name)
+        else
+          # Should not happen in production
+          raise "Illegal dependency type #{@type}"
+        end
+    end
+    
+    @available
+  end
+  
+  def to_s
+    "#{@type} #{@name} is #{@relevance} for #{@source.join(" ").strip}"
+  end
+  
+  attr_reader :name, :type, :source, :relevance, :reason, :version
+  
+  def relevance=(value)
+    if ![:recommended, :essential].include?(value)
+      raise "Illegal relevance #{value.to_s}"
+    end
+    
+    @relevance = value
   end
 end

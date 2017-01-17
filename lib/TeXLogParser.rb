@@ -41,6 +41,7 @@ class TeXLogParser
     collecting = false
     linectr = 1 # Declared for the increment at the end of the loop
     current = Finalizer.new
+    ongoing = nil
     log.each { |line|
       if ( !collecting && startregexp =~ line )
         collecting = true
@@ -55,7 +56,7 @@ class TeXLogParser
       # we are in.
       if ( collecting && line.strip == "" )
        # Empty line ends messages
-        messages += [current.get_msg].compact 
+        messages += [current.get_msg].compact
       elsif ( /^l\.(\d+) (.*)$/ =~ line )
         # Line starting with a line number ends messages
         if ( current.type != nil )
@@ -114,7 +115,7 @@ class TeXLogParser
         line = line.gsub($~.regexp, replace)
         redo
       elsif ( collecting ) # Do all the checks only when collecting
-        if ( /^(\S*?):(\d+): (.*)/ =~ line )
+        if ( /^(\S*?):(\d+): (.*)/ =~ line && ongoing == nil ) # such lines appear in fontspec-style messages, see below
           messages += [current.get_msg].compact
           # messages.push(LogMessage.new(:error, $~[1], [Integer($~[2])], [linectr], $~[3].strip))
           
@@ -155,7 +156,7 @@ class TeXLogParser
           current.logline = [linectr]
           current.message = line.strip
           current.slicer = /^\s*/
-        elsif ( /^(LaTeX Font Warning: .*?)(?: on input line (\d+).)?$/ =~ line )
+        elsif ( /^(LaTeX Font Warning: .*?)(?: #{space_sep("on input line")} (\d+).)?$/ =~ line )
           # Some issue with fonts
           messages += [current.get_msg].compact
          
@@ -165,7 +166,7 @@ class TeXLogParser
           current.logline = [linectr]
           current.message = $~[1].strip
           current.slicer  = /^\(Font\)\s*/
-        elsif ( /^((Under|Over)full .*?) at lines (\d+)--(\d+)?/ =~ line )
+        elsif ( /^((Under|Over)full .*?) #{space_sep("at lines")} (\d+)--(\d+)?/ =~ line )
           # Engine complains about under-/overfilled boxes
           messages += [current.get_msg].compact
 
@@ -193,6 +194,35 @@ class TeXLogParser
           current.logline = [linectr]
           current.message = line.strip + "\n"
           current.format = :fixed
+        elsif ( /^!!+/ =~ line )
+          # Messages in the style of fontspec
+          messages += [current.get_msg].compact
+          
+          ongoing = :fontspec
+          current.type = :error
+          current.srcfile = filestack.last # may be overwritten later
+          current.srcline = nil
+          current.logline = [linectr]
+          current.message = ""
+          current.format = :fixed
+        elsif ( ongoing == :fontspec ) # Precedence over other lines starting with !, see below
+          if ( /^!\.+/ =~ line.strip )
+            # Message is done
+            ongoing = nil
+            messages += [current.get_msg].compact
+            current = Finalizer.new
+          elsif ( /^(?:\.\/)?(\S+?):(\d+): (.*)/ =~ line )
+            current.srcfile = $~[1]
+            current.srcline = [Integer($~[2])]
+            current.message += $~[3].strip + "\n"
+          elsif ( /^! For immediate help.*/ =~ line )
+            # Drop useless note
+          elsif ( /^!(.*)/ =~ line )
+            # A new line
+            if ( $~[1].strip.size > 0 )
+              current.message += $~[1].strip + "\n"
+            end
+          end 
         elsif ( /^! (.*?)(after line (\d+).)?$/ =~ line )
           messages += [current.get_msg].compact
           current.type = :error
@@ -220,6 +250,14 @@ class TeXLogParser
   
   private
   
+    # TeX logs may have spaces in weird places. If we don't want our regexp
+    # matching to stumble over that, longer strings have to be matched 
+    # allowing for whitespace everywhere.
+    # Use the result of this method for this purpose.
+    def self.space_sep(s)
+      s.chars.join('\s*')
+    end
+  
     # Some messages may run over multiple lines. Use an instance
     # of this class to collect it completely.
     class Finalizer
@@ -244,7 +282,7 @@ class TeXLogParser
         #  (initially: @currentmessage = [nil, nil, nil, nil, nil, nil, :none] )
         def get_msg()
           if ( @type != nil )
-            if ( @srcline == nil && @message =~ /(.+?) on input line (\d+)\.?$/ )
+            if ( @srcline == nil && @message =~ /(.+?) #{TeXLogParser::space_sep("on input line")} (\d+)\.?$/ )
               # The first line did not contain the line of warning, but
               # the last did!
               @message = $~[1].strip

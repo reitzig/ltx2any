@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-DependencyManager.add("pdflatex", :binary, :essential)
 ParameterManager.instance.addParameter(Parameter.new(
   :imagerebuild, "ir", String, "", "Specify externalised TikZ images to rebuild, separated by ':'. Set to 'all' to rebuild all."))
 

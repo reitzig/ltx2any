@@ -18,21 +18,14 @@
 
 require "#{File.dirname(__FILE__)}/LogMessage.rb"
 
-DependencyManager.add("xelatex", :binary, :recommended, "for PDF logs")
-
 ParameterManager.instance.addParameter(Parameter.new(
   :logformat, "lf", [:raw, :md, :latex, :pdf], :md,
   "Set to 'raw' for raw, 'md' for Markdown, 'latex' for LaTeX, or 'pdf' for PDF log."))
 ParameterManager.instance.addParameter(Parameter.new(
   :loglevel, "ll", [:error, :warning, :info], :warning,
   "Set to 'error' to see only errors, to 'warning' to see also warnings, or to 'info' for everything."))
-
-# TODO If we get into trouble with Markdown fallback, this makes the dependencies mandatory:
-#ParameterManager.instance.addHook(:logformat) { |key, val|
-#  if ( val == :pdf )
-#    DependencyManager.make_essential("xelatex", :binary)
-#  end
-#}
+  
+Dependency.new("xelatex", :binary, [:core, "Log"], :recommended, "Compilation of PDF logs")
 
 class Log 
   def initialize
@@ -44,6 +37,7 @@ class Log
     @level = :warning # or :error, :info
     @rawoffsets = nil
     @mode = :structured # or :flat
+    @dependencies = DependencyManager.list(source: [:core, self.class.to_s])
   end
   
   def only_level(level = @level)  
@@ -116,11 +110,11 @@ class Log
       to_s if @rawoffsets == nil # Determines offsets in raw log
       params = ParameterManager.instance
     
-      result = "# Log for `#{params[:jobname]}`\n\n"
+      result = "# Log for `#{params[:user_jobname]}`\n\n"
       messages = only_level
       
       result << "**Disclaimer:**  \nThis is  but a digest of the original log file.\n" +
-                "For full detail, check out `#{params[:tmpdir]}/#{params[:log]}.raw`.\n" +
+                "For full detail, check out `#{params[:tmpdir]}/#{params[:log]}.full`.\n" +
                 "In case we failed to pick up an error or warning, please " +
                 "[report it to us](https://github.com/akerbos/ltx2any/issues/new).\n\n" 
       
@@ -216,11 +210,11 @@ class Log
         File.open("#{File.dirname(__FILE__)}/logtemplate.tex", "r") { |template|
           f.write(template.read)
         }
-        f.write("\\def\\author{ltx2any}\n\\def\\title{Log for #{params[:jobname]}}\n")
-        f.write("\\def\\fulllog{#{params[:tmpdir]}/#{params[:log]}.raw}\n")
+        f.write("\\def\\author{ltx2any}\n\\def\\title{Log for #{params[:user_jobname]}}\n")
+        f.write("\\def\\fulllog{#{File.join(params[:tmpdir], "#{params[:log]}.full")}}\n")
         f.write("\n\n\\begin{document}")
 
-        f.write("\\section{Log for \\texttt{#{params[:jobname]}}}\n\n")
+        f.write("\\section{Log for \\texttt{\\detokenize{#{params[:user_jobname]}}}}\n\n")
         messages = only_level
         
         f.write("\\textbf{Disclaimer:} This is  but a digest of the original log file. " +
@@ -288,9 +282,12 @@ class Log
 
     # Creates a PDF containing all messages (depending on log level) at the specified location.
     def to_pdf(target_file = "#{ParameterManager.instance[:jobname]}.log.pdf")
-      if ( !DependencyManager.available?('xelatex', :binary)  )
-        raise "You need xelatex for PDF logs."
-      end
+       @dependencies.each { |d|
+        if !d.available?
+          raise MissingDependencyError.new(d.to_s)
+        end
+      }
+
       params = ParameterManager.instance
 
       tmplogprefix = "#{ParameterManager.instance[:jobname]}.log."
@@ -298,6 +295,7 @@ class Log
 
       # TODO which engine to use?
       xelatex = '"xelatex -file-line-error -interaction=nonstopmode \"#{tmplogprefix}tex\""'
+      IO::popen(eval(xelatex)) { |x| x.readlines }
       IO::popen(eval(xelatex)) { |x| x.readlines }
       # TODO parse log and rewrite a readable version?
       
@@ -388,8 +386,8 @@ class Log
       def makeFileref(file, linefrom, lineto)
         fileref = ""
         if ( file != nil )
-          filename = file.gsub(/_/, '\_')
-          fileref = "\\fileref{#{filename}}{#{linefrom}}{#{lineto}}"
+          #file = file.gsub(/_/, '\_')
+          fileref = "\\fileref{#{file}}{#{linefrom}}{#{lineto}}"
         end
         fileref
       end

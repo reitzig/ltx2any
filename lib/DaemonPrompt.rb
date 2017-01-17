@@ -17,7 +17,8 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class DaemonPrompt
-  def self.run(params)
+  def self.run
+    params = ParameterManager.instance
     command = getCommand
     while ( command.size > 0 )
       begin

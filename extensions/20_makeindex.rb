@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-DependencyManager.add("makeindex", :binary, :essential)
+Dependency.new("makeindex", :binary, [:extension, "makeindex"], :essential)
 
 class MakeIndex < Extension
   def initialize
