@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+# TODO move to a properties file?
 NAME       = "ltx2any"
 VERSION    = "0.9a"
 YEAR       = "2016"
