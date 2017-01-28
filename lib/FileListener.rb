@@ -212,13 +212,17 @@ class FileListener
     cleanup
   end
 
+  def runs?
+    !@jobfile.nil?
+  end
+
 
   private
 
   # Removes temporary files outside of the tmp folder,
   # closes file handlers, etc.
   def cleanup
-    FileUtils::rm_rf("#{ParameterManager.instance[:jobpath]}/#{@ignorefile}")
+    FileUtils::rm("#{ParameterManager.instance[:jobpath]}/#{@ignorefile}")
   end
 
 

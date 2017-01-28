@@ -328,7 +328,7 @@ HashManager.instance.to_file("#{PARAMS[:tmpdir]}/#{HASHFILE}") if !PARAMS[:clean
 #       that were needed earlier. Is that sufficient?
 
 # Stop file listeners
-FileListener.instance.stop if PARAMS[:daemon]
+FileListener.instance.stop if PARAMS[:daemon] && FileListener.instance.runs?
 # Remove temps if so desired.
 CLEAN.each    { |f| FileUtils::rm_rf(f) } if PARAMS[:clean]
 CLEANALL.each { |f| FileUtils::rm_rf(f) } if PARAMS[:cleanall]
