@@ -23,13 +23,24 @@ ParameterManager.instance.addParameter(Parameter.new(
 
 # Add hook that adapts the :enginepar parameter whenever :synctex changes (including startup)
 ParameterManager.instance.addHook(:synctex) { |key, val|
-  parameter = "--synctex=-1"
-
   params = ParameterManager.instance
-  if val && params[:enginepar][parameter] == nil
+
+  # Set engine parameter
+  parameter = "--synctex=-1"
+  if val && params[:enginepar][parameter] == nil # TODO what is the second access?
     params.add(:enginepar, parameter)
   elsif !val
     params[:enginepar] = params[:enginepar].gsub(parameter, "")
+  end
+
+  # Add synctex file to those that should be ignored
+  synctexfile = "#{params[:jobname]}.synctex.gz"
+  if val && params[:ignore] == nil
+    params.add(:ignore, )
+  elsif val && params[:ignore] != nil
+    params[:ignore] = params[:ignore] + ":#{synctexfile}"
+  elsif !val
+    params[:ignore] = params[:ignore].gsub(":#{synctexfile}", "")
   end
 }
 
