@@ -26,6 +26,7 @@ ParameterManager.instance.addHook(:synctex) { |key, val|
   params = ParameterManager.instance
 
   # Set engine parameter
+  # TODO make nicer with array parameters
   parameter = "--synctex=-1"
   if val && params[:enginepar][parameter] == nil # TODO what is the second access?
     params.add(:enginepar, parameter)
@@ -34,13 +35,16 @@ ParameterManager.instance.addHook(:synctex) { |key, val|
   end
 
   # Add synctex file to those that should be ignored
+  # TODO make nicer with array parameters
   synctexfile = "#{params[:jobname]}.synctex.gz"
   if val && params[:ignore] == nil
-    params.add(:ignore, )
-  elsif val && params[:ignore] != nil
+    params.add(:ignore, synctexfile)
+  elsif val && params[:ignore].empty?
+    params[:ignore] = synctexfile
+  elsif val # && !params[:ignore].empty?
     params[:ignore] = params[:ignore] + ":#{synctexfile}"
   elsif !val
-    params[:ignore] = params[:ignore].gsub(":#{synctexfile}", "")
+    params[:ignore] = params[:ignore].gsub(/:?#{synctexfile}/, "")
   end
 }
 
