@@ -40,26 +40,31 @@ class LogMessage
   end
   
   public
-    attr_reader :type, :srcfile, :srcline, :logline, :msg
+    attr_accessor :type, :srcfile, :srcline, :logline, :msg
     
     def to_s
-      result = (if ( @type == :warning ) then "Warning" 
-                elsif ( @type == :error ) then "Error"
-                else "Info" end) 
+      result = if @type == :warning
+                 'Warning'
+               elsif @type == :error
+                 'Error'
+               else
+                 'Info'
+               end
               
-      if ( @srcfile != nil )
+      if @srcfile != nil
         result += " #{@srcfile}"
-        if ( @srcline != nil )
-          result += ":#{@srcline.join("-")}"
+        if @srcline != nil
+          result += ":#{@srcline.join('-')}"
         end
       end
       
       result += "\n" + @msg
       
-      if ( @logline != nil )
+      if @logline != nil
         result +="\n\t(For details see original output from line #{@logline[0].to_s}.)"
       end
-      return result
+
+      result
     end
     
     def formatted?
