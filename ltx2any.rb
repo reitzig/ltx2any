@@ -181,9 +181,9 @@ begin
         # Run engine
         OUTPUT.start("#{engine.name}(#{run}) running")
         result = engine.exec
-        OUTPUT.stop(if result[0] then :success else :error end)
+        OUTPUT.stop(if result[:success] then :success else :error end)
 
-        break if !File.exist?("#{PARAMS[:jobname]}.#{engine.extension}")
+        break unless File.exist?("#{PARAMS[:jobname]}.#{engine.extension}")
 
         # Run extensions that need to do something after this iteration
         Extension.run_all(run, OUTPUT, log)
@@ -194,7 +194,7 @@ begin
       end
 
       # Save log messages of last engine run
-      log.add_messages(engine.name, :engine, result[1], result[2])
+      log.add_messages(engine.name, :engine, result[:messages], result[:log])
 
       # Run extensions that may need to do something after all engine runs
       Extension.run_all(:after, OUTPUT, log)

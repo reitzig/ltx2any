@@ -39,7 +39,7 @@ class LuaLaTeX < Engine
                           without: /\/CreationDate|\/ModDate|\/ID|\/Type\/XRef\/Index/)
   end
 
-  def exec()
+  def exec
     @old_hash = hash_result
     
     # Command for the main LaTeX compilation work
@@ -49,7 +49,7 @@ class LuaLaTeX < Engine
     f = IO::popen(eval(lualatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
-    [File.exist?(@target_file), TeXLogParser.parse(log), log.join('').strip!]
+    { success: File.exist?(@target_file), messages: TeXLogParser.parse(log), log: log.join('').strip! }
   end
 end
 

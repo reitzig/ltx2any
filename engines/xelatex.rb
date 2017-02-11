@@ -38,7 +38,7 @@ class XeLaTeX < Engine
     HashManager.hash_file(@target_file, drop_from: /CIDFontType0C|Type1C/)
   end
 
-  def exec()
+  def exec
     @old_hash = hash_result
     
     # Command for the main LaTeX compilation work
@@ -48,7 +48,7 @@ class XeLaTeX < Engine
     f = IO::popen(eval(xelatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
-    [File.exist?(@target_file), TeXLogParser.parse(log), log.join('').strip!]
+    { success: File.exist?(@target_file), messages: TeXLogParser.parse(log), log: log.join('').strip! }
   end
 end
 

@@ -38,7 +38,7 @@ class PdfLaTeX < Engine
     HashManager.hash_file(@target_file, without: /\/CreationDate|\/ModDate|\/ID/)
   end
 
-  def exec()
+  def exec
     @old_hash = hash_result
 
     # Command for the main LaTeX compilation work
@@ -48,7 +48,7 @@ class PdfLaTeX < Engine
     f = IO::popen(eval(pdflatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
-    [File.exist?(@target_file), TeXLogParser.parse(log), log.join('').strip!]
+    { success: File.exist?(@target_file), messages: TeXLogParser.parse(log), log: log.join('').strip! }
   end
 end
 
