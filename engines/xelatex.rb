@@ -16,15 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-Dependency.new("xelatex", :binary, [:engine, "xelatex"], :essential)
+Dependency.new('xelatex', :binary, [:engine, 'xelatex'], :essential)
 
 class XeLaTeX < Engine
 
   def initialize
     super
-    @binary = "xelatex"
-    @extension = "pdf"
-    @description = "Uses xelatex to create a PDF"
+    @binary = 'xelatex'
+    @extension = 'pdf'
+    @description = 'Uses xelatex to create a PDF'
     
     @target_file = "#{ParameterManager.instance[:jobname]}.#{extension}"
     @old_hash = hash_result
@@ -48,7 +48,7 @@ class XeLaTeX < Engine
     f = IO::popen(eval(xelatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
-    return [File.exist?(@target_file), TeXLogParser.parse(log), log.join("").strip!]
+    [File.exist?(@target_file), TeXLogParser.parse(log), log.join('').strip!]
   end
 end
 

@@ -17,13 +17,13 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 ParameterManager.instance.addParameter(Parameter.new(
-  :imagerebuild, "ir", String, "", "Specify externalised TikZ images to rebuild, separated by ':'. Set to 'all' to rebuild all."))
+    :imagerebuild, 'ir', String, '', "Specify externalised TikZ images to rebuild, separated by ':'. Set to 'all' to rebuild all."))
 
 class TikZExt < Extension
   def initialize
     super
-    @name = "TikZ externalization"
-    @description = "Compiles externalized TikZ images"
+    @name = 'TikZ externalization'
+    @description = 'Compiles externalized TikZ images'
   end
 
   def do?(time)
@@ -31,7 +31,7 @@ class TikZExt < Extension
   end
   
   def job_size
-    return collect_pending[0].size
+    collect_pending[0].size
   end
 
   def exec(time, progress)
@@ -47,7 +47,7 @@ class TikZExt < Extension
     figures,rebuildlog = collect_pending
 
     log = [[], []]
-    if ( !figures.empty? )
+    if !figures.empty?
       # Run (latex) engine for each figure
       log = self.class.execute_parts(figures, progress) { |fig|
               compile(pdflatex, fig)
@@ -59,16 +59,16 @@ class TikZExt < Extension
     # whole tikzext block, not those inside.
     offset = 0
     (0..(log[0].size - 1)).each { |i|
-      if ( log[0][i].size > 0 )
+      if log[0][i].size > 0
         internal_offset = 5 # Stuff we print per figure before log excerpt (see :compile)
         log[0][i].map! { |m|
           LogMessage.new(m.type, m.srcfile, m.srcline, 
-                         if ( m.logline != nil ) then
+                         if m.logline != nil then
                            m.logline.map { |ll| ll + offset + internal_offset - 1} # -1 because we drop first line!
                          else
                            nil
                          end,
-                         m.msg, if ( m.formatted? ) then :fixed else :none end)
+                         m.msg, if m.formatted? then :fixed else :none end)
         }
         
         log[0][i] = [LogMessage.new(:info, nil, nil, nil, 
@@ -86,17 +86,17 @@ class TikZExt < Extension
     
     log[0].flatten!
     errors = log[0].count { |m| m.type == :error }
-    return [errors <= 0, rebuildlog[0] + log[0], rebuildlog[1] + log[1].join]
+    [errors <= 0, rebuildlog[0] + log[0], rebuildlog[1] + log[1].join]
   end
   
   private
     def collect_pending
       params = ParameterManager.instance
 
-      figures,rebuildlog = [], [[], ""]
-      if ( File.exists?("#{params[:jobname]}.figlist") )
+      figures,rebuildlog = [], [[], '']
+      if File.exists?("#{params[:jobname]}.figlist")
         figures = IO.readlines("#{params[:jobname]}.figlist").map { |fig|
-          if ( fig.strip != "" )
+          if fig.strip != ''
             fig.strip
           else
             nil
@@ -105,11 +105,11 @@ class TikZExt < Extension
 
         # Remove results of figures that we want to rebuild
         rebuild = []
-        if ( params[:imagerebuild] == "all" )
+        if params[:imagerebuild] == 'all'
           rebuild = figures
         else
-          params[:imagerebuild].split(":").map { |s| s.strip }.each { |fig|
-            if ( figures.include?(fig) )
+          params[:imagerebuild].split(':').map { |s| s.strip }.each { |fig|
+            if figures.include?(fig)
               rebuild.push(fig)
             else
               msg = "User requested rebuild of figure `#{fig}` which does not exist."
@@ -124,8 +124,8 @@ class TikZExt < Extension
           !File.exist?("#{fig}.pdf") || rebuild.include?(fig)
         }
       end
-      
-      return [figures, rebuildlog]
+
+      [figures, rebuildlog]
     end
     
     def compile(cmd, fig)
@@ -141,7 +141,7 @@ class TikZExt < Extension
         # Closes IO
       }
       # Shell output does not contain error messages -> read log
-      output = File.open("#{fig}.log", "r") { |f|
+      output = File.open("#{fig}.log", 'r') { |f|
         f.readlines.map { |s| Log.fix(s) }
       }
       
@@ -155,12 +155,12 @@ class TikZExt < Extension
         startregexp !~ line
       }.take_while { |line|
         endregexp !~ line
-      }.drop(1).join("").strip
+      }.drop(1).join('').strip
 
-      if ( string != "" )
+      if string != ''
         log << "<snip>\n\n#{string}\n\n<snip>"
       else
-        log << "No errors detected."
+        log << 'No errors detected.'
       end
       
       # Parse whole log for messages (needed for filenames) but restrict
@@ -172,8 +172,8 @@ class TikZExt < Extension
       #   log << "Fatal error on #{fig}. See #{$params["tmpdir"]}/#{fig}.log for details.\n"
       # end
       log << "\n\n"
-      
-      return [msgs, log]
+
+      [msgs, log]
     end
 end
 

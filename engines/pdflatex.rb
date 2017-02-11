@@ -16,15 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-Dependency.new("pdflatex", :binary, [:engine, "pdflatex"], :essential)
+Dependency.new('pdflatex', :binary, [:engine, 'pdflatex'], :essential)
 
 class PdfLaTeX < Engine  
 
   def initialize
     super
-    @binary = "pdflatex"
-    @extension = "pdf"
-    @description = "Uses pdflatex to create a PDF"
+    @binary = 'pdflatex'
+    @extension = 'pdf'
+    @description = 'Uses pdflatex to create a PDF'
     
     @target_file = "#{ParameterManager.instance[:jobname]}.#{extension}"
     @old_hash = hash_result
@@ -48,7 +48,7 @@ class PdfLaTeX < Engine
     f = IO::popen(eval(pdflatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
-    return [File.exist?(@target_file), TeXLogParser.parse(log), log.join("").strip!]
+    [File.exist?(@target_file), TeXLogParser.parse(log), log.join('').strip!]
   end
 end
 

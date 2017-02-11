@@ -16,12 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-Dependency.new('parallel', :gem, [:core, "Extension"], :recommended, "Faster execution for some extensions", ">=1.9.0")
-Dependency.new('system',   :gem, [:core, "Extension"], :recommended, "Required for parallel", ">=0.1.3")
+Dependency.new('parallel', :gem, [:core, 'Extension'], :recommended, 'Faster execution for some extensions', '>=1.9.0')
+Dependency.new('system', :gem, [:core, 'Extension'], :recommended, 'Required for parallel', '>=0.1.3')
 
 class Extension
   @@list = {}
-  @@dependencies = DependencyManager.list(source: [:core, "Extension"])
+  @@dependencies = DependencyManager.list(source: [:core, 'Extension'])
 
   def self.add(e)
     @@list[e.to_sym] = e
@@ -40,8 +40,8 @@ class Extension
   end
 
   def initialize
-    @name = "Dummy name"
-    @description = "Dummy description"
+    @name = 'Dummy name'
+    @description = 'Dummy description'
   end
 
   # Hacky hack? Need to refactor this
@@ -107,7 +107,7 @@ class Extension
           log.add_messages(e.name, :extension, r[1], r[2])
         else
           # TODO log message?
-          output.separate.error("Missing dependencies:", *dependencies.select { |d| !d.available? }.map { |d| d.to_s })
+          output.separate.error('Missing dependencies:', *dependencies.select { |d| !d.available? }.map { |d| d.to_s })
         end
       end
     }
@@ -119,11 +119,11 @@ class Extension
     end
 
     def job_size
-      return 1
+      1
     end
 
     def exec(time, progress)
-      return [true, "No execution code, need to overwrite!"]
+      [true, 'No execution code, need to overwrite!']
     end
 
     def to_s
@@ -143,7 +143,7 @@ end
 
 # Load all extensions
 Dir["#{BASEDIR}/#{EXTDIR}/*.rb"].sort.each { |f|
-  if ( !(/^\d\d/ !~ File.basename(f)) )
+  if !(/^\d\d/ !~ File.basename(f))
     load(f)
   end
 }

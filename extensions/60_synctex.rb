@@ -19,7 +19,7 @@
 require 'zlib'
 
 ParameterManager.instance.addParameter(Parameter.new(
-  :synctex, "synctex", Boolean, false, "Set to make engines create SyncTeX files."))
+    :synctex, 'synctex', Boolean, false, 'Set to make engines create SyncTeX files.'))
 
 # Add hook that adapts the :enginepar parameter whenever :synctex changes (including startup)
 ParameterManager.instance.addHook(:synctex) { |key, val|
@@ -27,11 +27,11 @@ ParameterManager.instance.addHook(:synctex) { |key, val|
 
   # Set engine parameter
   # TODO make nicer with array parameters
-  parameter = "--synctex=-1"
+  parameter = '--synctex=-1'
   if val && params[:enginepar][parameter] == nil # TODO what is the second access?
     params.add(:enginepar, parameter)
   elsif !val
-    params[:enginepar] = params[:enginepar].gsub(parameter, "")
+    params[:enginepar] = params[:enginepar].gsub(parameter, '')
   end
 
   # Add synctex file to those that should be ignored
@@ -44,15 +44,15 @@ ParameterManager.instance.addHook(:synctex) { |key, val|
   elsif val # && !params[:ignore].empty?
     params[:ignore] = params[:ignore] + ":#{synctexfile}"
   elsif !val
-    params[:ignore] = params[:ignore].gsub(/:?#{synctexfile}/, "")
+    params[:ignore] = params[:ignore].gsub(/:?#{synctexfile}/, '')
   end
 }
 
 class SyncTeX < Extension
   def initialize
     super    
-    @name = "SyncTeX"
-    @description = "Provides support for SyncTeX"
+    @name = 'SyncTeX'
+    @description = 'Provides support for SyncTeX'
   end
 
   def do?(time)
@@ -63,12 +63,12 @@ class SyncTeX < Extension
     params = ParameterManager.instance
 
     if !File.exist?("#{params[:jobname]}.synctex")
-      return [false, [LogMessage.new(:error, nil, nil, nil, "SyncTeX file not found.")], ""]
+      return [false, [LogMessage.new(:error, nil, nil, nil, 'SyncTeX file not found.')], '']
     end
 
     # Fix paths in synctex file, gzip it and put result in main directory
     Zlib::GzipWriter.open("#{params[:jobpath]}/#{params[:jobname]}.synctex.gz") { |gz|
-      File.open("#{params[:jobname]}.synctex", "r") { |f|
+      File.open("#{params[:jobname]}.synctex", 'r') { |f|
         f.readlines.each { |line|
           # Replace tmp path with job path.
           # Catch tmp paths relative to job path first, then try to match it as absolute path.
@@ -78,7 +78,7 @@ class SyncTeX < Extension
       }
     }
 
-    return [true, [], ""]
+    [true, [], '']
   end
 end
   

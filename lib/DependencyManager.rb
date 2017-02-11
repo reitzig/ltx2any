@@ -23,8 +23,8 @@ class DependencyManager
     @@dependencies = []
 
     def self.more_recent(v1, v2)
-      v1i = v1.gsub(/[^\d]/, "").to_i
-      v2i = v2.gsub(/[^\d]/, "").to_i
+      v1i = v1.gsub(/[^\d]/, '').to_i
+      v2i = v2.gsub(/[^\d]/, '').to_i
       return v1i > v2i ? v1 : v2
     end
 
@@ -122,7 +122,7 @@ class MissingDependencyError < StandardError; end
 
 
 class Dependency
-  def initialize(name, type, source, relevance, reason = "", version = nil)
+  def initialize(name, type, source, relevance, reason = '', version = nil)
     if ![:gem, :binary, :file].include?(type)
       raise "Illegal dependency type #{type.to_s}"
     elsif source != :core && (!source.kind_of?(Array) || ![:core, :extension, :engine].include?(source[0]) )
@@ -130,14 +130,14 @@ class Dependency
     elsif ![:recommended, :essential].include?(relevance)
       raise "Illegal relevance #{relevance.to_s}"
     end
-    if ( type != :gem && !(version.nil? || version.empty?) )
+    if type != :gem && !(version.nil? || version.empty?)
       # Should not happen in production
-      puts "Developer warning: versions of binaries and files are not checked!"
+      puts 'Developer warning: versions of binaries and files are not checked!'
     end
     
     @name = name
     @type = type
-    @source = source.kind_of?(Array) ? source : [source, ""]
+    @source = source.kind_of?(Array) ? source : [source, '']
     @relevance = relevance
     @reason = reason
     @version = version
@@ -173,7 +173,7 @@ class Dependency
   end
   
   def to_s
-    "#{@type} #{@name} is #{@relevance} for #{@source.join(" ").strip}"
+    "#{@type} #{@name} is #{@relevance} for #{@source.join(' ').strip}"
   end
   
   attr_reader :name, :type, :source, :relevance, :reason, :version

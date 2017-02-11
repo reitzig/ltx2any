@@ -18,20 +18,20 @@
 
 require 'singleton'
 
-Dependency.new("listen", :gem, [:core, "FileListener"], :recommended, "Listening to files for automatic recompilation.", ">=3.1.5") 
+Dependency.new('listen', :gem, [:core, 'FileListener'], :recommended, 'Listening to files for automatic recompilation.', '>=3.1.5')
 
 ParameterManager.instance.addParameter(Parameter.new(
-  :daemon, "d", Boolean, false, "Re-compile automatically when files change."))
+    :daemon, 'd', Boolean, false, 'Re-compile automatically when files change.'))
 ParameterManager.instance.addParameter(Parameter.new(
-  :listeninterval, "di", Float, 0.5,
-  "Time after which daemon mode checks for changes (in seconds)."))
+    :listeninterval, 'di', Float, 0.5,
+    'Time after which daemon mode checks for changes (in seconds).'))
 
 class FileListener
   include Singleton
 
   private
 
-  def ignoreFileName(jobname = "")
+  def ignoreFileName(jobname = '')
     ".#{NAME}ignore_#{jobname}"
   end
 
@@ -54,7 +54,7 @@ class FileListener
   # Function that reads the ignorefile fo another process and
   # adds the contained files to the ignore list.
   def readIgnoreFile(ignoreFile)
-    if ( File.exist?(ignoreFile) )
+    if File.exist?(ignoreFile)
       IO.foreach(ignoreFile) { |line|
         @ignore.push(line.strip)
       }
@@ -71,7 +71,7 @@ class FileListener
         
     if @jobfilelistener != nil 
       # Should never happen unless I programmed crap
-      raise StandardError.new("Listener already running, what are you doing?!")
+      raise StandardError.new('Listener already running, what are you doing?!')
     end
     
     params = ParameterManager.instance
@@ -82,13 +82,13 @@ class FileListener
     @ignore.push(@ignorefile)
 
     # Write ignore list for other processes
-    File.open("#{params[:jobpath]}/#{@ignorefile}", "w") { |file|
+    File.open("#{params[:jobpath]}/#{@ignorefile}", 'w') { |file|
       file.write(@ignore.join("\n"))
     }
 
     # Collect all existing ignore files
-    Dir.entries(".") \
-      .select { |f| /(\.\/)?#{Regexp.escape(ignoreFileName(""))}[^\/]+/ =~ f } \
+    Dir.entries('.') \
+      .select { |f| /(\.\/)?#{Regexp.escape(ignoreFileName(''))}[^\/]+/ =~ f } \
       .each { |f|
       readIgnoreFile(f)
     }
@@ -103,7 +103,7 @@ class FileListener
                 latency: params[:listeninterval] * 0.25,
                 ignore: [ /(\.\/)?#{Regexp.escape(ignoreFileName())}[^\/]+/,
                           #/(\.\/)?\..*/, # ignore hidden files, e.g. .git
-                          /\A(\.\/)?(#{@ignore.map { |s| Regexp.escape(s) }.join("|")})/ ],
+                          /\A(\.\/)?(#{@ignore.map { |s| Regexp.escape(s) }.join('|')})/ ],
                ) \
       do |modified, added, removed|
         # TODO cruel hack; can we do better?
@@ -133,7 +133,7 @@ class FileListener
 
           added.each { |ignf|
             files = ignoremore(ignf)
-            @jobfilelistener.ignore(/\A(\.\/)?(#{files.map { |s| Regexp.escape(s) }.join("|")})/)
+            @jobfilelistener.ignore(/\A(\.\/)?(#{files.map { |s| Regexp.escape(s) }.join('|')})/)
           }
 
           # TODO If another daemon terminates we keep its ignorefiles. Potential leak!
@@ -149,17 +149,17 @@ class FileListener
   end
 
   def waitForChanges(output)
-    output.start("Waiting for file changes (press ENTER to pause)")
+    output.start('Waiting for file changes (press ENTER to pause)')
     @jobfilelistener.start if @jobfilelistener.paused?
     params = ParameterManager.instance
     
     files = Thread.new do
-      while ( @changetime <= @lastraise || Time.now - @changetime < params[:listeninterval] ) 
+      while @changetime <= @lastraise || Time.now - @changetime < params[:listeninterval]
         sleep(params[:listeninterval] * 0.5)
       end
 
       @lastraise = Time.now
-      Thread.current[:raisetarget].raise(FilesChanged.new("Files have changed")) 
+      Thread.current[:raisetarget].raise(FilesChanged.new('Files have changed'))
     end
     files[:raisetarget] = Thread.current
     
@@ -222,6 +222,7 @@ class FileListener
   # Removes temporary files outside of the tmp folder,
   # closes file handlers, etc.
   def cleanup
+    # TODO this really needs to be done via CLEAN
     FileUtils::rm("#{ParameterManager.instance[:jobpath]}/#{@ignorefile}")
   end
 

@@ -16,18 +16,18 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-Dependency.new("bibtex", :binary, [:extension, "BibTeX"], :essential)
+Dependency.new('bibtex', :binary, [:extension, 'BibTeX'], :essential)
 
 class BibTeX < Extension
   def initialize
     super    
-    @name = "BibTeX"
-    @description = "Creates bibliographies (old)"
+    @name = 'BibTeX'
+    @description = 'Creates bibliographies (old)'
     
     # For checking whether bibtex has to rerun, we need to keep the 
     # relevant parts of the _.aux file handy.
     # TODO use internal store?
-    @grepfile = "bibtex_aux_grep"
+    @grepfile = 'bibtex_aux_grep'
   end
 
   def do?(time)
@@ -39,18 +39,18 @@ class BibTeX < Extension
     stylefile = []
     bibdata = []
     grepdata = []
-    if ( File.exist?("#{params[:jobname]}.aux") )
-      File.open("#{params[:jobname]}.aux", "r") { |file|
+    if File.exist?("#{params[:jobname]}.aux")
+      File.open("#{params[:jobname]}.aux", 'r') { |file|
         while ( line = file.gets )
-          if ( /^\\bibdata\{(.+?)\}$/ =~ line )
+          if /^\\bibdata\{(.+?)\}$/ =~ line
             # If commas occur, add both a split version (multiple files)
             # and the hole string (filename with comma), to be safe.
-            bibdata += $~[1].split(",").map { |s| "#{s}.bib" } + [$~[1]]
+            bibdata += $~[1].split(',').map { |s| "#{s}.bib" } + [$~[1]]
             grepdata.push line.strip 
-          elsif ( /^\\bibstyle\{(.+?)\}$/ =~ line )
+          elsif /^\\bibstyle\{(.+?)\}$/ =~ line
             stylefile.push "#{$~[1]}.bst"
             grepdata.push line.strip 
-          elsif ( /^\\(bibcite|citation)/ =~ line )
+          elsif /^\\(bibcite|citation)/ =~ line
             grepdata.push line.strip 
           end            
         end
@@ -62,7 +62,7 @@ class BibTeX < Extension
     
     # Write relevant part of the _.aux file into a separate file for hashing
     if usesbib
-      File.open(@grepfile, "w") { |f|
+      File.open(@grepfile, 'w') { |f|
         f.write grepdata.join("\n")
       }
     end
@@ -73,7 +73,7 @@ class BibTeX < Extension
                  # Note: non-strict OR so that hashes get computed and stored
                  #       for next run!
 
-    return usesbib && needsrerun
+    usesbib && needsrerun
   end
 
   def exec(time, progress)
@@ -91,14 +91,14 @@ class BibTeX < Extension
     msgs = []
     errors = false
     linectr = 1
-    lastline = ""
+    lastline = ''
     log.each { |line|
-      if ( /^Warning--(.*)$/ =~ line )
+      if /^Warning--(.*)$/ =~ line
         msgs.push(LogMessage.new(:warning, nil, nil, [linectr], $~[1]))
-      elsif ( /^(.*?)---line (\d+) of file (.*)$/ =~ line )
+      elsif /^(.*?)---line (\d+) of file (.*)$/ =~ line
         msg = $~[1].strip
         logline = [linectr]
-        if ( msg == "" )
+        if msg == ''
           # Sometimes the message can be on the last line
           msg = lastline
           logline = [linectr - 1, linectr]
@@ -111,7 +111,7 @@ class BibTeX < Extension
       lastline = line
     }
 
-    return [!errors, msgs, log.join("").strip!]
+    [!errors, msgs, log.join('').strip!]
   end
 end
   

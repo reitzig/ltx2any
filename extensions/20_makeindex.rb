@@ -16,14 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-Dependency.new("makeindex", :binary, [:extension, "makeindex"], :essential)
+Dependency.new('makeindex', :binary, [:extension, 'makeindex'], :essential)
 
 class MakeIndex < Extension
   def initialize
     super
     
-    @name = "makeindex"
-    @description = "Creates an index"
+    @name = 'makeindex'
+    @description = 'Creates an index'
   end
 
   def do?(time)
@@ -46,13 +46,13 @@ class MakeIndex < Extension
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
     # * mistyle -- name of the makeindex style file (with file ending)
-    makeindex = { "default" => '"makeindex -q \"#{params[:jobname]}\" 2>&1"',
-                  "styled"  => '"makeindex -q -s \"#{mistyle}\" \"#{params[:jobname]}\" 2>&1"'}
+    makeindex = {'default' => '"makeindex -q \"#{params[:jobname]}\" 2>&1"',
+                 'styled' => '"makeindex -q -s \"#{mistyle}\" \"#{params[:jobname]}\" 2>&1"'}
   
-    version = "default"
+    version = 'default'
     mistyle = nil
-    Dir["*.ist"].each { |f|
-      version = "styled"
+    Dir['*.ist'].each { |f|
+      version = 'styled'
       mistyle = f
     }
 
@@ -64,7 +64,7 @@ class MakeIndex < Extension
     }
 
     log2 = []
-    File.open("#{params[:jobname]}.ilg", "r") { |f|
+    File.open("#{params[:jobname]}.ilg", 'r') { |f|
       log2 = f.readlines
     }
 
@@ -75,27 +75,27 @@ class MakeIndex < Extension
     linectr = 1
     errors = false
     log.each { |line|
-      if ( /^!! (.*?) \(file = (.+?), line = (\d+)\):$/ =~ line )
+      if /^!! (.*?) \(file = (.+?), line = (\d+)\):$/ =~ line
         current = [:error, $~[2], [Integer($~[3])], [linectr], "#{$~[1]}: "]
         errors = true
-      elsif ( /^\#\# (.*?) \(input = (.+?), line = (\d+); output = .+?, line = \d+\):$/ =~ line )
+      elsif /^\#\# (.*?) \(input = (.+?), line = (\d+); output = .+?, line = \d+\):$/ =~ line
         current = [:warning, $~[2], [Integer($~[3])], [linectr], "#{$~[1]}: "]
-      elsif ( current != [] && /^\s+-- (.*)$/ =~ line )
+      elsif current != [] && /^\s+-- (.*)$/ =~ line
         current[3][1] = linectr
         msgs.push(LogMessage.new(current[0], current[1], current[2], 
                                  current[3], current[4] + $~[1].strip))
         current = []
-      elsif ( /Option -g invalid/ =~ line )
+      elsif /Option -g invalid/ =~ line
         msgs.push(LogMessage.new(:error, nil, nil, [linectr], line.strip))
         errors = true
-      elsif ( /Can't create output index file/ =~ line )
+      elsif /Can't create output index file/ =~ line
         msgs.push(LogMessage.new(:error, nil, nil, [linectr], line.strip))
         errors = true
       end
       linectr += 1
     }
 
-    return [!errors, msgs, log.join("").strip!]
+    [!errors, msgs, log.join('').strip!]
   end
 end
 

@@ -49,9 +49,9 @@ class Engine
   end
 
   def initialize
-    @binary = "dummy"
-    @extension = "dummy"
-    @description = "Dummy Description"
+    @binary = 'dummy'
+    @extension = 'dummy'
+    @description = 'Dummy Description'
   end
 
   public
@@ -66,7 +66,7 @@ class Engine
     #  2. A list of log messages (cf LogMessage)
     #  3. The raw output of the external program
     def exec()
-      return [true, ["No execution code, need to overwrite!"], "No execution code, need to overwrite!"]
+      [true, ['No execution code, need to overwrite!'], 'No execution code, need to overwrite!']
     end
 
     def name
@@ -94,11 +94,11 @@ Dir["#{BASEDIR}/#{ENGDIR}/*.rb"].sort.each { |f|
 
 # Add engine-related parameters
 ParameterManager.instance.addParameter(Parameter.new(
-  :engine, "e", Engine.list.map { |e| e.to_sym }, :pdflatex,
-  "The output engine. Call with --engines for a list."))
+    :engine, 'e', Engine.list.map { |e| e.to_sym }, :pdflatex,
+    'The output engine. Call with --engines for a list.'))
 ParameterManager.instance.addParameter(Parameter.new(
-  :enginepar, "ep", String, "",
-  "Parameters passed to the engine, separated by spaces."))
+    :enginepar, 'ep', String, '',
+    'Parameters passed to the engine, separated by spaces.'))
 ParameterManager.instance.addParameter(Parameter.new(
-  :engineruns, "er", Integer, 0,
-  "How often the LaTeX engine runs. Values smaller than one will cause it to run until the resulting file no longer changes. May not apply to all engines."))
+    :engineruns, 'er', Integer, 0,
+    'How often the LaTeX engine runs. Values smaller than one will cause it to run until the resulting file no longer changes. May not apply to all engines.'))

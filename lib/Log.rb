@@ -19,13 +19,13 @@
 require "#{File.dirname(__FILE__)}/LogMessage.rb"
 
 ParameterManager.instance.addParameter(Parameter.new(
-  :logformat, "lf", [:raw, :md, :latex, :pdf], :md,
-  "Set to 'raw' for raw, 'md' for Markdown, 'latex' for LaTeX, or 'pdf' for PDF log."))
+    :logformat, 'lf', [:raw, :md, :latex, :pdf], :md,
+    "Set to 'raw' for raw, 'md' for Markdown, 'latex' for LaTeX, or 'pdf' for PDF log."))
 ParameterManager.instance.addParameter(Parameter.new(
-  :loglevel, "ll", [:error, :warning, :info], :warning,
-  "Set to 'error' to see only errors, to 'warning' to see also warnings, or to 'info' for everything."))
+    :loglevel, 'll', [:error, :warning, :info], :warning,
+    "Set to 'error' to see only errors, to 'warning' to see also warnings, or to 'info' for everything."))
   
-Dependency.new("xelatex", :binary, [:core, "Log"], :recommended, "Compilation of PDF logs")
+Dependency.new('xelatex', :binary, [:core, 'Log'], :recommended, 'Compilation of PDF logs')
 
 class Log 
   def initialize
@@ -68,8 +68,8 @@ class Log
     #  3. List of LogMessage objects
     #  4. Raw log/output
     def add_messages(source, sourcetype, msgs, raw)
-      if ( !@messages.has_key?(source) )
-        @messages[source] = [sourcetype, [], ""]
+      if !@messages.has_key?(source)
+        @messages[source] = [sourcetype, [], '']
         @counts[:error][source] = 0
         @counts[:warning][source] = 0
         @counts[:info][source] = 0
@@ -87,19 +87,19 @@ class Log
     end
     
     def has_messages?(source)
-      return @messages.has_key?(source)
+      @messages.has_key?(source)
     end
     
     def messages(source)
-      return @messages[source].clone
+      @messages[source].clone
     end
     
     def empty?
-      return @messages.empty?
+      @messages.empty?
     end
     
     def count(type)
-      return @counts[type][:total]
+      @counts[type][:total]
     end
 
     # Creates a Markdown-formatted log file at the specified location.
@@ -115,7 +115,7 @@ class Log
       
       result << "**Disclaimer:**  \nThis is  but a digest of the original log file.\n" +
                 "For full detail, check out `#{params[:tmpdir]}/#{params[:log]}.full`.\n" +
-                "In case we failed to pick up an error or warning, please " +
+          'In case we failed to pick up an error or warning, please ' +
                 "[report it to us](https://github.com/akerbos/ltx2any/issues/new).\n\n" 
       
       result << "We found **#{count(:error)} error#{pls(count(:error))}**, " +
@@ -128,18 +128,18 @@ class Log
         
         result << "## `#{name}`\n\n"
         
-        if ( msgs.empty? )
+        if msgs.empty?
           result << "Lucky you, `#{name}` had nothing to complain about!\n\n"
           
-          if ( (@level == :warning && @counts[:info][name] > 0) ||
-               (@level == :error && @counts[:info][name] + @counts[:warning][name] > 0 ) )
-            if ( @level != :info ) 
-              result << "Note, though, that this log only lists errors"
-              if ( @level == :warning )
-                result << " and warnings"
+          if (@level == :warning && @counts[:info][name] > 0) ||
+              (@level == :error && @counts[:info][name] + @counts[:warning][name] > 0)
+            if @level != :info
+              result << 'Note, though, that this log only lists errors'
+              if @level == :warning
+                result << ' and warnings'
               end
-              result << ". There were "
-              if ( @level == :error )
+              result << '. There were '
+              if @level == :error
                 result << "#{@counts[:warning][name]} warning#{pls(@counts[:warning][name])} and "
               end
               result << "#{@counts[:info][name]} information message#{pls(@counts[:info][name])} " +
@@ -158,46 +158,46 @@ class Log
             #  * file:line flushed to the right after
             #  * The message, indented to the type stands out
             #  * Log line, flushed right
-            result << " *  " +
-                      { :error   => "**Error**",
-                        :warning => "*Warning*",
-                        :info    => "Info     "
+            result << ' *  ' +
+                      { :error   => '**Error**',
+                        :warning => '*Warning*',
+                        :info    => 'Info     '
                       }[m.type]
-            if ( m.srcfile != nil ) 
+            if m.srcfile != nil
               srcline = nil
-              if ( m.srcline != nil )
-                srcline = m.srcline.join("--")
+              if m.srcline != nil
+                srcline = m.srcline.join('--')
               end
-              srcfilelength = 76 - 9 - (if ( srcline != nil ) then srcline.length + 1 else 0 end) - 2
-              result << if ( m.srcfile.length > srcfilelength )
+              srcfilelength = 76 - 9 - (if srcline != nil then srcline.length + 1 else 0 end) - 2
+              result << if m.srcfile.length > srcfilelength
                           "  `...#{m.srcfile[m.srcfile.length - srcfilelength + 5, m.srcfile.length]}"
                         else
-                          (" " * (srcfilelength - m.srcfile.length)) + "`#{m.srcfile}" 
+                          (' ' * (srcfilelength - m.srcfile.length)) + "`#{m.srcfile}"
                         end
-              if ( srcline != nil )
+              if srcline != nil
                 result << ":#{srcline}"
               end
-              result << "`"
+              result << '`'
             end
             result << "\n\n"
-            if ( m.formatted? )
+            if m.formatted?
               result << indent(m.msg.strip, 8) + "\n\n"
             else
               result << break_at_spaces(m.msg.strip, 68, 8) + "\n\n"
             end
-            if ( m.logline != nil )
+            if m.logline != nil
               # We have line offset in the raw log!
-              logline = m.logline.map { |i| i += @rawoffsets[name] }.join("--")
-              result << (" " * (80 - (6 + logline.length))) + "`log:" + logline + "`\n\n\n"
+              logline = m.logline.map { |i| i += @rawoffsets[name] }.join('--')
+              result << (' ' * (80 - (6 + logline.length))) + '`log:' + logline + "`\n\n\n"
             end
           }
         end
       }
       
-      if ( target_file != nil )
-        File.open("#{target_file}", "w") { |f| f.write(result) }
+      if target_file != nil
+        File.open("#{target_file}", 'w') { |f| f.write(result) }
       end
-      return result
+      result
     end
 
     # Creates a LaTeX document containing all messages at the specified location.
@@ -205,9 +205,9 @@ class Log
       to_s if @rawoffsets == nil # Determines offsets in raw log
       params = ParameterManager.instance
 
-      File.open(target_file, "w") { |f|
+      File.open(target_file, 'w') { |f|
         # Copy template
-        File.open("#{File.dirname(__FILE__)}/logtemplate.tex", "r") { |template|
+        File.open("#{File.dirname(__FILE__)}/logtemplate.tex", 'r') { |template|
           f.write(template.read)
         }
         f.write("\\def\\author{ltx2any}\n\\def\\title{Log for #{params[:user_jobname]}}\n")
@@ -219,7 +219,7 @@ class Log
         
         f.write("\\textbf{Disclaimer:} This is  but a digest of the original log file. " +
                   "For full detail, check out \\loglink. " +
-                  "In case we failed to pick up an error or warning, please " +
+                    'In case we failed to pick up an error or warning, please ' +
                   "\\href{https://github.com/akerbos/ltx2any/issues/new}{report it to us}.\n\n")
         
         f.write("We found \\errlink{\\textbf{#{count(:error)}~error#{pls(count(:error))}}}, " +
@@ -233,7 +233,7 @@ class Log
         
           f.write("\\subsection{\\texttt{#{name}}}\n\n")
           
-          if ( msgs.empty? )
+          if msgs.empty?
             f.write("Lucky you, \\texttt{#{name}} had nothing to complain about!\n\n")
           else 
             f.write("\n\\begin{itemize}\n")
@@ -248,13 +248,13 @@ class Log
                 f.write("\\#{m.type.to_s}{")
               end
               
-              srcline = m.srcline || ["",""]
-              srcline.push("") if srcline.length < 2
+              srcline = m.srcline || ['', '']
+              srcline.push('') if srcline.length < 2
               f.write("#{makeFileref(m.srcfile, srcline[0], srcline[1])}}\n\n")
               
               # Write the log message itself
               f.write("\\begin{verbatim}\n")
-              if ( m.formatted? )
+              if m.formatted?
                 f.write(indent(m.msg.strip, 0))
               else
                 f.write(break_at_spaces(m.msg.strip, 68, 1))
@@ -262,10 +262,10 @@ class Log
               f.write("\n\\end{verbatim}")
               
               # Write the raw log reference
-              if ( m.logline != nil )
+              if m.logline != nil
                 # We have line offsets in the raw log!
                 logline = m.logline.map { |i| i += @rawoffsets[name] }
-                logline.push("") if logline.length < 2
+                logline.push('') if logline.length < 2
                 f.write("\n\n\\logref{#{logline[0]}}{#{logline[1]}}")
               end
               
@@ -301,8 +301,8 @@ class Log
       
       if !File.exist?("#{tmplogprefix}pdf")
         # This should never happen!
-        msg = "Log failed to compile!"
-        if ( params[:daemon] || !params[:clean] )
+        msg = 'Log failed to compile!'
+        if params[:daemon] || !params[:clean]
           msg += " See #{params[:tmpdir]}/#{tmplogprefix}log."
         end
         raise msg
@@ -315,7 +315,7 @@ class Log
     # at the specified location.
     # Returns the resulting string.
     def to_s(target_file = nil)
-      result = ""
+      result = ''
       messages = only_level(:info)      
       
       offset = 0
@@ -335,10 +335,10 @@ class Log
         offset += 10 + messages[source][2].count(?\n)
       }
        
-      if ( target_file != nil )
-        File.open("#{target_file}", "w") { |f| f.write(result) }
+      if target_file != nil
+        File.open("#{target_file}", 'w') { |f| f.write(result) }
       end
-      return result
+      result
     end
     
     def self.fix(s)
@@ -356,36 +356,36 @@ class Log
       def break_at_spaces(s, length, indent)
         words = s.split(/\s+/)
 
-        res = ""
-        line = " " * [0, indent - 1].max
+        res = ''
+        line = ' ' * [0, indent - 1].max
         words.each { |w|
-          newline = line + " " + w
-          if ( newline.length > length )
+          newline = line + ' ' + w
+          if newline.length > length
             res += line + "\n"
-            line = (" " * indent) + w
+            line = (' ' * indent) + w
           else
             line = newline
           end
         }
-        
-        return res + line
+
+        res + line
       end
       
       def indent(s, indent)
-        s.split("\n").map { |line| (" " * indent) + line }.join("\n")
+        s.split("\n").map { |line| (' ' * indent) + line }.join("\n")
       end
       
       def pls(count)
-        if ( count == 1 )
-          ""
+        if count == 1
+          ''
         else
-          "s"
+          's'
         end
       end
 
       def makeFileref(file, linefrom, lineto)
-        fileref = ""
-        if ( file != nil )
+        fileref = ''
+        if file != nil
           #file = file.gsub(/_/, '\_')
           fileref = "\\fileref{#{file}}{#{linefrom}}{#{lineto}}"
         end

@@ -31,6 +31,7 @@ class HashManager
   # Hashes the given string
   def self.hash(string)
     Digest::MD5.hexdigest(string)
+    # TODO SHA-256?
   end
   
   # Computes a hash of the given file.
@@ -49,14 +50,14 @@ class HashManager
     elsif drop_from == nil && without == nil
       Digest::MD5.file(filename).to_s
     else
-      string = File.open(filename, "r") { |f| f.read }
+      string = File.open(filename, 'r') { |f| f.read }
       
       # Fix string encoding; regexp matching below may fail otherwise
       # TODO check if this is necessary with Ruby versions beyond 2.0.0
       if !string.valid_encoding?
-        string = string.encode("UTF-16be", 
-                               :invalid => :replace, 
-                               :replace => "?").encode('UTF-8')
+        string = string.encode('UTF-16be',
+                               :invalid => :replace,
+                               :replace => '?').encode('UTF-8')
       end
       
       # Drop undesired prefix if necessary
@@ -95,8 +96,8 @@ class HashManager
         @hashes[f] = hash  
       end    
     }
-    
-    return result
+
+    result
   end
   
   # Reads hashes from a file in format
@@ -104,12 +105,12 @@ class HashManager
   # Overwrites any hashes that are already known.
   def from_file(filename)
     if File.exist?(filename)
-      File.open(filename, "r") { |f|
+      File.open(filename, 'r') { |f|
         f.readlines.each { |l|
-          parts = l.split(",")
+          parts = l.split(',')
           # Comma may appear as filename, so we have to make sure to only
           # use the last component as hash
-          @hashes[parts.take(parts.size - 1).join(",").strip] = parts.last.strip
+          @hashes[parts.take(parts.size - 1).join(',').strip] = parts.last.strip
         }
       }
     end
@@ -119,7 +120,7 @@ class HashManager
   #   filename,hash
   # Overwrites existing file.
   def to_file(filename)
-    File.open(filename, "w") { |f|
+    File.open(filename, 'w') { |f|
       @hashes.each_pair { |k,v|
         f.write("#{k},#{v}\n")
       }

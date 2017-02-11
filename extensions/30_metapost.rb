@@ -16,13 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-Dependency.new("mpost", :binary, [:extension, "MetaPost"], :essential)
+Dependency.new('mpost', :binary, [:extension, 'MetaPost'], :essential)
 
 class MetaPost < Extension
   def initialize
     super
-    @name = "MetaPost"
-    @description = "Compiles generated MetaPost files"
+    @name = 'MetaPost'
+    @description = 'Compiles generated MetaPost files'
     
     @mp_files = []
   end
@@ -35,7 +35,7 @@ class MetaPost < Extension
     # Count the number of changed _.mp files
     # Store because a check for changed hashes in exec later would give false!
     # Append because job_size may be called multiple times before exec
-    @mp_files += Dir.entries(".").delete_if { |f|
+    @mp_files += Dir.entries('.').delete_if { |f|
         (/\.mp$/ !~ f) || !HashManager.instance.files_changed?(f)
       }
     @mp_files.size
@@ -51,7 +51,7 @@ class MetaPost < Extension
     
     # Run mpost for each job file
     log = [[], []]
-    if ( !@mp_files.empty? )
+    if !@mp_files.empty?
       # Run (latex) engine for each figure
       log = self.class.execute_parts(@mp_files, progress) { |f|
               compile(mpost, f)
@@ -64,16 +64,16 @@ class MetaPost < Extension
     # whole metapost block, not those inside.
     offset = 0
     (0..(log[0].size - 1)).each { |i|
-      if ( log[0][i].size > 0 )
+      if log[0][i].size > 0
         internal_offset = 3 # Stuff we print per plot before log excerpt (see :compile)
         log[0][i].map! { |m|
           LogMessage.new(m.type, m.srcfile, m.srcline, 
-                         if ( m.logline != nil ) then
+                         if m.logline != nil then
                            m.logline.map { |ll| ll + offset + internal_offset} 
                          else
                            nil
                          end,
-                         m.msg, if ( m.formatted? ) then :fixed else :none end)
+                         m.msg, if m.formatted? then :fixed else :none end)
         }
       end
       offset += log[1][i].count(?\n) 
@@ -81,14 +81,14 @@ class MetaPost < Extension
 
     log[0].flatten!
     errors = log[0].count { |m| m.type == :error }
-    return [errors <= 0, log[0], log[1].join]
+    [errors <= 0, log[0], log[1].join]
   end
   
   private 
     def compile(cmd, f)
       params = ParameterManager.instance
       
-      log = ""
+      log = ''
       msgs = []
       
       # Run twice to get LaTeX bits right
@@ -100,18 +100,18 @@ class MetaPost < Extension
         io.readlines
         # Closes IO
       }
-      output = lines.join("").strip
+      output = lines.join('').strip
 
       log << "# #\n# #{f}\n\n"
-      if ( output != "" )
+      if output != ''
         log << output
         msgs += msgs = parse(lines, f)
       else
-        log << "No output from mpost, so apparently everything went fine!"
+        log << 'No output from mpost, so apparently everything went fine!'
       end
       log << "\n\n"
-      
-      return [msgs, log]
+
+      [msgs, log]
     end
     
     def parse(strings, file)
@@ -125,10 +125,10 @@ class MetaPost < Extension
         #  ! message
         #  ...
         #  l.\d+ ...
-        if ( /^! (.*)$/ =~ line )
+        if /^! (.*)$/ =~ line
           curmsg = $~[1].strip
           curline = linectr
-        elsif ( curmsg != nil && /^l\.(\d+)/ =~ line )
+        elsif curmsg != nil && /^l\.(\d+)/ =~ line
           msgs.push(LogMessage.new(:error, "#{ParameterManager.instance[:tmpdir]}/#{file}", 
                                    [Integer($~[1])], [curline, linectr], 
                                    curmsg, :none))
@@ -137,8 +137,8 @@ class MetaPost < Extension
         end
         linectr += 1
       }
-        
-      return msgs
+
+      msgs
     end
 end
 

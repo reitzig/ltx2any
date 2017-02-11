@@ -16,13 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-Dependency.new("biber", :binary, [:extension, "Biber"], :essential)
+Dependency.new('biber', :binary, [:extension, 'Biber'], :essential)
 
 class Biber < Extension
   def initialize
     super
-    @name = "Biber"
-    @description = "Creates bibliographies (recommended)"  
+    @name = 'Biber'
+    @description = 'Creates bibliographies (recommended)'
     @sources = []
   end
 
@@ -34,11 +34,11 @@ class Biber < Extension
     usesbib = File.exist?("#{params[:jobname]}.bcf")
     needrerun = false
     
-    if ( usesbib )
+    if usesbib
       # Collect sources (needed for log parsing)
       @sources = []
       IO.foreach("#{params[:jobname]}.bcf") { |line|
-        if ( /<bcf:datasource[^>]*type="file"[^>]*>(.*?)<\/bcf:datasource>/ =~ line )
+        if /<bcf:datasource[^>]*type="file"[^>]*>(.*?)<\/bcf:datasource>/ =~ line
           @sources.push($~[1])
         end
       }
@@ -54,9 +54,9 @@ class Biber < Extension
                     HashManager.instance.files_changed?("#{params[:jobname]}.bcf",
                                                         *@sources)
                   # Note: non-strict OR so that hashes are computed for next run
-    end 
-        
-    return usesbib && needrerun
+    end
+
+    usesbib && needrerun
   end
 
   def exec(time, progress)
@@ -75,21 +75,21 @@ class Biber < Extension
     errors = false
     linectr = 1
     log.each { |line|
-      if ( /^INFO - (.*)$/ =~ line )
+      if /^INFO - (.*)$/ =~ line
         msgs.push(LogMessage.new(:info, nil, nil, [linectr], $~[1]))
-      elsif ( /^WARN - (.*)$/ =~ line )
+      elsif /^WARN - (.*)$/ =~ line
         msgs.push(LogMessage.new(:warning, nil, nil, [linectr], $~[1]))
-      elsif ( /^ERROR - BibTeX subsystem: .*?(#{@sources.map { |s| Regexp.escape(s) }.join("|")}).*?, line (\d+), (.*)$/ =~ line )
+      elsif /^ERROR - BibTeX subsystem: .*?(#{@sources.map { |s| Regexp.escape(s) }.join('|')}).*?, line (\d+), (.*)$/ =~ line
         msgs.push(LogMessage.new(:error, $~[1], [Integer($~[2])], [linectr], $~[3].strip))
         errors = true
-      elsif ( /^ERROR - (.*)$/ =~ line )
+      elsif /^ERROR - (.*)$/ =~ line
         msgs.push(LogMessage.new(:error, nil, nil, [linectr], $~[1]))
         errors = true
       end
       linectr += 1
     }
 
-    return [!errors, msgs, log.join("").strip!]
+    [!errors, msgs, log.join('').strip!]
   end
 end
   

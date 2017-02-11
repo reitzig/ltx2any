@@ -43,54 +43,54 @@ class TeXLogParser
     current = Finalizer.new
     ongoing = nil
     log.each { |line|
-      if ( !collecting && startregexp =~ line )
+      if !collecting && startregexp =~ line
         collecting = true
         linectr = 1
       end
-      if ( collecting && endregexp =~ line )
+      if collecting && endregexp =~ line
         messages += [current.get_msg].compact
         break
       end
 
       # Even when not collecting, we need to keep track of which file
       # we are in.
-      if ( collecting && line.strip == "" )
+      if collecting && line.strip == ''
        # Empty line ends messages
         messages += [current.get_msg].compact
-      elsif ( /^l\.(\d+) (.*)$/ =~ line )
+      elsif /^l\.(\d+) (.*)$/ =~ line
         # Line starting with a line number ends messages
-        if ( current.type != nil )
-          if ( current.srcline == nil )
+        if current.type != nil
+          if current.srcline == nil
             current.srcline = [Integer($~[1])]
           end
           current.message += $~[2].strip
           current.logline[1] = linectr
           messages += [current.get_msg].compact 
         end
-      elsif ( /^<\*> (.*)$/ =~ line )
+      elsif /^<\*> (.*)$/ =~ line
         # Some messages end with a line of the form '<*> file'
-        if ( current.type != nil )
+        if current.type != nil
           current.srcfile = $~[1].strip
           current.logline[1] = linectr
           messages += [current.get_msg].compact
         end
-      elsif ( /^(\([^()]*\)|[^()])*\)/ =~ line )
+      elsif /^(\([^()]*\)|[^()])*\)/ =~ line
         # End of messages regarding current file
-        if ( collecting )
+        if collecting
           messages += [current.get_msg].compact
         end
 
         filestack.pop
         
         # Multiple files may close; cut away matching part and start over.
-        line = line.gsub($~.regexp, "")
+        line = line.gsub($~.regexp, '')
         redo
-      elsif ( current.type == nil && # When we have an active message, it has
-                                     # to complete before a new file can open.
-                                     # Probably. (Without, error messages with
-                                     # opening but no closing parenthesis would
-                                     # skrew up file tracking.)
-              /^[^()]*(\([^()]*\).*?)*[^()]*\(([^()]*?(\(|$))/ =~ line )
+      elsif current.type == nil && # When we have an active message, it has
+          # to complete before a new file can open.
+          # Probably. (Without, error messages with
+          # opening but no closing parenthesis would
+          # skrew up file tracking.)
+          /^[^()]*(\([^()]*\).*?)*[^()]*\(([^()]*?(\(|$))/ =~ line
         #       {                          }
         #       skip series of matching parens and gutter
         #                                   {        }
@@ -99,23 +99,25 @@ class TeXLogParser
         # A new file has started. Match only those that don't close immediately.
         candidate = $~[2]
         
-        while( !File.exist?(candidate) && candidate != "" ) do # TODO can be long; use heuristics?
+        while !File.exist?(candidate) && candidate != '' do # TODO can be long; use heuristics?
           candidate = candidate[0,candidate.length - 1]
         end
-        if ( File.exist?(candidate) )
+        if File.exist?(candidate)
           filestack.push(candidate)
         else 
           # Lest we break everything by false negatives (due to linebreaks), 
           # add a dummy and hope it closes.
-          filestack.push("dummy")
+          filestack.push('dummy')
         end
 
         # Multiple files may open; cut away matching part and start over.
-        replace = if ( ["("].include?($~[3]) ) then $~[3] else "" end
+        replace = if ['('].include?($~[3]) then $~[3] else
+                                                            ''
+                  end
         line = line.gsub($~.regexp, replace)
         redo
-      elsif ( collecting ) # Do all the checks only when collecting
-        if ( /^(\S*?):(\d+): (.*)/ =~ line && ongoing == nil ) # such lines appear in fontspec-style messages, see below
+      elsif collecting # Do all the checks only when collecting
+        if /^(\S*?):(\d+): (.*)/ =~ line && ongoing == nil # such lines appear in fontspec-style messages, see below
           messages += [current.get_msg].compact
           # messages.push(LogMessage.new(:error, $~[1], [Integer($~[2])], [linectr], $~[3].strip))
           
@@ -126,13 +128,13 @@ class TeXLogParser
           current.message = $~[3].strip + "\n"
           current.slicer = nil
           current.format = :fixed
-        elsif ( /(Package|Class)\s+([\w]+)\s+(Warning|Error|Info)/ =~ line )
+        elsif /(Package|Class)\s+([\w]+)\s+(Warning|Error|Info)/ =~ line
           # Message from some package or class, may be multi-line
           messages += [current.get_msg].compact
           
-          current.type = if ( $~[3] == "Warning" )
+          current.type = if $~[3] == 'Warning'
                          then :warning
-                         elsif ( $~[3] == "Info" )
+                         elsif $~[3] == 'Info'
                          then :info
                          else :error 
                          end
@@ -141,13 +143,13 @@ class TeXLogParser
           current.logline = [linectr]
           current.message = line.strip
           current.slicer = /^\(#{$~[2]}\)\s*/
-        elsif ( /\w+?TeX\s+(Warning|Error|Info)/ =~ line )
+        elsif /\w+?TeX\s+(Warning|Error|Info)/ =~ line
           # Some message from the engine, may be multi-line
           messages += [current.get_msg].compact
 
-          current.type = if ( $~[1] == "Warning" )
+          current.type = if $~[1] == 'Warning'
                          then :warning
-                         elsif ( $~[1] == "Info" )
+                         elsif $~[1] == 'Info'
                          then :info 
                          else :error
                          end
@@ -156,24 +158,24 @@ class TeXLogParser
           current.logline = [linectr]
           current.message = line.strip
           current.slicer = /^\s*/
-        elsif ( /^(LaTeX Font Warning: .*?)(?: #{space_sep("on input line")} (\d+).)?$/ =~ line )
+        elsif /^(LaTeX Font Warning: .*?)(?: #{space_sep('on input line')} (\d+).)?$/ =~ line
           # Some issue with fonts
           messages += [current.get_msg].compact
          
           current.type = :warning
           current.srcfile = filestack.last
-          current.srcline = if ( $~[2] ) then [Integer($~[2])] else nil end 
+          current.srcline = if $~[2] then [Integer($~[2])] else nil end
           current.logline = [linectr]
           current.message = $~[1].strip
           current.slicer  = /^\(Font\)\s*/
-        elsif ( /^((Under|Over)full .*?) #{space_sep("at lines")} (\d+)--(\d+)?/ =~ line )
+        elsif /^((Under|Over)full .*?) #{space_sep('at lines')} (\d+)--(\d+)?/ =~ line
           # Engine complains about under-/overfilled boxes
           messages += [current.get_msg].compact
 
           fromLine = Integer($~[3])
           toLine = Integer($~[4])
           srcLine = [fromLine]
-          if ( toLine >= fromLine )
+          if toLine >= fromLine
             srcLine[1] = toLine
           else
             # This seems to happen for included files. The first number is the
@@ -183,10 +185,10 @@ class TeXLogParser
           end
             
           messages.push(LogMessage.new(:warning, filestack.last, srcLine, [linectr], $~[1].strip))
-        elsif ( /^((Under|Over)full .*?)[\d\[\]]*$/ =~ line )
+        elsif /^((Under|Over)full .*?)[\d\[\]]*$/ =~ line
           messages += [current.get_msg].compact
           messages.push(LogMessage.new(:warning, filestack.last, nil, [linectr], $~[1].strip))
-        elsif ( /^Runaway .*?\?$/ =~ line )
+        elsif /^Runaway .*?\?$/ =~ line
           messages += [current.get_msg].compact
           current.type = :error
           current.srcfile = filestack.last
@@ -194,7 +196,7 @@ class TeXLogParser
           current.logline = [linectr]
           current.message = line.strip + "\n"
           current.format = :fixed
-        elsif ( /^!!+/ =~ line )
+        elsif /^!!+/ =~ line
           # Messages in the style of fontspec
           messages += [current.get_msg].compact
           
@@ -203,39 +205,41 @@ class TeXLogParser
           current.srcfile = filestack.last # may be overwritten later
           current.srcline = nil
           current.logline = [linectr]
-          current.message = ""
+          current.message = ''
           current.format = :fixed
-        elsif ( ongoing == :fontspec ) # Precedence over other lines starting with !, see below
-          if ( /^!\.+/ =~ line.strip )
+        elsif ongoing == :fontspec # Precedence over other lines starting with !, see below
+          if /^!\.+/ =~ line.strip
             # Message is done
             ongoing = nil
             messages += [current.get_msg].compact
             current = Finalizer.new
-          elsif ( /^(?:\.\/)?(\S+?):(\d+): (.*)/ =~ line )
+          elsif /^(?:\.\/)?(\S+?):(\d+): (.*)/ =~ line
             current.srcfile = $~[1]
             current.srcline = [Integer($~[2])]
             current.message += $~[3].strip + "\n"
-          elsif ( /^! For immediate help.*/ =~ line )
+          elsif /^! For immediate help.*/ =~ line
             # Drop useless note
-          elsif ( /^!(.*)/ =~ line )
+          elsif /^!(.*)/ =~ line
             # A new line
-            if ( $~[1].strip.size > 0 )
+            if $~[1].strip.size > 0
               current.message += $~[1].strip + "\n"
             end
           end 
-        elsif ( /^! (.*?)(after line (\d+).)?$/ =~ line )
+        elsif /^! (.*?)(after line (\d+).)?$/ =~ line
           messages += [current.get_msg].compact
           current.type = :error
           current.srcfile = filestack.last
-          current.srcline = if ( $~[3] ) then [Integer($~[3])] else nil end 
+          current.srcline = if $~[3] then [Integer($~[3])] else nil end
           current.logline = [linectr]
-          current.message = $~[1] + (if ( $~[2] ) then $~[2] else "" end)
-        elsif ( current.type != nil )
-          if ( current.slicer != nil )
-            line = line.gsub(current.slicer, "")
+          current.message = $~[1] + (if $~[2] then $~[2] else
+                                                               ''
+                                     end)
+        elsif current.type != nil
+          if current.slicer != nil
+            line = line.gsub(current.slicer, '')
           end
-          if ( current.format != :fixed )
-            line = " " + line.strip!
+          if current.format != :fixed
+            line = ' ' + line.strip!
           end
           current.message += line
           current.logline[1] = linectr
@@ -281,8 +285,8 @@ class TeXLogParser
       
         #  (initially: @currentmessage = [nil, nil, nil, nil, nil, nil, :none] )
         def get_msg()
-          if ( @type != nil )
-            if ( @srcline == nil && @message =~ /(.+?) #{TeXLogParser::space_sep("on input line")} (\d+)\.?$/ )
+          if @type != nil
+            if @srcline == nil && @message =~ /(.+?) #{TeXLogParser::space_sep('on input line')} (\d+)\.?$/
               # The first line did not contain the line of warning, but
               # the last did!
               @message = $~[1].strip
@@ -290,10 +294,10 @@ class TeXLogParser
             end
             res = LogMessage.new(@type, @srcfile, @srcline, @logline, @message, @format)
             reset
-            return res
+            res
           else
             reset
-            return nil
+            nil
           end
         end
     end

@@ -16,15 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-Dependency.new("lualatex", :binary, [:engine, "lualatex"], :essential)
+Dependency.new('lualatex', :binary, [:engine, 'lualatex'], :essential)
 
 class LuaLaTeX < Engine
 
   def initialize
     super
-    @binary = "lualatex"
-    @extension = "pdf"
-    @description = "Uses lualatex to create a PDF"
+    @binary = 'lualatex'
+    @extension = 'pdf'
+    @description = 'Uses lualatex to create a PDF'
     
     @target_file = "#{ParameterManager.instance[:jobname]}.#{extension}"
     @old_hash = hash_result
@@ -49,7 +49,7 @@ class LuaLaTeX < Engine
     f = IO::popen(eval(lualatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
-    return [File.exist?(@target_file), TeXLogParser.parse(log), log.join("").strip!]
+    [File.exist?(@target_file), TeXLogParser.parse(log), log.join('').strip!]
   end
 end
 

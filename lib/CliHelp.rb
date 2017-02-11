@@ -31,7 +31,7 @@ class CliHelp
     params = ParameterManager.instance
     
     # Check for help/usage commands
-    if ( args.length == 0 || /--help|--h/ =~ args[0] )
+    if args.length == 0 || /--help|--h/ =~ args[0]
       puts "\nUsage: "
       puts "  #{NAME} [options] inputfile\tNormal execution (see below)"
       puts "  #{NAME} --extensions\t\tList of extensions"
@@ -50,37 +50,37 @@ class CliHelp
 
       # TODO output unsatisfied dependencies
 
-      return true
-    elsif ( args[0] == "--extensions" )
-      puts "Installed extensions in execution order:"
+      true
+    elsif args[0] == '--extensions'
+      puts 'Installed extensions in execution order:'
       maxwidth = Extension.list.map { |e| e.name.length }.max
       Extension.list.each { |e|
-        puts "  #{e.name}#{" " * (maxwidth - e.name.length)}\t#{e.description}"
+        puts "  #{e.name}#{' ' * (maxwidth - e.name.length)}\t#{e.description}"
       }
       return true
-    elsif ( args[0] == "--engines" )
-      puts "Installed engines:"
+    elsif args[0] == '--engines'
+      puts 'Installed engines:'
       Engine.list.each { |e|
         if DependencyManager.list(source: [:engine, e.binary], relevance: :essential).all? { |d| d.available? }
           print "  #{e.name}\t#{e.description}"
-          if ( e.to_sym == params[:engine] )
-            print " (default)"
+          if e.to_sym == params[:engine]
+            print ' (default)'
           end
-          puts ""
+          puts ''
         end
       }
       return true
-    elsif ( args[0] == "--dependencies" )
+    elsif args[0] == '--dependencies'
       puts DependencyManager.to_s # TODO make prettier?
       return true
-    elsif ( args[0] == "--version" )
+    elsif args[0] == '--version'
       puts "#{NAME} #{VERSION}"
       puts "Copyright \u00A9 #{AUTHOR} #{YEAR}".encode('utf-8')
-      puts "This is free software; see the source for copying conditions."
-      puts "There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      puts 'This is free software; see the source for copying conditions.'
+      puts 'There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.'
       return true
     else # No help requested
-      return false
+      false
     end
   end
 

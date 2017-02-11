@@ -18,7 +18,7 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 # Set process name to something less cumbersome
-$0="ltx2any"
+$0='ltx2any'
 
 BASEDIR = File.dirname(__FILE__)
 require "#{BASEDIR}/constants.rb"
@@ -66,7 +66,7 @@ begin
     }
     
     if !missing.empty? # TODO enter into log?
-      OUTPUT.separate.error("Missing dependencies", missing)
+      OUTPUT.separate.error('Missing dependencies', missing)
       Process.exit
     end
   end
@@ -81,7 +81,7 @@ begin
     }
     
     if !missing.empty? # TODO enter into log?
-      OUTPUT.separate.warn("Missing dependencies", missing)
+      OUTPUT.separate.warn('Missing dependencies', missing)
     end
   end
   
@@ -95,7 +95,7 @@ begin
     "#{PARAMS[:user_jobname]}.#{Engine[PARAMS[:engine]].extension}",
     "#{PARAMS[:log]}",
     "#{PARAMS[:user_jobname]}.err"
-  ] + PARAMS[:ignore].split(":")
+  ] + PARAMS[:ignore].split(':')
 
   begin
     FileListener.instance.start(PARAMS[:user_jobname], toignore) if PARAMS[:daemon]
@@ -112,17 +112,17 @@ begin
       log.level = PARAMS[:loglevel]
       start_time = Time.now
 
-      OUTPUT.start("Copying files to tmp")
+      OUTPUT.start('Copying files to tmp')
       # Copy all files to tmp directory (some LaTeX packages fail to work with
       # output dir) excepting those we ignore anyways.
       # Oh, and don't recurse outside the main directory, duh.
       ignore = FileListener.instance.ignored + toignore
       exceptions = ignore + ignore.map { |s| "./#{s}" } +
-                   Dir[".*"] + Dir["./.*"] # drop hidden files, in p. . and ..
+                   Dir['.*'] + Dir['./.*'] # drop hidden files, in p. . and ..
 
       define_singleton_method(:copy2tmp) { |files|
         files.each { |f|
-          if ( File.symlink?(f) )
+          if File.symlink?(f)
             # Avoid trouble with symlink loops
 
             # Delete old symlink if there is one, because:
@@ -130,16 +130,16 @@ begin
             # remove the obsolete stuff.
             # If there already is a symlink, delete because it might have been
             # relinked.
-            if ( File.exists?("#{PARAMS[:tmpdir]}/#{f}") )
+            if File.exists?("#{PARAMS[:tmpdir]}/#{f}")
               FileUtils::rm("#{PARAMS[:tmpdir]}/#{f}")
             end
 
             # Create new symlink instead of copying
             File.symlink("#{PARAMS[:jobpath]}/#{f}", "#{PARAMS[:tmpdir]}/#{f}")
-          elsif ( File.directory?(f) )
+          elsif File.directory?(f)
             FileUtils::mkdir_p("#{PARAMS[:tmpdir]}/#{f}")
             copy2tmp(Dir.entries(f)\
-                        .delete_if { |s| [".", "..", ]\
+                        .delete_if { |s| ['.', '..', ]\
                         .include?(s) }.map { |s| "#{f}/#{s}" })
             # TODO Is this necessary? Why not just copy? (For now, safer and more adaptable.)
           else
@@ -149,22 +149,22 @@ begin
       }
 
       # tmp dir may have been removed (either by DaemonPrompt or the outside)
-      if ( !File.exist?(PARAMS[:tmpdir]) )
+      if !File.exist?(PARAMS[:tmpdir])
         FileUtils.mkdir_p(PARAMS[:tmpdir])
-      elsif ( !File.directory?(PARAMS[:tmpdir]) )
+      elsif !File.directory?(PARAMS[:tmpdir])
         OUTPUT.message("File #{PARAMS[:tmpdir]} exists but is not a directory")
         Process.exit
       end
 
       # (Re-)Copy content to tmp
-      copy2tmp(Dir.entries(".").delete_if { |f| exceptions.include?(f) })
+      copy2tmp(Dir.entries('.').delete_if { |f| exceptions.include?(f) })
       OUTPUT.stop(:success)
 
       # Move into temporary directory
       Dir.chdir(PARAMS[:tmpdir])
 
       # Delete former results in order not to pretend success
-      if ( File.exist?("#{PARAMS[:jobname]}.#{engine.extension}") )
+      if File.exist?("#{PARAMS[:jobname]}.#{engine.extension}")
         FileUtils::rm("#{PARAMS[:jobname]}.#{engine.extension}")
       end
 
@@ -200,36 +200,44 @@ begin
       Extension.run_all(:after, OUTPUT, log)
 
       # Give error/warning counts to user
-      errorS = if ( log.count(:error) != 1 ) then "s" else "" end
-      warningS = if ( log.count(:warning) != 1 ) then "s" else "" end
+      errorS = if log.count(:error) != 1 then
+                 's'
+               else
+                                                    ''
+               end
+      warningS = if log.count(:warning) != 1 then
+                   's'
+                 else
+                                                        ''
+                 end
       OUTPUT.msg("There were #{log.count(:error)} error#{errorS} " +
                  "and #{log.count(:warning)} warning#{warningS}.")
 
       # Pick up output if present
-      if ( File.exist?("#{PARAMS[:jobname]}.#{engine.extension}") )
+      if File.exist?("#{PARAMS[:jobname]}.#{engine.extension}")
         FileUtils::cp("#{PARAMS[:jobname]}.#{engine.extension}", "#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.#{engine.extension}")
         OUTPUT.msg("Output generated at #{PARAMS[:user_jobname]}.#{engine.extension}")
       else
-        OUTPUT.msg("No output generated, probably due to fatal errors.")
+        OUTPUT.msg('No output generated, probably due to fatal errors.')
       end
 
       # Write log
-      if ( !log.empty? )
-        OUTPUT.start("Assembling log files")
+      if !log.empty?
+        OUTPUT.start('Assembling log files')
 
         # Manage messages from extensions
         Extension.list.each { |ext|
-          if (   !log.has_messages?(ext.name) \
-              && File.exist?(".#{NAME}_extensionmsg_#{ext.name}") )
+          if !log.has_messages?(ext.name) \
+              && File.exist?(".#{NAME}_extensionmsg_#{ext.name}")
             # Extension did not run but has run before; load messages from then!
-            old = File.open(".#{NAME}_extensionmsg_#{ext.name}", "r") { |f|
+            old = File.open(".#{NAME}_extensionmsg_#{ext.name}", 'r') { |f|
               f.readlines.join
             }
             old = YAML.load(old)
             log.add_messages(ext.name, old[0], old[1], old[2])
-          elsif ( log.has_messages?(ext.name) )
+          elsif log.has_messages?(ext.name)
             # Write new messages
-            File.open(".#{NAME}_extensionmsg_#{ext.name}", "w") { |f|
+            File.open(".#{NAME}_extensionmsg_#{ext.name}", 'w') { |f|
               f.write(YAML.dump(log.messages(ext.name)))
             }
           end
@@ -240,38 +248,38 @@ begin
         log.to_s("#{PARAMS[:log]}.full")
 
         mdfallback = false
-        if ( PARAMS[:logformat] == :pdf )
+        if PARAMS[:logformat] == :pdf
           begin
             tmpsrc = "#{PARAMS[:log]}.pdf"
             log.to_pdf(tmpsrc)
 
             # Sucks, but OS might not offer correct apps otherwise
-            if ( !PARAMS[:log].end_with?(".pdf") )
+            if !PARAMS[:log].end_with?('.pdf')
               target = "#{PARAMS[:log]}.pdf"
             end
           rescue RuntimeError => e
-            OUTPUT.stop(:error, "Failed to build PDF log:", e.message)
+            OUTPUT.stop(:error, 'Failed to build PDF log:', e.message)
 
             # Fall back to Markdown log
-            OUTPUT.start("Falling back to Markdown log")
+            OUTPUT.start('Falling back to Markdown log')
             mdfallback = true
           end
         end
-        if ( PARAMS[:logformat] == :latex )
+        if PARAMS[:logformat] == :latex
           tmpsrc = "#{PARAMS[:log]}.tex"
           log.to_latex(tmpsrc)
 
           # Sucks, but viewers can not choose proper highlighting otherwise
-          if ( !PARAMS[:log].end_with?(".tex") )
+          if !PARAMS[:log].end_with?('.tex')
             target = "#{PARAMS[:log]}.tex"
           end
         end
-        if ( PARAMS[:logformat] == :md || mdfallback )
+        if PARAMS[:logformat] == :md || mdfallback
           tmpsrc = "#{PARAMS[:log]}.md"
           log.to_md(tmpsrc)
 
           # Sucks, but viewers can not choose proper highlighting otherwise
-          if ( !PARAMS[:log].end_with?(".md") )
+          if !PARAMS[:log].end_with?('.md')
             target = "#{PARAMS[:log]}.md"
           end
         end
@@ -284,8 +292,8 @@ begin
 
         runtime = Time.now - start_time
         # Don't show runtimes of less than 5s (arbitrary)
-        if ( runtime / 60 >= 1 || runtime % 60 >= 5 )
-          OUTPUT.msg("Took " + sprintf("%d min ", runtime / 60) + " " + sprintf("%d sec", runtime % 60))
+        if runtime / 60 >= 1 || runtime % 60 >= 5
+          OUTPUT.msg('Took ' + sprintf('%d min ', runtime / 60) + ' ' + sprintf('%d sec', runtime % 60))
         end
       end
     rescue Interrupt, SystemExit # User cancelled current run
@@ -303,11 +311,11 @@ begin
     OUTPUT.separate
   end while ( PARAMS[:daemon] )
 rescue Interrupt, SystemExit
-  OUTPUT.separate.msg("Shutdown")
+  OUTPUT.separate.msg('Shutdown')
 rescue Exception => e
-  if ( PARAMS[:user_jobname] != nil )
+  if PARAMS[:user_jobname] != nil
     OUTPUT.separate.error(e.message, "See #{PARAMS[:user_jobname]}.err for details.")
-    File.open("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err", "w") { |file|
+    File.open("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err", 'w') { |file|
       file.write("#{e.inspect}\n\n#{e.backtrace.join("\n")}")
     }
     CLEANALL.push("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err")

@@ -18,16 +18,16 @@
 
 require 'singleton'
 
-Dependency.new("ruby-progressbar", :gem, [:core, "Output"], :recommended, "nice progress indicators", ">=1.7.5")
+Dependency.new('ruby-progressbar', :gem, [:core, 'Output'], :recommended, 'nice progress indicators', '>=1.7.5')
 
 class Output
   include Singleton
 
   def initialize()
-    @success   = "Done"
-    @error     = "Error"
-    @warning   = "Warning"
-    @cancel    = "Cancelled"
+    @success   = 'Done'
+    @error     = 'Error'
+    @warning   = 'Warning'
+    @cancel    = 'Cancelled'
     @shortcode = "[#{NAME}]"
     @dependencies = DependencyManager.list(source: [:core, self.class.to_s])
   end
@@ -35,13 +35,13 @@ class Output
   private
     def puts_indented(msgs)
       msgs.each { |m|
-        puts "#{" " * @shortcode.length} #{m}"
+        puts "#{' ' * @shortcode.length} #{m}"
       }
     end
 
   public
     def msg(*msg)
-      if ( msg.size > 0 )
+      if msg.size > 0
         puts "#{@shortcode} #{msg[0]}"
         puts_indented(msg.drop(1)) if msg.size > 1
       end
@@ -49,14 +49,14 @@ class Output
     end
 
     def warn(*msg)
-      if ( msg.size > 0 )
+      if msg.size > 0
         msg[0] = "#{@warning}: #{msg[0]}"
         msg(*msg)
       end
     end
     
     def error(*msg)
-      if ( msg.size > 0 )
+      if msg.size > 0
         msg[0] = "#{@error}: #{msg[0]}"
         msg(*msg)
       end
@@ -65,14 +65,14 @@ class Output
     def start(msg, count=1)
       if count > 1 && @dependencies.all? { |d| d.available? }
         # Set up progress bar if needed
-        require "ruby-progressbar"
+        require 'ruby-progressbar'
         progress = ProgressBar.create(:title => "#{@shortcode} #{msg} ...",
                                       :total => count,
-                                      :format => "%t [%c/%C]",
+                                      :format => '%t [%c/%C]',
                                       :autofinish => false)
         return [lambda { progress.increment },
                 lambda { |state, *msgs|
-                  progress.format("#{@shortcode} #{msg} ... #{instance_variable_get(("@#{state}").intern).to_s}" + (" " * 5)) # Add some spaces to hide all for up to 999 steps
+                  progress.format("#{@shortcode} #{msg} ... #{instance_variable_get(("@#{state}").intern).to_s}" + (' ' * 5)) # Add some spaces to hide all for up to 999 steps
                   # TODO We *know* that we need 2*ceil(log_2(count)) - 1 spaces...
                   progress.stop
                   puts_indented(*msgs) if msgs.size > 0
@@ -84,7 +84,7 @@ class Output
       # Fallback if progress bar not needed, or gem not available
       print "#{@shortcode} #{msg} ... "
       STDOUT.flush
-      return [lambda {}, lambda { |state, *msgs| stop(state, *msgs) }]
+      [lambda {}, lambda { |state, *msgs| stop(state, *msgs) }]
     end
 
     def stop(state, *msg)
@@ -94,7 +94,7 @@ class Output
     end
 
     def separate
-      puts ""
-      return self
+      puts ''
+      self
     end
 end
