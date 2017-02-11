@@ -41,7 +41,7 @@ class SageTeX < Extension
 
     errors = parse(log)
 
-    [errors.count <= 0, errors, log.join('')]
+    { success: errors.count <= 0, messages: errors, log: log.join('') }
   end
 
   private

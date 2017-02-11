@@ -95,7 +95,7 @@ class MakeIndex < Extension
       linectr += 1
     }
 
-    [!errors, msgs, log.join('').strip!]
+    { sucess: !errors, messages: msgs, log: log.join('').strip! }
   end
 end
 

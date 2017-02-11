@@ -86,7 +86,7 @@ class TikZExt < Extension
     
     log[0].flatten!
     errors = log[0].count { |m| m.type == :error }
-    [errors <= 0, rebuildlog[0] + log[0], rebuildlog[1] + log[1].join]
+    { success: errors <= 0, messages: rebuildlog[0] + log[0], log: rebuildlog[1] + log[1].join }
   end
   
   private

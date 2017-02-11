@@ -63,7 +63,9 @@ class SyncTeX < Extension
     params = ParameterManager.instance
 
     if !File.exist?("#{params[:jobname]}.synctex")
-      return [false, [LogMessage.new(:error, nil, nil, nil, 'SyncTeX file not found.')], '']
+      return { success: false,
+               messages: [LogMessage.new(:error, nil, nil, nil, 'SyncTeX file not found.')],
+               log: 'SyncTeX file not found.' }
     end
 
     # Fix paths in synctex file, gzip it and put result in main directory
@@ -71,14 +73,14 @@ class SyncTeX < Extension
       File.open("#{params[:jobname]}.synctex", 'r') { |f|
         f.readlines.each { |line|
           # Replace tmp path with job path.
-          # Catch tmp paths relative to job path first, then try to match it as absolute path.
+          # Catch absolute tmp paths first, then try to match paths relative to job path.
           gz.write line.sub("#{params[:jobpath]}/#{params[:tmpdir]}", params[:jobpath])\
                        .sub(params[:tmpdir], params[:jobpath])
         }
       }
     }
 
-    [true, [], '']
+    { success: true, messages: [], log: '' }
   end
 end
   

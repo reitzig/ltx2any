@@ -89,7 +89,7 @@ class Biber < Extension
       linectr += 1
     }
 
-    [!errors, msgs, log.join('').strip!]
+    { success: !errors, messages: msgs, log: log.join('').strip! }
   end
 end
   

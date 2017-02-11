@@ -103,8 +103,8 @@ class Extension
         if dependencies.all? { |d| d.available? }
           progress, stop = output.start("#{e.name} running", e.job_size)
           r = e.exec(time, progress)
-          stop.call(if r[0] then :success else :error end)
-          log.add_messages(e.name, :extension, r[1], r[2])
+          stop.call(if r[:success] then :success else :error end)
+          log.add_messages(e.name, :extension, r[:messages], r[:log])
         else
           # TODO log message?
           output.separate.error('Missing dependencies:', *dependencies.select { |d| !d.available? }.map { |d| d.to_s })
@@ -123,7 +123,7 @@ class Extension
     end
 
     def exec(time, progress)
-      [true, 'No execution code, need to overwrite!']
+      { success: true, messages: ['No execution code, need to overwrite!'], log: 'No execution code, need to overwrite!' }
     end
 
     def to_s

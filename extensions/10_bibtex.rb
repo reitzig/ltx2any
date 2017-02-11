@@ -111,7 +111,7 @@ class BibTeX < Extension
       lastline = line
     }
 
-    [!errors, msgs, log.join('').strip!]
+    { success: !errors, messages: msgs, log: log.join('').strip! }
   end
 end
   
