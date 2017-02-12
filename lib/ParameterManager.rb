@@ -43,7 +43,7 @@ class ParameterManager
           else
             @values[p.key] = p
             @code2key[p.code] = p.key
-            @hooks[p.key] = []
+            @hooks[p.key] = [] unless @hooks.has_key?(p.key)
           end
         else
           raise ParameterException.new("Can not add object of type #{p.class} as parameter.")
