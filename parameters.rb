@@ -23,8 +23,6 @@
                 'Delete temporary files'),
   Parameter.new(:cleanall, 'ca', Boolean, false,
                 'Delete temporary files and logs'),
-  Parameter.new(:log, 'l', String, '"#{self[:user_jobname]}.log"',
-                '(Base-)Name of log file'),
   Parameter.new(:tmpdir, 't', String, '"#{self[:user_jobname]}#{TMPSUFFIX}"',
                 'Directory for temporary files'),
   Parameter.new(:ignore, 'i', String, '',

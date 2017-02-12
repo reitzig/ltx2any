@@ -143,7 +143,7 @@ end
 
 # Load all extensions
 Dir["#{BASEDIR}/#{EXTDIR}/*.rb"].sort.each { |f|
-  if !(/^\d\d/ !~ File.basename(f))
+  if /^\d\d/ =~ File.basename(f)
     load(f)
   end
 }

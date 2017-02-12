@@ -24,7 +24,7 @@ class XeLaTeX < Engine
     super
     @binary = 'xelatex'
     @extension = 'pdf'
-    @description = 'Uses xelatex to create a PDF'
+    @description = 'Uses XeLaTeX to create a PDF'
     
     @target_file = "#{ParameterManager.instance[:jobname]}.#{extension}"
     @old_hash = hash_result

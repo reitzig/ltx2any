@@ -1,4 +1,4 @@
-# Copyright 2016, Raphael Reitzig
+# Copyright 2010-2017, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -16,16 +16,25 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-# TODO move to a properties file?
-NAME       = 'ltx2any'
-VERSION    = '0.9a'
-YEAR       = '2016'
-AUTHOR     = 'Raphael Reitzig'
-TMPSUFFIX  = '_tmp'
-HASHFILE   = '.hashes' # relative to tmp directory
-# TODO move this constant to HashManager?
+class Raw < LogWriter
+  def self.name
+    'Original Log'
+  end
 
-LIBDIR  = 'lib'
-EXTDIR  = 'extensions'
-ENGDIR  = 'engines'
-LOGWDIR = 'logwriters'
+  def self.description
+    'Prints the original log files/outputs into a single file.'
+  end
+
+  def self.to_sym
+    :raw
+  end
+
+  # Returns the name of the written file, or raises an exception
+  def self.write(log, level: :warning)
+    target_file = "#{ParameterManager.instance[:log]}.full"
+    File.open("#{target_file}", 'w') { |f| f.write(log.to_s) }
+    target_file
+  end
+end
+
+LogWriter.add Raw

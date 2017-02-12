@@ -24,7 +24,7 @@ class LuaLaTeX < Engine
     super
     @binary = 'lualatex'
     @extension = 'pdf'
-    @description = 'Uses lualatex to create a PDF'
+    @description = 'Uses LuaLaTeX to create a PDF'
     
     @target_file = "#{ParameterManager.instance[:jobname]}.#{extension}"
     @old_hash = hash_result

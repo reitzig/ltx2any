@@ -24,7 +24,7 @@ class PdfLaTeX < Engine
     super
     @binary = 'pdflatex'
     @extension = 'pdf'
-    @description = 'Uses pdflatex to create a PDF'
+    @description = 'Uses PdfLaTeX to create a PDF'
     
     @target_file = "#{ParameterManager.instance[:jobname]}.#{extension}"
     @old_hash = hash_result

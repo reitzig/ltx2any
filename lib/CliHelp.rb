@@ -36,7 +36,8 @@ class CliHelp
       puts "  #{NAME} [options] inputfile\tNormal execution (see below)"
       puts "  #{NAME} --extensions\t\tList of extensions"
       puts "  #{NAME} --engines\t\tList of target engines"
-      puts "  #{NAME} --dependencies\t\tList of dependencies"
+      puts "  #{NAME} --logformats\t\tList of log formats"
+      puts "  #{NAME} --dependencies\tList of dependencies"
       puts "  #{NAME} --version\t\tPrints version information"
       puts "  #{NAME} --help\t\tThis message"
 
@@ -52,7 +53,7 @@ class CliHelp
 
       true
     elsif args[0] == '--extensions'
-      puts 'Installed extensions in execution order:'
+      puts 'Installed extensions in execution order:' # TODO change after toposorted-extension order!
       maxwidth = Extension.list.map { |e| e.name.length }.max
       Extension.list.each { |e|
         puts "  #{e.name}#{' ' * (maxwidth - e.name.length)}\t#{e.description}"
@@ -60,10 +61,25 @@ class CliHelp
       return true
     elsif args[0] == '--engines'
       puts 'Installed engines:'
-      Engine.list.each { |e|
+      maxwidth = Engine.list.map { |e| e.to_sym.to_s.length }.max
+      Engine.list.sort_by { |e| e.name }.each { |e|
         if DependencyManager.list(source: [:engine, e.binary], relevance: :essential).all? { |d| d.available? }
-          print "  #{e.name}\t#{e.description}"
+          print "  #{e.to_sym}#{' ' * (maxwidth - e.to_sym.to_s.length)}\t#{e.description}"
           if e.to_sym == params[:engine]
+            print ' (default)'
+          end
+          puts ''
+        end
+      }
+      return true
+    elsif args[0] == '--logformats'
+      puts 'Available log formats:'
+      maxwidth = LogWriter.list.map { |lw| lw.to_sym.to_s.length }.max
+      LogWriter.list.sort_by { |lw| lw.name }.each { |lw|
+        if DependencyManager.list(source: [:logwriter, lw.to_sym], relevance: :essential).all? { |d| d.available? }
+          print "  #{lw.to_sym}#{' ' * (maxwidth - lw.to_sym.to_s.length)}" +
+                    "\t#{lw.description}"
+          if lw.to_sym == params[:logformat]
             print ' (default)'
           end
           puts ''

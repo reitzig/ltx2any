@@ -243,51 +243,13 @@ begin
           end
         }
 
-        target = PARAMS[:log]
-        tmpsrc = "#{PARAMS[:log]}.full"
-        log.to_s("#{PARAMS[:log]}.full")
+        logfile = LogWriter[:raw].write(log)
+        logfile = LogWriter[PARAMS[:logformat]].write(log, PARAMS[:loglevel])
 
-        mdfallback = false
-        if PARAMS[:logformat] == :pdf
-          begin
-            tmpsrc = "#{PARAMS[:log]}.pdf"
-            log.to_pdf(tmpsrc)
-
-            # Sucks, but OS might not offer correct apps otherwise
-            if !PARAMS[:log].end_with?('.pdf')
-              target = "#{PARAMS[:log]}.pdf"
-            end
-          rescue RuntimeError => e
-            OUTPUT.stop(:error, 'Failed to build PDF log:', e.message)
-
-            # Fall back to Markdown log
-            OUTPUT.start('Falling back to Markdown log')
-            mdfallback = true
-          end
-        end
-        if PARAMS[:logformat] == :latex
-          tmpsrc = "#{PARAMS[:log]}.tex"
-          log.to_latex(tmpsrc)
-
-          # Sucks, but viewers can not choose proper highlighting otherwise
-          if !PARAMS[:log].end_with?('.tex')
-            target = "#{PARAMS[:log]}.tex"
-          end
-        end
-        if PARAMS[:logformat] == :md || mdfallback
-          tmpsrc = "#{PARAMS[:log]}.md"
-          log.to_md(tmpsrc)
-
-          # Sucks, but viewers can not choose proper highlighting otherwise
-          if !PARAMS[:log].end_with?('.md')
-            target = "#{PARAMS[:log]}.md"
-          end
-        end
-
-        FileUtils::cp(tmpsrc, "#{PARAMS[:jobpath]}/#{target}")
+        FileUtils::cp(logfile, "#{PARAMS[:jobpath]}/#{logfile}")
         OUTPUT.stop(:success)
-        OUTPUT.msg("Log file generated at #{target}")
-        CLEANALL.push("#{PARAMS[:jobpath]}/#{target}")
+        OUTPUT.msg("Log file generated at #{logfile}")
+        CLEANALL.push("#{PARAMS[:jobpath]}/#{logfile}")
         CLEANALL.uniq!
 
         runtime = Time.now - start_time

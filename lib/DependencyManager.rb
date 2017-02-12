@@ -101,7 +101,7 @@ class DependencyManager
   end
   
   
-  def self.list(type: :all, source: :all, relevance: :all)
+  def self.list(type = :all, source = :all, relevance = :all)
     @@dependencies.select { |d|     
          (type == :all      || d.type == type           || (type.kind_of?(Array) && type.include?(d.type)))\
       && (source == :all    || d.source == source       || (d.source.kind_of?(Array) && d.source.include?(source)))\
@@ -125,7 +125,7 @@ class Dependency
   def initialize(name, type, source, relevance, reason = '', version = nil)
     if ![:gem, :binary, :file].include?(type)
       raise "Illegal dependency type #{type.to_s}"
-    elsif source != :core && (!source.kind_of?(Array) || ![:core, :extension, :engine].include?(source[0]) )
+    elsif source != :core && (!source.kind_of?(Array) || ![:core, :extension, :engine, :logwriter].include?(source[0]) )
       raise "Illegal source #{source.to_s}"
     elsif ![:recommended, :essential].include?(relevance)
       raise "Illegal relevance #{relevance.to_s}"
