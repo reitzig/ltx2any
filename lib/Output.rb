@@ -23,13 +23,15 @@ Dependency.new('ruby-progressbar', :gem, [:core, 'Output'], :recommended, 'nice 
 class Output
   include Singleton
 
-  def initialize()
+  def initialize
     @success   = 'Done'
     @error     = 'Error'
     @warning   = 'Warning'
     @cancel    = 'Cancelled'
     @shortcode = "[#{NAME}]"
     @dependencies = DependencyManager.list(source: [:core, self.class.to_s])
+    @running = false
+    @pending = []
   end
 
   private
@@ -41,11 +43,15 @@ class Output
 
   public
     def msg(*msg)
-      if msg.size > 0
+      if !msg.empty? && !@running
         puts "#{@shortcode} #{msg[0]}"
         puts_indented(msg.drop(1)) if msg.size > 1
+        STDOUT.flush
+      elsif !msg.empty?
+        # Store message to be printed after the current
+        # process finished
+        @pending << msg
       end
-      STDOUT.flush
     end
 
     def warn(*msg)
@@ -63,6 +69,7 @@ class Output
     end
 
     def start(msg, count=1)
+      @running = true
       if count > 1 && @dependencies.all? { |d| d.available? }
         # Set up progress bar if needed
         require 'ruby-progressbar'
@@ -91,6 +98,14 @@ class Output
       puts instance_variable_get(("@#{state}").intern).to_s
       puts_indented(msg) if msg.size > 0
       STDOUT.flush
+
+      # Print messages that were held back during the process
+      # that just finished.
+      @running = false
+      @pending.each { |msgs|
+        msg(*msgs)
+      }
+      @pending.clear
     end
 
     def separate
