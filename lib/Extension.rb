@@ -17,7 +17,6 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 Dependency.new('parallel', :gem, [:core, 'Extension'], :recommended, 'Faster execution for some extensions', '>=1.9.0')
-Dependency.new('system', :gem, [:core, 'Extension'], :recommended, 'Required for parallel', '>=0.1.3')
 
 class Extension
   @@list = {}
