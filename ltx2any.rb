@@ -66,7 +66,7 @@ begin
     }
     
     if !missing.empty? # TODO enter into log?
-      OUTPUT.separate.error('Missing dependencies', missing)
+      OUTPUT.separate.error('Missing dependencies', *missing)
       Process.exit
     end
   end
@@ -81,7 +81,7 @@ begin
     }
     
     if !missing.empty? # TODO enter into log?
-      OUTPUT.separate.warn('Missing dependencies', missing)
+      OUTPUT.separate.warn('Missing dependencies', *missing)
     end
   end
   

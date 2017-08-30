@@ -101,7 +101,7 @@ class DependencyManager
   end
   
   
-  def self.list(type = :all, source = :all, relevance = :all)
+  def self.list(type: :all, source: :all, relevance: :all)
     @@dependencies.select { |d|     
          (type == :all      || d.type == type           || (type.kind_of?(Array) && type.include?(d.type)))\
       && (source == :all    || d.source == source       || (d.source.kind_of?(Array) && d.source.include?(source)))\
