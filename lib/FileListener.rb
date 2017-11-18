@@ -84,6 +84,7 @@ class FileListener
     # Write ignore list for other processes
     File.open("#{params[:jobpath]}/#{@ignorefile}", 'w') { |file|
       file.write(@ignore.join("\n"))
+      # TODO make sure this file gets deleted!
     }
 
     # Collect all existing ignore files
