@@ -48,7 +48,7 @@ class LaTeX < LogWriter
       f.write("\\section{Log for \\texttt{\\detokenize{#{params[:user_jobname]}}}}\n\n")
       messages = log.only_level(level)
 
-      f.write("\\textbf{Disclaimer:} This is  but a digest of the original log file. " +
+      f.write("\\textbf{Disclaimer:} This is but a digest of the original log file. " +
                   "For full detail, check out \\loglink. " +
                   'In case we failed to pick up an error or warning, please ' +
                   "\\href{https://github.com/akerbos/ltx2any/issues/new}{report it to us}.\n\n")

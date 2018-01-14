@@ -39,7 +39,7 @@ class Markdown < LogWriter
     result = "# Log for `#{params[:user_jobname]}`\n\n"
     messages = log.only_level(level)
 
-    result << "**Disclaimer:**  \nThis is  but a digest of the original log file.\n" +
+    result << "**Disclaimer:**  \nThis is but a digest of the original log file.\n" +
         "For full detail, check out `#{params[:tmpdir]}/#{params[:log]}.full`.\n" +
         'In case we failed to pick up an error or warning, please ' +
         "[report it to us](https://github.com/akerbos/ltx2any/issues/new).\n\n"
