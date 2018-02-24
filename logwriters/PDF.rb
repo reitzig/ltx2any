@@ -20,7 +20,7 @@ Dependency.new('xelatex', :binary, [:logwriter, 'pdf'], :essential, 'Compilation
 
 ParameterManager.instance.addHook(:logformat) { |_, newValue|
   if newValue == :pdf
-    DependencyManager.list(:all, [:logwriter, 'pdf'], :essential).each { |dep|
+    DependencyManager.list(type: :all, source: [:logwriter, 'pdf'], relevance: :essential).each { |dep|
       unless dep.available?
         Output.instance.warn("#{dep.name} is not available to build PDF logs.", 'Falling back to Markdown log.')
         ParameterManager.instance[:logformat] = :md
