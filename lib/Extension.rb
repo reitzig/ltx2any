@@ -1,4 +1,4 @@
-# Copyright 2010-2016, Raphael Reitzig
+# Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -27,15 +27,15 @@ class Extension
   end
 
   def self.list
-    return @@list.values
+    @@list.values
   end
 
   def self.[](key)
-    return @@list[key]
+    @@list[key]
   end
 
   def self.to_sym
-    self.new.to_sym
+    new.to_sym
   end
 
   def initialize
@@ -45,24 +45,24 @@ class Extension
 
   # Hacky hack? Need to refactor this
   def self.name
-    self.new.name
+    new.name
   end
 
   def self.description
-    self.new.description
+    new.description
   end
 
-  if !@@dependencies.all? { |d| d.available? }
+  unless @@dependencies.all?(&:available?)
     # Define skeleton class for graceful sequential fallback
     module Parallel
       class << self
-        # TODO implement map
+        # TODO: implement map
         # TODO test this!
-        def each(hash, options={}, &block)
-          hash.each { |k,v|
+        def each(hash, options = {}, &block)
+          hash.each do |k, v|
             block.call(k, v)
             options[:finish].call(nil, nil, nil)
-          }
+          end
           array
         end
       end
@@ -71,22 +71,22 @@ class Extension
 
   # Wrap execution of many items
   def self.execute_parts(jobs, when_done, &block)
-    if @@dependencies.all? { |d| d.available? }
+    if @@dependencies.all?(&:available?)
       require 'system'
       require 'parallel'
     end
 
-    Parallel.map(jobs, :finish  => lambda { |a,b,c| when_done.call }) { |job| 
+    Parallel.map(jobs, finish: ->(_, _, _) { when_done.call }) do |job|
       begin
         block.call(job)
       rescue Interrupt
-        raise Interrupt if !parallel # Sequential fallback needs exception!
+        raise Interrupt unless parallel # Sequential fallback needs exception!
       rescue => e
         Output.instance.msg("\tAn error occurred: #{e.to_s}")
-        # TODO Should we break? Let's see what kinds of errors we get...
+        # TODO: Should we break? Let's see what kinds of errors we get...
       end
-    }
-    # TODO do we have to care about Parallel::DeadWorker?
+    end
+    # TODO: do we have to care about Parallel::DeadWorker?
   end
 
   # Parameters
@@ -94,55 +94,54 @@ class Extension
   # - output: an instance of Output
   # - log: an instance of Log
   def self.run_all(time, output, log)
-    list.each { |e|
+    list.each do |e|
       e = e.new
-      if e.do?(time) 
-        # TODO make dep check more efficient
-        dependencies = DependencyManager.list(source: [:extension, e.name], relevance: :essential)
-        if dependencies.all? { |d| d.available? }
-          progress, stop = output.start("#{e.name} running", e.job_size)
-          r = e.exec(time, progress)
-          stop.call(if r[:success] then :success else :error end)
-          log.add_messages(e.name, :extension, r[:messages], r[:log])
-        else
-          # TODO log message?
-          output.separate.error('Missing dependencies:', *dependencies.select { |d| !d.available? }.map { |d| d.to_s })
-        end
+      next unless e.do?(time)
+
+      # TODO: make dep check more efficient
+      dependencies = DependencyManager.list(source: [:extension, e.name], relevance: :essential)
+      if dependencies.all?(&:available?)
+        progress, stop = output.start("#{e.name} running", e.job_size)
+        r = e.exec(time, progress)
+        stop.call(r[:success] ? :success : :error)
+        log.add_messages(e.name, :extension, r[:messages], r[:log])
+      else
+        # TODO: log message?
+        output.separate.error('Missing dependencies:', *dependencies.reject(&:available?).map(&:to_s))
       end
-    }
+    end
   end
 
   public
-    def do?(time)
-      false
-    end
 
-    def job_size
-      1
-    end
+  def do?(time)
+    false
+  end
 
-    def exec(time, progress)
-      { success: true, messages: ['No execution code, need to overwrite!'], log: 'No execution code, need to overwrite!' }
-    end
+  def job_size
+    1
+  end
 
-    def to_s
-      @name
-    end
+  def exec(time, progress)
+    { success: true, messages: ['No execution code, need to overwrite!'], log: 'No execution code, need to overwrite!' }
+  end
 
-    def to_sym
-      self.class.name.downcase.to_sym
-    end
+  def to_s
+    @name
+  end
 
-    attr_accessor :name, :description
+  def to_sym
+    self.class.name.downcase.to_sym
+  end
+
+  attr_reader :name, :description
 
   protected
-    attr_reader :params
-    attr_writer :name, :description
+
+  attr_writer :name, :description
 end
 
 # Load all extensions
-Dir["#{BASEDIR}/#{EXTDIR}/*.rb"].sort.each { |f|
-  if /^\d\d/ =~ File.basename(f)
-    load(f)
-  end
-}
+Dir["#{BASEDIR}/#{EXTDIR}/*.rb"].sort.each do |f|
+  load(f) if /^\d\d/ =~ File.basename(f)
+end

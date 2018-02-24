@@ -1,4 +1,4 @@
-# Copyright 2010-2016, Raphael Reitzig
+# Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -18,12 +18,13 @@
 
 Dependency.new('gnuplot', :binary, [:extension, 'Gnuplot'], :essential)
 
+# TODO: document
 class Gnuplot < Extension
   def initialize
     super
     @name = 'Gnuplot'
     @description = 'Executes generated gnuplot files'
-    
+
     @gnuplot_files = []
   end
 
@@ -49,7 +50,7 @@ class Gnuplot < Extension
 
     # Run gnuplot for each remaining file
     log = [[], []]
-    if !@gnuplot_files.empty?
+    unless @gnuplot_files.empty?
       log = self.class.execute_parts(@gnuplot_files, progress) { |f|
               compile(gnuplot, f)
             }.transpose
@@ -60,84 +61,81 @@ class Gnuplot < Extension
     # whole gnuplot block, not those inside.
     offset = 0
     (0..(log[0].size - 1)).each { |i|
-      if log[0][i].size > 0
+      unless log[0][i].empty?
         internal_offset = 2 # Stuff we print per plot before log excerpt (see :compile)
         log[0][i].map! { |m|
-          LogMessage.new(m.type, m.srcfile, m.srcline, 
-                         if m.logline != nil then
-                           m.logline.map { |ll| ll + offset + internal_offset} 
+          LogMessage.new(m.type, m.srcfile, m.srcline,
+                         if !m.logline.nil? 
+                           m.logline.map { |ll| ll + offset + internal_offset}
                          else
                            nil
                          end,
-                         m.msg, if m.formatted? then :fixed else :none end)
+                         m.msg, m.formatted? ? :fixed : :none)
         }
       end
-      offset += log[1][i].count(?\n) 
+      offset += log[1][i].count(?\n)
     }
 
     log[0].flatten!
     errors = log[0].count { |m| m.type == :error }
     { success: errors <= 0, messages: log[0], log: log[1].join }
   end
-  
-  private 
-    def compile(cmd, f)
-      params = ParameterManager.instance
-      
-      log = ''
-      msgs = []
-      
-      lines = IO::popen(eval(cmd)) { |io|
-        io.readlines
-        # Closes IO
-      }
-      output = lines.join('').strip
 
-      log << "# #\n# #{f}\n\n"
-      if output != ''
-        log << output
-        msgs += parse(lines)
+  private
+
+  def compile(cmd, f)
+    params = ParameterManager.instance
+
+    log = ''
+    msgs = []
+
+    lines = IO.popen(eval(cmd), &:readlines)
+    output = lines.join('').strip
+
+    log << "# #\n# #{f}\n\n"
+    if output != ''
+      log << output
+      msgs += parse(lines)
+    else
+      log << 'No output from gnuplot, so apparently everything went fine!'
+    end
+    log << "\n\n"
+
+    [msgs, log]
+  end
+
+  def parse(strings)
+    msgs = []
+
+    context = ''
+    contextline = 1
+    linectr = 1
+    strings.each { |line|
+      # Messages have the format
+      #  * context (at least one line)
+      #  * ^ marking the point of issue in its own line
+      #  * one line of error statement
+      # I have never seen more than one error (seems to abort).
+      # So I'm going to assume that multiple error messages
+      # are separated by empty lines.
+      if /^"(.+?)", line (\d+): (.*)$/ =~ line
+        msgs.push(LogMessage.new(:error, "#{ParameterManager.instance[:tmpdir]}/#{$~[1]}",
+                                 [Integer($~[2])], [[contextline, linectr].min, linectr],
+                                 "#{context}#{$~[3].strip}", :fixed))
+      elsif line.strip == ''
+        context = ''
+        contextline = strings.size + 1 # Larger than every line number
       else
-        log << 'No output from gnuplot, so apparently everything went fine!'
+        contextline = [contextline, linectr].min
+        context += line
       end
-      log << "\n\n"
+      linectr += 1
+      # TODO: break/strip long lines? Should be able to figure out relevant parts by position of circumflex
+      # TODO: drop context here and instead give log line numbers?
+    }
 
-      [msgs, log]
-    end
-    
-    def parse(strings)
-      msgs = []
-        
-      context = ''
-      contextline = 1
-      linectr = 1
-      strings.each { |line|
-        # Messages have the format
-        #  * context (at least one line)
-        #  * ^ marking the point of issue in its own line
-        #  * one line of error statement
-        # I have never seen more than one error (seems to abort). 
-        # So I'm going to assume that multiple error messages
-        # are separated by empty lines.
-        if /^"(.+?)", line (\d+): (.*)$/ =~ line
-          msgs.push(LogMessage.new(:error, "#{ParameterManager.instance[:tmpdir]}/#{$~[1]}", 
-                                   [Integer($~[2])], [[contextline, linectr].min, linectr], 
-                                   "#{context}#{$~[3].strip}", :fixed))
-        elsif line.strip == ''
-          context = ''
-          contextline = strings.size + 1 # Larger than every line number
-        else
-          contextline = [contextline, linectr].min
-          context += line
-        end
-        linectr += 1
-        # TODO break/strip long lines? Should be able to figure out relevant parts
-        #      by position of circumflex
-        # TODO drop context here and instead give log line numbers?
-      }
-
-      msgs
-    end
+    msgs
+  end
 end
 
 Extension.add Gnuplot

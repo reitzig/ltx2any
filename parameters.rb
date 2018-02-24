@@ -31,6 +31,6 @@
   ParameterManager.instance.addParameter(p)
 }
 
-ParameterManager.instance.addHook(:cleanall) { |k,v|
+ParameterManager.instance.addHook(:cleanall) { |_, v|
   ParameterManager.instance[:clean] = true if v
 }

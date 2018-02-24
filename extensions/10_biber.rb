@@ -1,4 +1,4 @@
-# Copyright 2010-2016, Raphael Reitzig
+# Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -18,6 +18,7 @@
 
 Dependency.new('biber', :binary, [:extension, 'Biber'], :essential)
 
+# TODO: document
 class Biber < Extension
   def initialize
     super
@@ -28,12 +29,12 @@ class Biber < Extension
 
   def do?(time)
     return false unless time == 1
-    
+
     params = ParameterManager.instance
-    
+
     usesbib = File.exist?("#{params[:jobname]}.bcf")
     needrerun = false
-    
+
     if usesbib
       # Collect sources (needed for log parsing)
       @sources = []
@@ -43,8 +44,8 @@ class Biber < Extension
         end
       }
       @sources.uniq!
-       
-      
+
+
       # Aside from the first run (no bbl),
       # there are two things that prompt us to rerun:
       #  * changes to the bcf file (which includes all kinds of things,
@@ -53,7 +54,7 @@ class Biber < Extension
       needrerun =   !File.exist?("#{params[:jobname]}.bbl") | # Is this the first run?
                     HashManager.instance.files_changed?("#{params[:jobname]}.bcf",
                                                         *@sources)
-                  # Note: non-strict OR so that hashes are computed for next run
+                    # Note: non-strict OR so that hashes are computed for next run
     end
 
     usesbib && needrerun
@@ -61,13 +62,13 @@ class Biber < Extension
 
   def exec(time, progress)
     params = ParameterManager.instance
-    
+
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
     biber = '"biber \"#{params[:jobname]}\""'
 
-    f = IO::popen(eval(biber))
+    f = IO.popen(eval(biber))
     log = f.readlines
 
     # Dig trough output and find errors
@@ -92,5 +93,5 @@ class Biber < Extension
     { success: !errors, messages: msgs, log: log.join('').strip! }
   end
 end
-  
+
 Extension.add Biber

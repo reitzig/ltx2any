@@ -1,4 +1,4 @@
-# Copyright 2010-2016, Raphael Reitzig
+# Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -18,55 +18,56 @@
 
 Dependency.new('makeindex', :binary, [:extension, 'makeindex'], :essential)
 
+# TODO: document
 class MakeIndex < Extension
   def initialize
     super
-    
+
     @name = 'makeindex'
     @description = 'Creates an index'
   end
 
   def do?(time)
     return false unless time == 1
-    
+
     params = ParameterManager.instance
-    
-       File.exist?("#{params[:jobname]}.idx") \
-    && (   !File.exist?("#{params[:jobname]}.ind") \
-         | HashManager.instance.files_changed?("#{params[:jobname]}.idx") 
-         # Note: non-strict OR so that hashes are computed for next run
-       )
+
+    File.exist?("#{params[:jobname]}.idx") && 
+      (!File.exist?("#{params[:jobname]}.ind") |
+       HashManager.instance.files_changed?("#{params[:jobname]}.idx")
+    # Note: non-strict OR so that hashes are computed for next run
+  )
   end
 
   def exec(time, progress)
     params = ParameterManager.instance
-    
+
     # Command to create the index if necessary. Provide two versions,
     # one without and one with stylefile
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
     # * mistyle -- name of the makeindex style file (with file ending)
-    makeindex = {'default' => '"makeindex -q \"#{params[:jobname]}\" 2>&1"',
-                 'styled' => '"makeindex -q -s \"#{mistyle}\" \"#{params[:jobname]}\" 2>&1"'}
-  
-    version = 'default'
-    mistyle = nil
-    Dir['*.ist'].each { |f|
-      version = 'styled'
-      mistyle = f
-    }
+    makeindex = { default: '"makeindex -q \"#{params[:jobname]}\" 2>&1"',
+                  styled: '"makeindex -q -s \"#{mistyle}\" \"#{params[:jobname]}\" 2>&1"' }
 
-    # Even in quiet mode, some critical errors (e.g. regarding -g) 
+    version = :default
+    mistyle = nil
+    Dir['*.ist'].each do |f|
+      version = :styled
+      mistyle = f
+    end
+
+    # Even in quiet mode, some critical errors (e.g. regarding -g)
     # only end up in the error stream, but not in the file. Doh.
     log1 = []
-    IO::popen(eval(makeindex[version])) { |f|
-     log1 = f.readlines
-    }
+    IO.popen(eval(makeindex[version])) do |f|
+      log1 = f.readlines
+    end
 
     log2 = []
-    File.open("#{params[:jobname]}.ilg", 'r') { |f|
+    File.open("#{params[:jobname]}.ilg", 'r') do |f|
       log2 = f.readlines
-    }
+    end
 
     log = [log2[0]] + log1 + log2[1,log2.length]
 
@@ -74,15 +75,15 @@ class MakeIndex < Extension
     current = []
     linectr = 1
     errors = false
-    log.each { |line|
+    log.each do |line|
       if /^!! (.*?) \(file = (.+?), line = (\d+)\):$/ =~ line
         current = [:error, $~[2], [Integer($~[3])], [linectr], "#{$~[1]}: "]
         errors = true
-      elsif /^\#\# (.*?) \(input = (.+?), line = (\d+); output = .+?, line = \d+\):$/ =~ line
+      elsif /^## (.*?) \(input = (.+?), line = (\d+); output = .+?, line = \d+\):$/ =~ line
         current = [:warning, $~[2], [Integer($~[3])], [linectr], "#{$~[1]}: "]
       elsif current != [] && /^\s+-- (.*)$/ =~ line
         current[3][1] = linectr
-        msgs.push(LogMessage.new(current[0], current[1], current[2], 
+        msgs.push(LogMessage.new(current[0], current[1], current[2],
                                  current[3], current[4] + $~[1].strip))
         current = []
       elsif /Option -g invalid/ =~ line
@@ -93,7 +94,7 @@ class MakeIndex < Extension
         errors = true
       end
       linectr += 1
-    }
+    end
 
     { sucess: !errors, messages: msgs, log: log.join('').strip! }
   end

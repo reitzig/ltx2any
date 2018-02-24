@@ -1,4 +1,4 @@
-# Copyright 2010-2016, Raphael Reitzig
+# Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 # Version 0.9 alpha
 #
@@ -39,9 +39,7 @@ Dir["#{BASEDIR}/#{LIBDIR}/*.rb"].each { |f| require f }
 # Initialize CLI output wrapper
 OUTPUT = Output.instance
 
-if CliHelp.instance.provideHelp(ARGV)
-  Process.exit
-end
+Process.exit if CliHelp.instance.provideHelp(ARGV)
 
 CLEAN = []
 CLEANALL = []
@@ -59,32 +57,30 @@ begin
   # Make sure all essential dependencies of core and engine are satisfied
   begin
     missing = []
-    
-    (DependencyManager.list(source: :core, relevance: :essential) + 
-     DependencyManager.list(source: [:engine, PARAMS[:engine].to_s], relevance: :essential)).each { |d|
-      missing.push(d) if !d.available?
-    }
-    
-    if !missing.empty? # TODO enter into log?
+
+    (DependencyManager.list(source: :core, relevance: :essential) +
+     DependencyManager.list(source: [:engine, PARAMS[:engine].to_s], relevance: :essential)).each do |d|
+      missing.push(d) unless d.available?
+    end
+
+    unless missing.empty? # TODO: enter into log?
       OUTPUT.separate.error('Missing dependencies', *missing)
       Process.exit
     end
   end
-  
+
   # Check soft dependencies of core and engine; notify user if necessary
   begin
     missing = []
-    
-    (DependencyManager.list(source: :core, relevance: :recommended) + 
-     DependencyManager.list(source: [:engine, PARAMS[:engine].to_s], relevance: :recommended)).each { |d|
-      missing.push(d) if !d.available?
-    }
-    
-    if !missing.empty? # TODO enter into log?
-      OUTPUT.separate.warn('Missing dependencies', *missing)
+
+    (DependencyManager.list(source: :core, relevance: :recommended) +
+     DependencyManager.list(source: [:engine, PARAMS[:engine].to_s], relevance: :recommended)).each do |d|
+      missing.push(d) unless d.available?
     end
+
+    OUTPUT.separate.warn('Missing dependencies', *missing) unless missing.empty? # TODO: enter into log?
   end
-  
+
 
   # Switch working directory to jobfile residence
   Dir.chdir(PARAMS[:jobpath])
@@ -92,9 +88,9 @@ begin
 
   # Some files we don't want to listen to
   toignore = [ "#{PARAMS[:tmpdir]}",
-    "#{PARAMS[:user_jobname]}.#{Engine[PARAMS[:engine]].extension}",
-    "#{PARAMS[:log]}",
-    "#{PARAMS[:user_jobname]}.err"
+               "#{PARAMS[:user_jobname]}.#{Engine[PARAMS[:engine]].extension}",
+               "#{PARAMS[:log]}",
+               "#{PARAMS[:user_jobname]}.err"
   ] + PARAMS[:ignore].split(':')
 
   begin
@@ -120,8 +116,8 @@ begin
       exceptions = ignore + ignore.map { |s| "./#{s}" } +
                    Dir['.*'] + Dir['./.*'] # drop hidden files, in p. . and ..
 
-      define_singleton_method(:copy2tmp) { |files|
-        files.each { |f|
+      define_singleton_method(:copy2tmp) do |files|
+        files.each do |f|
           if File.symlink?(f)
             # Avoid trouble with symlink loops
 
@@ -130,23 +126,23 @@ begin
             # remove the obsolete stuff.
             # If there already is a symlink, delete because it might have been
             # relinked.
-            if File.exists?("#{PARAMS[:tmpdir]}/#{f}")
-              FileUtils::rm("#{PARAMS[:tmpdir]}/#{f}")
+            if File.exist?("#{PARAMS[:tmpdir]}/#{f}")
+              FileUtils.rm("#{PARAMS[:tmpdir]}/#{f}")
             end
 
             # Create new symlink instead of copying
             File.symlink("#{PARAMS[:jobpath]}/#{f}", "#{PARAMS[:tmpdir]}/#{f}")
           elsif File.directory?(f)
-            FileUtils::mkdir_p("#{PARAMS[:tmpdir]}/#{f}")
+            FileUtils.mkdir_p("#{PARAMS[:tmpdir]}/#{f}")
             copy2tmp(Dir.entries(f)\
-                        .delete_if { |s| ['.', '..', ]\
-                        .include?(s) }.map { |s| "#{f}/#{s}" })
-            # TODO Is this necessary? Why not just copy? (For now, safer and more adaptable.)
+                        .delete_if do |s| ['.', '..', ]\
+                        .include?(s) end.map { |s| "#{f}/#{s}" })
+            # TODO: Is this necessary? Why not just copy? (For now, safer and more adaptable.)
           else
-            FileUtils::cp(f,"#{PARAMS[:tmpdir]}/#{f}")
+            FileUtils.cp(f,"#{PARAMS[:tmpdir]}/#{f}")
           end
-        }
-      }
+        end
+      end
 
       # tmp dir may have been removed (either by DaemonPrompt or the outside)
       if !File.exist?(PARAMS[:tmpdir])
@@ -165,7 +161,7 @@ begin
 
       # Delete former results in order not to pretend success
       if File.exist?("#{PARAMS[:jobname]}.#{engine.extension}")
-        FileUtils::rm("#{PARAMS[:jobname]}.#{engine.extension}")
+        FileUtils.rm("#{PARAMS[:jobname]}.#{engine.extension}")
       end
 
       # Read hashes
@@ -181,7 +177,7 @@ begin
         # Run engine
         OUTPUT.start("#{engine.name}(#{run}) running")
         result = engine.exec
-        OUTPUT.stop(if result[:success] then :success else :error end)
+        OUTPUT.stop(result[:success] ? :success : :error)
 
         break unless File.exist?("#{PARAMS[:jobname]}.#{engine.extension}")
 
@@ -200,53 +196,46 @@ begin
       Extension.run_all(:after, OUTPUT, log)
 
       # Give error/warning counts to user
-      errorS = if log.count(:error) != 1 then
-                 's'
-               else
-                                                    ''
-               end
-      warningS = if log.count(:warning) != 1 then
-                   's'
-                 else
-                                                        ''
-                 end
+      errorS = log.count(:error) != 1 ? 's' : ''
+      warningS = log.count(:warning) != 1 ? 's' : ''
       OUTPUT.msg("There were #{log.count(:error)} error#{errorS} " +
                  "and #{log.count(:warning)} warning#{warningS}.")
 
       # Pick up output if present
       if File.exist?("#{PARAMS[:jobname]}.#{engine.extension}")
-        FileUtils::cp("#{PARAMS[:jobname]}.#{engine.extension}", "#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.#{engine.extension}")
+        FileUtils.cp("#{PARAMS[:jobname]}.#{engine.extension}", 
+                     "#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.#{engine.extension}")
         OUTPUT.msg("Output generated at #{PARAMS[:user_jobname]}.#{engine.extension}")
       else
         OUTPUT.msg('No output generated, probably due to fatal errors.')
       end
 
       # Write log
-      if !log.empty?
+      unless log.empty?
         OUTPUT.start('Assembling log files')
 
         # Manage messages from extensions
-        Extension.list.each { |ext|
+        Extension.list.each do |ext|
           if !log.has_messages?(ext.name) \
-              && File.exist?(".#{NAME}_extensionmsg_#{ext.name}")
+               && File.exist?(".#{NAME}_extensionmsg_#{ext.name}")
             # Extension did not run but has run before; load messages from then!
-            old = File.open(".#{NAME}_extensionmsg_#{ext.name}", 'r') { |f|
+            old = File.open(".#{NAME}_extensionmsg_#{ext.name}", 'r') do |f|
               f.readlines.join
-            }
+            end
             old = YAML.load(old)
             log.add_messages(ext.name, old[0], old[1], old[2])
           elsif log.has_messages?(ext.name)
             # Write new messages
-            File.open(".#{NAME}_extensionmsg_#{ext.name}", 'w') { |f|
+            File.open(".#{NAME}_extensionmsg_#{ext.name}", 'w') do |f|
               f.write(YAML.dump(log.messages(ext.name)))
-            }
+            end
           end
-        }
+        end
 
         logfile = LogWriter[:raw].write(log)
         logfile = LogWriter[PARAMS[:logformat]].write(log, PARAMS[:loglevel])
 
-        FileUtils::cp(logfile, "#{PARAMS[:jobpath]}/#{logfile}")
+        FileUtils.cp(logfile, "#{PARAMS[:jobpath]}/#{logfile}")
         OUTPUT.stop(:success)
         OUTPUT.msg("Log file generated at #{logfile}")
         CLEANALL.push("#{PARAMS[:jobpath]}/#{logfile}")
@@ -255,7 +244,7 @@ begin
         runtime = Time.now - start_time
         # Don't show runtimes of less than 5s (arbitrary)
         if runtime / 60 >= 1 || runtime % 60 >= 5
-          OUTPUT.msg('Took ' + sprintf('%d min ', runtime / 60) + ' ' + sprintf('%d sec', runtime % 60))
+          OUTPUT.msg("Took #{format('%d min ', runtime / 60)} #{format('%d sec', runtime % 60)}")
         end
       end
     rescue Interrupt, SystemExit # User cancelled current run
@@ -274,12 +263,12 @@ begin
   end while ( PARAMS[:daemon] )
 rescue Interrupt, SystemExit
   OUTPUT.separate.msg('Shutdown')
-rescue Exception => e
-  if PARAMS[:user_jobname] != nil
+rescue StandardError => e
+  if !PARAMS[:user_jobname].nil?
     OUTPUT.separate.error(e.message, "See #{PARAMS[:user_jobname]}.err for details.")
-    File.open("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err", 'w') { |file|
+    File.open("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err", 'w') do |file|
       file.write("#{e.inspect}\n\n#{e.backtrace.join("\n")}")
-    }
+    end
     CLEANALL.push("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err")
   else
     # This is reached due to programming errors or if ltx2any quits early,
@@ -300,5 +289,5 @@ HashManager.instance.to_file("#{PARAMS[:tmpdir]}/#{HASHFILE}") if !PARAMS[:clean
 # Stop file listeners
 FileListener.instance.stop if PARAMS[:daemon] && FileListener.instance.runs?
 # Remove temps if so desired.
-CLEAN.each    { |f| FileUtils::rm_rf(f) } if PARAMS[:clean]
-CLEANALL.each { |f| FileUtils::rm_rf(f) } if PARAMS[:cleanall]
+CLEAN.each    { |f| FileUtils.rm_rf(f) } if PARAMS[:clean]
+CLEANALL.each { |f| FileUtils.rm_rf(f) } if PARAMS[:cleanall]

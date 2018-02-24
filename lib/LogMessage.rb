@@ -17,12 +17,11 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class LogMessage
-  
   # Parameter type: one of :error, :warning, :info
   # Parameter srcfile: name of the source file the message originated at
   #                    nil if not available
   # Parameter srcline: lines in the given file the message originated at
-  #                    as array of integers [line] or [from,to]. 
+  #                    as array of integers [line] or [from,to].
   #                    nil if not available
   # Parameter logline: line(s) in the log the message was found at as array
   #                    of integers [line] or [from,to].
@@ -38,36 +37,35 @@ class LogMessage
     @msg = msg
     @format = format
   end
-  
-  public
-    attr_accessor :type, :srcfile, :srcline, :logline, :msg
-    
-    def to_s
-      result = if @type == :warning
-                 'Warning'
-               elsif @type == :error
-                 'Error'
-               else
-                 'Info'
-               end
-              
-      if @srcfile != nil
-        result += " #{@srcfile}"
-        if @srcline != nil
-          result += ":#{@srcline.join('-')}"
-        end
-      end
-      
-      result += "\n" + @msg
-      
-      if @logline != nil
-        result +="\n\t(For details see original output from line #{@logline[0].to_s}.)"
-      end
 
-      result
+  public
+
+  attr_accessor :type, :srcfile, :srcline, :logline, :msg
+
+  def to_s
+    result = if @type == :warning
+               'Warning'
+             elsif @type == :error
+               'Error'
+             else
+               'Info'
+             end
+
+    unless @srcfile.nil?
+      result += " #{@srcfile}"
+      result += ":#{@srcline.join('-')}" unless @srcline.nil?
     end
-    
-    def formatted?
-      @format == :fixed
+
+    result += "\n" + @msg
+
+    unless @logline.nil?
+      result += "\n\t(For details see original output from line #{@logline[0]}.)"
     end
+
+    result
+  end
+
+  def formatted?
+    @format == :fixed
+  end
 end

@@ -18,18 +18,19 @@
 
 Dependency.new('xelatex', :binary, [:logwriter, 'pdf'], :essential, 'Compilation of PDF logs')
 
-ParameterManager.instance.addHook(:logformat) { |_, newValue|
-  if newValue == :pdf
+ParameterManager.instance.addHook(:logformat) { |_, new_value|
+  if new_value == :pdf
     DependencyManager.list(type: :all, source: [:logwriter, 'pdf'], relevance: :essential).each { |dep|
-      unless dep.available?
-        Output.instance.warn("#{dep.name} is not available to build PDF logs.", 'Falling back to Markdown log.')
-        ParameterManager.instance[:logformat] = :md
-        break
-      end
+      next if dep.available?
+
+      Output.instance.warn("#{dep.name} is not available to build PDF logs.", 'Falling back to Markdown log.')
+      ParameterManager.instance[:logformat] = :md
+      break
     }
   end
 }
 
+# TODO: Document
 class PDF < LogWriter
   def self.name
     'PDF'
@@ -49,11 +50,11 @@ class PDF < LogWriter
     target_file = "#{params[:log]}.pdf"
 
     latex_log = LogWriter[:latex].write(log, level)
-    # TODO which engine to use?
+    # TODO: which engine to use?
     xelatex = '"xelatex -file-line-error -interaction=nonstopmode \"#{latex_log}\""'
-    IO::popen(eval(xelatex)) { |x| x.readlines }
-    IO::popen(eval(xelatex)) { |x| x.readlines }
-    # TODO parse log and rewrite a readable version?
+    IO.popen(eval(xelatex), &:readlines)
+    IO.popen(eval(xelatex), &:readlines)
+    # TODO: parse log and rewrite a readable version?
 
     # This is just the default of XeLaTeX
     xelatex_target = latex_log.sub(/\.tex$/, '.pdf')
@@ -69,7 +70,7 @@ class PDF < LogWriter
       Output.instance.error(*msg)
       target_file = LogWriter[:md].write(log, level)
     elsif xelatex_target != target_file
-      FileUtils::cp(xelatex_target, target_file)
+      FileUtils.cp(xelatex_target, target_file)
     end
 
     target_file

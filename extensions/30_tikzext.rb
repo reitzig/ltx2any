@@ -1,4 +1,4 @@
-# Copyright 2010-2016, Raphael Reitzig
+# Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -19,6 +19,7 @@
 ParameterManager.instance.addParameter(Parameter.new(
     :imagerebuild, 'ir', String, '', "Specify externalised TikZ images to rebuild, separated by ':'. Set to 'all' to rebuild all."))
 
+# TODO: document
 class TikZExt < Extension
   def initialize
     super
@@ -29,14 +30,14 @@ class TikZExt < Extension
   def do?(time)
     time == 1 && job_size > 0
   end
-  
+
   def job_size
     collect_pending[0].size
   end
 
   def exec(time, progress)
     params = ParameterManager.instance
-    
+
     # Command to process externalised TikZ images if necessary.
     # Uses the following variables:
     # * $params["engine"] -- Engine used by the main job.
@@ -47,134 +48,129 @@ class TikZExt < Extension
     figures,rebuildlog = collect_pending
 
     log = [[], []]
-    if !figures.empty?
+    unless figures.empty?
       # Run (latex) engine for each figure
-      log = self.class.execute_parts(figures, progress) { |fig|
+      log = self.class.execute_parts(figures, progress) do |fig|
               compile(pdflatex, fig)
-            }.transpose
+            end.transpose
     end
 
     # Log line numbers are wrong since every compile determines log line numbers
     # w.r.t. its own contribution. Later steps will only add the offset of the
     # whole tikzext block, not those inside.
     offset = 0
-    (0..(log[0].size - 1)).each { |i|
-      if log[0][i].size > 0
+    (0..(log[0].size - 1)).each do |i|
+      if !log[0][i].empty?
         internal_offset = 5 # Stuff we print per figure before log excerpt (see :compile)
-        log[0][i].map! { |m|
-          LogMessage.new(m.type, m.srcfile, m.srcline, 
-                         if m.logline != nil then
+        log[0][i].map! do |m|
+          LogMessage.new(m.type, m.srcfile, m.srcline,
+                         if m.logline != nil 
                            m.logline.map { |ll| ll + offset + internal_offset - 1} # -1 because we drop first line!
                          else
                            nil
                          end,
-                         m.msg, if m.formatted? then :fixed else :none end)
-        }
-        
-        log[0][i] = [LogMessage.new(:info, nil, nil, nil, 
-                                    "The following messages refer to figure\n  #{figures[i]}.\n" + 
+                         m.msg, m.formatted? ? :fixed : :none)
+        end
+
+        log[0][i] = [LogMessage.new(:info, nil, nil, nil,
+                                    "The following messages refer to figure\n  #{figures[i]}.\n" \
                                     "See\n  #{params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
                     ] + log[0][i]
       else
-        log[0][i] += [LogMessage.new(:info, nil, nil, nil, 
-                                     "No messages for figure\n  #{figures[i]}.\nfound. " + 
+        log[0][i] += [LogMessage.new(:info, nil, nil, nil,
+                                     "No messages for figure\n  #{figures[i]}.\nfound. " \
                                      "See\n  #{params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
                      ]
       end
-      offset += log[1][i].count(?\n) 
-    }
-    
+      offset += log[1][i].count(?\n)
+    end
+
     log[0].flatten!
     errors = log[0].count { |m| m.type == :error }
     { success: errors <= 0, messages: rebuildlog[0] + log[0], log: rebuildlog[1] + log[1].join }
   end
-  
+
   private
-    def collect_pending
-      params = ParameterManager.instance
 
-      figures,rebuildlog = [], [[], '']
-      if File.exists?("#{params[:jobname]}.figlist")
-        figures = IO.readlines("#{params[:jobname]}.figlist").map { |fig|
-          if fig.strip != ''
-            fig.strip
-          else
-            nil
-          end
-        }.compact
+  def collect_pending
+    params = ParameterManager.instance
 
-        # Remove results of figures that we want to rebuild
-        rebuild = []
-        if params[:imagerebuild] == 'all'
-          rebuild = figures
+    figures = []
+    rebuildlog = [[], '']
+    if File.exist?("#{params[:jobname]}.figlist")
+      figures = IO.readlines("#{params[:jobname]}.figlist").map do |fig|
+        if fig.strip != ''
+          fig.strip
         else
-          params[:imagerebuild].split(':').map { |s| s.strip }.each { |fig|
-            if figures.include?(fig)
-              rebuild.push(fig)
-            else
-              msg = "User requested rebuild of figure `#{fig}` which does not exist."
-              rebuildlog[0].push(LogMessage.new(:warning, nil, nil, nil, msg))
-              rebuildlog[1] += "#{msg}\n\n"
-            end
-          }      
+          nil
         end
-        
-        
-        figures.select! { |fig|
-          !File.exist?("#{fig}.pdf") || rebuild.include?(fig)
-        }
-      end
+      end.compact
 
-      [figures, rebuildlog]
-    end
-    
-    def compile(cmd, fig)
-      params = ParameterManager.instance
-      
-      msgs = []
-      log = "# #\n# Figure: #{fig}\n#   See #{ParameterManager.instance[:tmpdir]}/#{fig}.log for full log.\n\n"
-             
-      # Run twice to clean up log?
-      # IO::popen(eval(cmd)).readlines
-      IO::popen(eval(cmd)) { |io|
-        io.readlines
-        # Closes IO
-      }
-      # Shell output does not contain error messages -> read log
-      output = File.open("#{fig}.log", 'r') { |f|
-        f.readlines.map { |s| Log.fix(s) }
-      }
-      
-      # These seems to describe reliable boundaries of that part in the log
-      # which deals with the processed TikZ figure.
-      startregexp = /^\\openout5 = `#{fig}\.dpth'\.\s*$/
-      endregexp = /^\[\d+\s*$/
-      
-      # Cut out relevant part for raw log (heuristic)
-      string = output.drop_while { |line|
-        startregexp !~ line
-      }.take_while { |line|
-        endregexp !~ line
-      }.drop(1).join('').strip
-
-      if string != ''
-        log << "<snip>\n\n#{string}\n\n<snip>"
+      # Remove results of figures that we want to rebuild
+      rebuild = []
+      if params[:imagerebuild] == 'all'
+        rebuild = figures
       else
-        log << 'No errors detected.'
+        params[:imagerebuild].split(':').map(&:strip).each do |fig|
+          if figures.include?(fig)
+            rebuild.push(fig)
+          else
+            msg = "User requested rebuild of figure `#{fig}` which does not exist."
+            rebuildlog[0].push(LogMessage.new(:warning, nil, nil, nil, msg))
+            rebuildlog[1] += "#{msg}\n\n"
+          end
+        end
       end
-      
-      # Parse whole log for messages (needed for filenames) but restrict
-      # to messages from interesting part
-      msgs = TeXLogParser.parse(output, startregexp, endregexp)
 
-      # Still necessary? Should get *some* error from the recursive call.
-      # if ( !File.exist?("#{fig}.pdf") ) 
-      #   log << "Fatal error on #{fig}. See #{$params["tmpdir"]}/#{fig}.log for details.\n"
-      # end
-      log << "\n\n"
 
-      [msgs, log]
+      figures.select! do |fig|
+        !File.exist?("#{fig}.pdf") || rebuild.include?(fig)
+      end
     end
+
+    [figures, rebuildlog]
+  end
+
+  def compile(cmd, fig)
+    params = ParameterManager.instance
+
+    msgs = []
+    log = "# #\n# Figure: #{fig}\n#   See #{ParameterManager.instance[:tmpdir]}/#{fig}.log for full log.\n\n"
+
+    # Run twice to clean up log?
+    # IO::popen(eval(cmd)).readlines
+    IO.popen(eval(cmd), &:readlines)
+    # Shell output does not contain error messages -> read log
+    output = File.open("#{fig}.log", 'r') do |f|
+      f.readlines.map { |s| Log.fix(s) }
+    end
+
+    # These seems to describe reliable boundaries of that part in the log
+    # which deals with the processed TikZ figure.
+    startregexp = /^\\openout5 = `#{fig}\.dpth'\.\s*$/
+    endregexp = /^\[\d+\s*$/
+
+    # Cut out relevant part for raw log (heuristic)
+    string = output.drop_while do |line|
+      startregexp !~ line
+    end.take_while do |line|
+      endregexp !~ line
+    end.drop(1).join('').strip
+
+    log << (string != '' ? "<snip>\n\n#{string}\n\n<snip>" : 'No errors detected.')
+
+    # Parse whole log for messages (needed for filenames) but restrict
+    # to messages from interesting part
+    msgs = TeXLogParser.parse(output, startregexp, endregexp)
+
+    # Still necessary? Should get *some* error from the recursive call.
+    # if ( !File.exist?("#{fig}.pdf") )
+    #   log << "Fatal error on #{fig}. See #{$params["tmpdir"]}/#{fig}.log for details.\n"
+    # end
+    log << "\n\n"
+
+    [msgs, log]
+  end
 end
 
 Extension.add TikZExt

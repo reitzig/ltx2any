@@ -31,7 +31,7 @@ class LaTeX < LogWriter
 
   # Returns the name of the written file, or raises an exception
   def self.write(log, level = :warning)
-    # TODO compute offsets in a smarter way
+    # TODO: compute offsets in a smarter way
     log.to_s if log.rawoffsets == nil # Determines offsets in raw log
     params = ParameterManager.instance
 
@@ -41,24 +41,24 @@ class LaTeX < LogWriter
       File.open("#{File.dirname(__FILE__)}/logtemplate.tex", 'r') { |template|
         f.write(template.read)
       }
-      f.write("\\def\\author{ltx2any}\n\\def\\title{Log for #{params[:user_jobname]}}\n")
-      f.write("\\def\\fulllog{#{File.join(params[:tmpdir], "#{params[:log]}.full")}}\n")
-      f.write("\n\n\\begin{document}")
+      f.write("\\def\\author{ltx2any}\n\\def\\title{Log for #{params[:user_jobname]}}\n" \
+              "\\def\\fulllog{#{File.join(params[:tmpdir], "#{params[:log]}.full")}}\n" \
+              "\n\n\\begin{document}")
 
       f.write("\\section{Log for \\texttt{\\detokenize{#{params[:user_jobname]}}}}\n\n")
       messages = log.only_level(level)
 
-      f.write("\\textbf{Disclaimer:} This is but a digest of the original log file. " +
-                  "For full detail, check out \\loglink. " +
-                  'In case we failed to pick up an error or warning, please ' +
-                  "\\href{https://github.com/akerbos/ltx2any/issues/new}{report it to us}.\n\n")
+      f.write("\\textbf{Disclaimer:} This is but a digest of the original log file. " \
+              "For full detail, check out \\loglink. " \
+              'In case we failed to pick up an error or warning, please ' \
+              "\\href{https://github.com/akerbos/ltx2any/issues/new}{report it to us}.\n\n")
 
-      f.write("We found \\errlink{\\textbf{#{log.count(:error)}~error#{pls(log.count(:error))}}}, " +
-                  "\\textsl{#{log.count(:warning)}~warning#{pls(log.count(:warning))}} " +
-                  "and #{log.count(:info)}~other message#{pls(log.count(:info))} in total.\n\n")
+      f.write("We found \\errlink{\\textbf{#{log.count(:error)}~error#{pls(log.count(:error))}}}, " \
+              "\\textsl{#{log.count(:warning)}~warning#{pls(log.count(:warning))}} " \
+              "and #{log.count(:info)}~other message#{pls(log.count(:info))} in total.\n\n")
 
       # Write everything
-      messages.keys.each { |name|
+      messages.each_key { |name|
         # We get one block per tool that ran
         msgs = messages[name][1]
 
@@ -93,9 +93,9 @@ class LaTeX < LogWriter
             f.write("\n\\end{verbatim}")
 
             # Write the raw log reference
-            if m.logline != nil
+            unless m.logline.nil?
               # We have line offsets in the raw log!
-              logline = m.logline.map { |i| i += log.rawoffsets[name] }
+              logline = m.logline.map { |i| i + log.rawoffsets[name] }
               logline.push('') if logline.length < 2
               f.write("\n\n\\logref{#{logline[0]}}{#{logline[1]}}")
             end
@@ -117,8 +117,8 @@ class LaTeX < LogWriter
 
   def self.makeFileref(file, linefrom, lineto)
     fileref = ''
-    if file != nil
-      #file = file.gsub(/_/, '\_')
+    unless file.nil?
+      # file = file.gsub(/_/, '\_')
       fileref = "\\fileref{#{file}}{#{linefrom}}{#{lineto}}"
     end
     fileref

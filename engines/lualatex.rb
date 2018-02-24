@@ -1,4 +1,4 @@
-# Copyright 2010-2016, Raphael Reitzig
+# Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -18,6 +18,7 @@
 
 Dependency.new('lualatex', :binary, [:engine, 'lualatex'], :essential)
 
+# TODO: document
 class LuaLaTeX < Engine
 
   def initialize
@@ -25,28 +26,28 @@ class LuaLaTeX < Engine
     @binary = 'lualatex'
     @extension = 'pdf'
     @description = 'Uses LuaLaTeX to create a PDF'
-    
+
     @target_file = "#{ParameterManager.instance[:jobname]}.#{extension}"
     @old_hash = hash_result
   end
-  
+
   def do?
     !File.exist?(@target_file) || hash_result != @old_hash
   end
-  
+
   def hash_result
-    HashManager.hash_file(@target_file, 
+    HashManager.hash_file(@target_file,
                           without: /\/CreationDate|\/ModDate|\/ID|\/Type\/XRef\/Index/)
   end
 
   def exec
     @old_hash = hash_result
-    
+
     # Command for the main LaTeX compilation work
     params = ParameterManager.instance
     lualatex = '"lualatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} \"#{params[:jobfile]}\""'
 
-    f = IO::popen(eval(lualatex))
+    f = IO.popen(eval(lualatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
     { success: File.exist?(@target_file), messages: TeXLogParser.parse(log), log: log.join('').strip! }

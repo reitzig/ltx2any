@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+# TODO: document
 class LogWriter
   @@list = {}
   @@dependencies = DependencyManager.list(source: [:core, 'LogWriter'])
@@ -25,11 +26,11 @@ class LogWriter
   end
 
   def self.list
-    return @@list.values
+    @@list.values
   end
 
   def self.[](key)
-    return @@list[key]
+    @@list[key]
   end
 
   def self.name
@@ -45,7 +46,7 @@ class LogWriter
   end
 
   def self.to_s
-    self.name
+    name
   end
 
   # Returns the name of the written file, or raises an exception
@@ -72,7 +73,7 @@ class LogWriter
 
     res = ''
     line = ' ' * [0, indent - 1].max
-    words.each { |w|
+    words.each do |w|
       newline = line + ' ' + w
       if newline.length > length
         res += line + "\n"
@@ -80,23 +81,23 @@ class LogWriter
       else
         line = newline
       end
-    }
+    end
 
     res + line
   end
 end
 
 # Load all extensions
-Dir["#{BASEDIR}/#{LOGWDIR}/*.rb"].sort.each { |f|
+Dir["#{BASEDIR}/#{LOGWDIR}/*.rb"].sort.each do |f|
   load(f)
-}
+end
 
 # Add log-writer-related parameters
 [
-    Parameter.new(:log, 'l', String, '"#{self[:user_jobname]}.log"',
-                  '(Base-)Name of log file'),
-    Parameter.new(:logformat, 'lf', LogWriter.list.map { |lw| lw.to_sym }, :md,
-                  'The log format. Call with --logformats for a list.'),
-    Parameter.new(:loglevel, 'll', [:error, :warning, :info], :warning,
-                  "Set to 'error' to see only errors, to 'warning' to also see warnings, or to 'info' for everything.")
+  Parameter.new(:log, 'l', String, '"#{self[:user_jobname]}.log"',
+                '(Base-)Name of log file'),
+  Parameter.new(:logformat, 'lf', LogWriter.list.map(&:to_sym), :md,
+                'The log format. Call with --logformats for a list.'),
+  Parameter.new(:loglevel, 'll', [:error, :warning, :info], :warning,
+                "Set to 'error' to see only errors, to 'warning' to also see warnings, or to 'info' for everything.")
 ].each { |p| ParameterManager.instance.addParameter(p) }

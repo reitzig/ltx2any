@@ -1,4 +1,4 @@
-# Copyright 2010-2016, Raphael Reitzig
+# Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -22,20 +22,20 @@ ParameterManager.instance.addParameter(Parameter.new(
     :synctex, 'synctex', Boolean, false, 'Set to make engines create SyncTeX files.'))
 
 # Add hook that adapts the :enginepar parameter whenever :synctex changes (including startup)
-ParameterManager.instance.addHook(:synctex) { |key, val|
+ParameterManager.instance.addHook(:synctex) do |key, val|
   params = ParameterManager.instance
 
   # Set engine parameter
-  # TODO make nicer with array parameters
+  # TODO: make nicer with array parameters
   parameter = '--synctex=-1'
-  if val && params[:enginepar][parameter] == nil # TODO what is the second access?
+  if val && params[:enginepar][parameter] == nil # TODO: what is the second access?
     params.add(:enginepar, parameter)
   elsif !val
     params[:enginepar] = params[:enginepar].gsub(parameter, '')
   end
 
   # Add synctex file to those that should be ignored
-  # TODO make nicer with array parameters
+  # TODO: make nicer with array parameters
   synctexfile = "#{params[:jobname]}.synctex.gz"
   if val && params[:ignore] == nil
     params.add(:ignore, synctexfile)
@@ -46,11 +46,11 @@ ParameterManager.instance.addHook(:synctex) { |key, val|
   elsif !val
     params[:ignore] = params[:ignore].gsub(/:?#{synctexfile}/, '')
   end
-}
+end
 
 class SyncTeX < Extension
   def initialize
-    super    
+    super
     @name = 'SyncTeX'
     @description = 'Provides support for SyncTeX'
   end
@@ -62,26 +62,26 @@ class SyncTeX < Extension
   def exec(time, progress)
     params = ParameterManager.instance
 
-    if !File.exist?("#{params[:jobname]}.synctex")
+    unless File.exist?("#{params[:jobname]}.synctex")
       return { success: false,
                messages: [LogMessage.new(:error, nil, nil, nil, 'SyncTeX file not found.')],
                log: 'SyncTeX file not found.' }
     end
 
     # Fix paths in synctex file, gzip it and put result in main directory
-    Zlib::GzipWriter.open("#{params[:jobpath]}/#{params[:jobname]}.synctex.gz") { |gz|
-      File.open("#{params[:jobname]}.synctex", 'r') { |f|
-        f.readlines.each { |line|
+    Zlib::GzipWriter.open("#{params[:jobpath]}/#{params[:jobname]}.synctex.gz") do |gz|
+      File.open("#{params[:jobname]}.synctex", 'r') do |f|
+        f.readlines.each do |line|
           # Replace tmp path with job path.
           # Catch absolute tmp paths first, then try to match paths relative to job path.
           gz.write line.sub("#{params[:jobpath]}/#{params[:tmpdir]}", params[:jobpath])\
                        .sub(params[:tmpdir], params[:jobpath])
-        }
-      }
-    }
+        end
+      end
+    end
 
     { success: true, messages: [], log: '' }
   end
 end
-  
+
 Extension.add SyncTeX

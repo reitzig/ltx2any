@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+# TODO: document
 class Raw < LogWriter
   def self.name
     'Original Log'
@@ -30,9 +31,10 @@ class Raw < LogWriter
   end
 
   # Returns the name of the written file, or raises an exception
-  def self.write(log, level: :warning)
+  # @override
+  def self.write(log, level = :warning)
     target_file = "#{ParameterManager.instance[:log]}.full"
-    File.open("#{target_file}", 'w') { |f| f.write(log.to_s) }
+    File.open(target_file, 'w') { |f| f.write(log.to_s) }
     target_file
   end
 end

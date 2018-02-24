@@ -1,4 +1,4 @@
-# Copyright 2010-2016, Raphael Reitzig
+# Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -18,13 +18,14 @@
 
 Dependency.new('bibtex', :binary, [:extension, 'BibTeX'], :essential)
 
+# TODO: document
 class BibTeX < Extension
   def initialize
-    super    
+    super
     @name = 'BibTeX'
     @description = 'Creates bibliographies (old)'
-    
-    # For checking whether bibtex has to rerun, we need to keep the 
+
+    # For checking whether bibtex has to rerun, we need to keep the
     # relevant parts of the _.aux file handy.
     # TODO use internal store?
     @grepfile = 'bibtex_aux_grep'
@@ -32,9 +33,9 @@ class BibTeX < Extension
 
   def do?(time)
     return false unless time == 1
-    
+
     params = ParameterManager.instance
-    
+
     # Collect used bibdata files and style file
     stylefile = []
     bibdata = []
@@ -42,24 +43,24 @@ class BibTeX < Extension
     if File.exist?("#{params[:jobname]}.aux")
       File.open("#{params[:jobname]}.aux", 'r') { |file|
         while ( line = file.gets )
-          if /^\\bibdata\{(.+?)\}$/ =~ line
+          if /^\\bibdata{(.+?)}$/ =~ line
             # If commas occur, add both a split version (multiple files)
             # and the hole string (filename with comma), to be safe.
             bibdata += $~[1].split(',').map { |s| "#{s}.bib" } + [$~[1]]
-            grepdata.push line.strip 
-          elsif /^\\bibstyle\{(.+?)\}$/ =~ line
+            grepdata.push line.strip
+          elsif /^\\bibstyle{(.+?)}$/ =~ line
             stylefile.push "#{$~[1]}.bst"
-            grepdata.push line.strip 
+            grepdata.push line.strip
           elsif /^\\(bibcite|citation)/ =~ line
-            grepdata.push line.strip 
-          end            
+            grepdata.push line.strip
+          end
         end
       }
-    end 
-    
+    end
+
     # Check whether bibtex is necessary at all
-    usesbib = bibdata.size > 0
-    
+    usesbib = !bibdata.empty?
+
     # Write relevant part of the _.aux file into a separate file for hashing
     if usesbib
       File.open(@grepfile, 'w') { |f|
@@ -78,13 +79,13 @@ class BibTeX < Extension
 
   def exec(time, progress)
     params = ParameterManager.instance
-    
+
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
     bibtex = '"bibtex \"#{params[:jobname]}\""'
 
-    f = IO::popen(eval(bibtex))
+    f = IO.popen(eval(bibtex))
     log = f.readlines
 
     # Dig trough output and find errors
@@ -103,7 +104,7 @@ class BibTeX < Extension
           msg = lastline
           logline = [linectr - 1, linectr]
         end
-          
+
         msgs.push(LogMessage.new(:error, $~[3], [Integer($~[2])], logline, msg))
         errors = true
       end
@@ -114,5 +115,5 @@ class BibTeX < Extension
     { success: !errors, messages: msgs, log: log.join('').strip! }
   end
 end
-  
+
 Extension.add BibTeX

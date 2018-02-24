@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+# TODO: document
 class SageTeX < Extension
   def initialize
     super
@@ -26,8 +27,8 @@ class SageTeX < Extension
   def do?(time)
     params = ParameterManager.instance
     time == 1 &&
-        File.exist?("#{params[:jobname]}.sagetex.sage") &&
-        HashManager.instance.files_changed?("#{params[:jobname]}.sagetex.sage")
+      File.exist?("#{params[:jobname]}.sagetex.sage") &&
+      HashManager.instance.files_changed?("#{params[:jobname]}.sagetex.sage")
   end
 
   def exec(time, progress)
@@ -53,19 +54,20 @@ class SageTeX < Extension
     msg = nil
     linectr = 1
     lines.each { |line|
-      if !msg.nil? && line.strip.length == 0
+      if !msg.nil? && line.strip.empty?
         msg.logline << linectr - 1
         msg = nil
-      elsif msg.nil? && line =~ /File "(.+)", line (\d+)/
+      elsif msg.nil? && line =~ /File "(.+)",\s+line (\d+)/
         msg = LogMessage.new(:warning, $~[1], [$~[2].to_i], [linectr], '', :fixed)
         messages << msg
       elsif line =~ /SyntaxError: \w+/
         msg.type = :error
         msg.logline << linectr
+        msg.msg += line
         msg = nil
       elsif line =~ /sagetex\.VersionError:/
         msg.type = :error
-      # TODO what are other patterns?
+      # TODO: what are other patterns?
       elsif !msg.nil?
         msg.msg += line
       end

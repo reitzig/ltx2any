@@ -1,4 +1,4 @@
-# Copyright 2010-2016, Raphael Reitzig
+# Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -18,22 +18,23 @@
 
 Dependency.new('pdflatex', :binary, [:engine, 'pdflatex'], :essential)
 
-class PdfLaTeX < Engine  
+# TODO: document
+class PdfLaTeX < Engine
 
   def initialize
     super
     @binary = 'pdflatex'
     @extension = 'pdf'
     @description = 'Uses PdfLaTeX to create a PDF'
-    
+
     @target_file = "#{ParameterManager.instance[:jobname]}.#{extension}"
     @old_hash = hash_result
   end
-  
+
   def do?
     !File.exist?(@target_file) || hash_result != @old_hash
   end
-  
+
   def hash_result
     HashManager.hash_file(@target_file, without: /\/CreationDate|\/ModDate|\/ID/)
   end
@@ -45,7 +46,7 @@ class PdfLaTeX < Engine
     params = ParameterManager.instance
     pdflatex = '"pdflatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} \"#{params[:jobfile]}\""'
 
-    f = IO::popen(eval(pdflatex))
+    f = IO.popen(eval(pdflatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
     { success: File.exist?(@target_file), messages: TeXLogParser.parse(log), log: log.join('').strip! }
