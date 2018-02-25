@@ -24,7 +24,7 @@ $LOAD_PATH.unshift(File.expand_path(__dir__)) unless
 require 'constants.rb'
 
 # Set process name to something less cumbersome
-$0=NAME
+#$0=NAME
 
 # Load stuff from the standard library
 require 'digest'
@@ -50,6 +50,9 @@ Dir["#{BASEDIR}/#{LIBDIR}/*.rb"].each { |f| require f }
 # Initialize CLI output wrapper
 OUTPUT = Output.instance
 
+# Freeze parameters
+ARGV.freeze
+
 Process.exit if CliHelp.instance.provideHelp(ARGV)
 
 CLEAN = []
@@ -58,8 +61,6 @@ begin
   # At this point, we are sure we want to compile -- process arguments!
   begin
     PARAMS.processArgs(ARGV)
-    # Kill command line parameters in order to discourage abuse by extensions
-    ARGV.clear
   rescue ParameterException => e
     OUTPUT.separate.msg(*e.message.split("\n"))
     Process.exit
@@ -246,6 +247,7 @@ begin
           end
         end
 
+        log.finish
         logfile = LogWriter[:raw].write(log)
         logfile = LogWriter[PARAMS[:logformat]].write(log, PARAMS[:loglevel])
 
@@ -263,6 +265,9 @@ begin
       end
     rescue Interrupt, SystemExit # User cancelled current run
       OUTPUT.stop(:cancel)
+    rescue Exception => e
+      OUTPUT.stop(:error)
+      raise e
     ensure
       # Return from temporary directory
       Dir.chdir(PARAMS[:jobpath])
@@ -277,7 +282,7 @@ begin
   end while ( PARAMS[:daemon] )
 rescue Interrupt, SystemExit
   OUTPUT.separate.msg('Shutdown')
-rescue StandardError => e
+rescue Exception => e
   if !PARAMS[:user_jobname].nil?
     OUTPUT.separate.error(e.message, "See #{PARAMS[:user_jobname]}.err for details.")
     File.open("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err", 'w') do |file|

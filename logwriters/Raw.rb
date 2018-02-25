@@ -18,24 +18,26 @@
 
 # TODO: document
 class Raw < LogWriter
-  def self.name
-    'Original Log'
-  end
+  class << self
+    def name
+      'Original Log'
+    end
 
-  def self.description
-    'Prints the original log files/outputs into a single file.'
-  end
+    def description
+      'Prints the original log files/outputs into a single file.'
+    end
 
-  def self.to_sym
-    :raw
-  end
+    def to_sym
+      :raw
+    end
 
-  # Returns the name of the written file, or raises an exception
-  # @override
-  def self.write(log, level = :warning)
-    target_file = "#{ParameterManager.instance[:log]}.full"
-    File.open(target_file, 'w') { |f| f.write(log.to_s) }
-    target_file
+    # Returns the name of the written file, or raises an exception
+    # @override
+    def write(log, _level = :warning)
+      target_file = "#{ParameterManager.instance[:log]}.full"
+      File.open(target_file, 'w') { |f| f.write(log.to_s) }
+      target_file
+    end
   end
 end
 

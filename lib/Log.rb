@@ -16,6 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+# TODO: Add list of runs with called command
+# TODO: Add additional distinguisher to LogMessage? E.g. the LaTeX package.
+
 # TODO: Document
 class Log
   def initialize
@@ -29,6 +32,8 @@ class Log
     @dependencies = DependencyManager.list(source: [:core, self.class.to_s])
   end
 
+  # @param [:error,:warning,:info] level
+  # @return [Hash<String, Array<(Symbol,Array<LogMessage>,String)>]
   def only_level(level)
     # Write messages from engine first
     # (Since @messages contains only one entry per run engine/extension, this is fast.)
@@ -48,10 +53,16 @@ class Log
     end.reduce({}) { |res, e| res.merge!(e) }
   end
 
+  # @param [String] source
+  # @param [:error,:warning,:info] lowest_level
+  # @return [Array<LogMessage>]
+  def messages_for(source, lowest_level = :info)
+    only_level(lowest_level)[source][1]
+  end
+
   public
 
   attr_accessor :level # TODO: implement flat mode?
-  attr_reader :rawoffsets # TODO implement differently?
 
   # Parameters
   #  1. name of the source component (extension or engine)
@@ -67,7 +78,7 @@ class Log
     end
 
     @messages[source][1] += msgs
-    @messages[source][2] += "#{raw}"
+    @messages[source][2] += raw
     [:error, :warning, :info].each do |type|
       cnt = msgs.count { |e| e.type == type }
       @counts[type][source] += cnt
@@ -77,20 +88,46 @@ class Log
     @rawoffsets = nil
   end
 
+  # @return [Bool]
   def has_messages?(source)
     @messages.key?(source)
   end
 
+  # @param [String] source
+  # @return [Array<LogMessage>]
   def messages(source)
     @messages[source].clone
   end
 
+  # @return [Bool]
   def empty?
     @messages.empty?
   end
 
+  # @return [Array<String>]
+  def sources
+    @messages.keys
+  end
+
+  # @return [Int]
   def count(type, part = :total)
     @counts[type][part]
+  end
+
+  # Finishes this log. Do not try to add new messages after calling
+  # this.
+  def finish
+    # Compute offsets in raw log
+    _ = to_s # TODO: Compute smarter, without assembling the whole string
+
+    # Adjust all log lines
+    @messages.each_entry do |source, log_material|
+      log_material[1].each do |msg|
+        msg.logline.map! { |i| i + @rawoffsets[source] }
+      end
+    end
+
+    freeze
   end
 
   # Creates a string with the raw log messages.
@@ -100,13 +137,13 @@ class Log
     messages = only_level(:info)
 
     offset = 0
-    @rawoffsets = {}
+    @rawoffsets = {} unless frozen?
     messages.each_key do |source|
       result << "# # # # #\n"
       result << "# Start #{source}"
       result << "\n# # # # #\n\n"
 
-      @rawoffsets[source] = offset + 4
+      @rawoffsets[source] = offset + 4 unless frozen?
       result << messages[source][2]
 
       result << "\n\n# # # # #\n"
@@ -123,7 +160,7 @@ class Log
     # Prevents errors when engines write illegal symbols to log.
     # Since the API changed between Ruby 1.8.x and 1.9, be
     # careful.
-    if RUBY_VERSION.to_f < 1.9 
+    if RUBY_VERSION.to_f < 1.9
       Iconv.iconv('UTF-8//IGNORE', 'UTF-8', s)
     else
       s.encode!(Encoding::UTF_16LE, invalid: :replace,

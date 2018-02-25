@@ -19,7 +19,7 @@
 # TODO: move to a properties file?
 
 NAME       = 'ltx2any'.freeze
-VERSION    = '0.9b'.freeze
+VERSION    = '1.0.0-beta'.freeze
 YEAR       = '2018'.freeze
 AUTHOR     = 'Raphael Reitzig'.freeze
 TMPSUFFIX  = '_tmp'.freeze

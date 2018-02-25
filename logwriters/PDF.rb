@@ -32,48 +32,50 @@ ParameterManager.instance.addHook(:logformat) { |_, new_value|
 
 # TODO: Document
 class PDF < LogWriter
-  def self.name
-    'PDF'
-  end
-
-  def self.description
-    'Create a PDF log.'
-  end
-
-  def self.to_sym
-    :pdf
-  end
-
-  # Returns the name of the written file, or raises an exception
-  def self.write(log, level = :warning)
-    params = ParameterManager.instance
-    target_file = "#{params[:log]}.pdf"
-
-    latex_log = LogWriter[:latex].write(log, level)
-    # TODO: which engine to use?
-    xelatex = '"xelatex -file-line-error -interaction=nonstopmode \"#{latex_log}\""'
-    IO.popen(eval(xelatex), &:readlines)
-    IO.popen(eval(xelatex), &:readlines)
-    # TODO: parse log and rewrite a readable version?
-
-    # This is just the default of XeLaTeX
-    xelatex_target = latex_log.sub(/\.tex$/, '.pdf')
-
-    if !File.exist?(xelatex_target)
-      # This should never happen! Still, let's fail gracefully.
-      msg = ['Log failed to compile!']
-      if params[:daemon] || !params[:clean]
-        msg << "See #{params[:tmpdir]}/#{latex_log}.log for details."
-      end
-      msg << 'Falling back to Markdown log.'
-
-      Output.instance.error(*msg)
-      target_file = LogWriter[:md].write(log, level)
-    elsif xelatex_target != target_file
-      FileUtils.cp(xelatex_target, target_file)
+  class << self
+    def name
+      'PDF'
     end
 
-    target_file
+    def description
+      'Create a PDF log.'
+    end
+
+    def to_sym
+      :pdf
+    end
+
+    # Returns the name of the written file, or raises an exception
+    def write(log, level = :warning)
+      params = ParameterManager.instance
+      target_file = "#{params[:log]}.pdf"
+
+      latex_log = LogWriter[:latex].write(log, level)
+      # TODO: which engine to use?
+      xelatex = '"xelatex -file-line-error -interaction=nonstopmode \"#{latex_log}\""'
+      IO.popen(eval(xelatex), &:readlines)
+      IO.popen(eval(xelatex), &:readlines)
+      # TODO: parse log and rewrite a readable version?
+
+      # This is just the default of XeLaTeX
+      xelatex_target = latex_log.sub(/\.tex$/, '.pdf')
+
+      if !File.exist?(xelatex_target)
+        # This should never happen! Still, let's fail gracefully.
+        msg = ['Log failed to compile!']
+        if params[:daemon] || !params[:clean]
+          msg << "See #{params[:tmpdir]}/#{latex_log}.log for details."
+        end
+        msg << 'Falling back to Markdown log.'
+
+        Output.instance.error(*msg)
+        target_file = LogWriter[:md].write(log, level)
+      elsif xelatex_target != target_file
+        FileUtils.cp(xelatex_target, target_file)
+      end
+
+      target_file
+    end
   end
 end
 

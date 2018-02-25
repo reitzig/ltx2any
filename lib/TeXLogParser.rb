@@ -58,6 +58,7 @@ class TeXLogParser
         messages += [current.get_msg].compact
       elsif /^l\.(\d+) (.*)$/ =~ line
         # Line starting with a line number ends messages
+        # TODO: Not true, cf. log of plain. There's one more line. Always?
         unless current.type.nil?
           current.srcline = [Integer($~[1])] if current.srcline.nil?
           current.message += $~[2].strip

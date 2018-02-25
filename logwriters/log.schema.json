@@ -1,0 +1,128 @@
+{
+  "title": "ltx2any Log File",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "type": "object",
+  "required": [
+    "summary"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "summary": {
+      "description": "A summary of the run this log pertains to.",
+      "type": "object",
+      "required": ["version", "call", "document", "counts"],
+      "properties": {
+        "version": {
+          "description": "The version of ltx2any that produced this log.",
+          "type": "string",
+          "pattern": "[0-9]+\\.[0-9]+\\.[0-9]+(-[a-z]+)?"
+        },
+        "call": {
+          "description": "The CLI call that started this run.",
+          "type": "string"
+        },
+        "workDirectory": {
+          "description": "The directory in which this run was started.",
+          "type": "string"
+        },
+        "document": {
+          "description": "The path of the document that was compiled by this run.",
+          "type": "string"
+        },
+        "runs": {
+          "description": "A list of which engines and extentions were run.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rawLog": {
+          "description": "The path of the raw text log.",
+          "type": "string"
+        },
+        "counts": {
+          "description": "Counts of the different message types.",
+          "id": "counts",
+          "type": "object",
+          "required": ["error", "warning", "info"],
+          "properties": {
+            "error": {
+              "type": "integer"
+            },
+            "warning": {
+              "type": "integer"
+            },
+            "info": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    "categories": {
+      "description": "A list with one entry or engine and extension that ran.",
+      "type": "array",
+      "items": {
+        "description": "Contrains the messages produced by this engine or extension.",
+        "type": "object",
+        "required": ["name", "call", "counts", "messages"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "call": {
+            "type": "string"
+          },
+          "counts": {
+            "$ref": "counts"
+          },
+          "messages": {
+            "items": {
+              "type": "object",
+              "required": ["type", "message", "logLines", "formatted"],
+              "properties": {
+                "type": {
+                  "enum": ["error", "warning", "info"]
+                },
+                "message": {
+                  "type": "string"
+                },
+                "logLines": {
+                  "type": "object",
+                  "required": ["from"],
+                  "properties": {
+                    "from": {
+                      "type": "integer"
+                    },
+                    "to": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "formatted": {
+                  "description": "Indicates whether the message string should be reproduced verbatim.",
+                  "type": "boolean"
+                },
+                "sourceFile": {
+                  "type": "string"
+                },
+                "sourceLines": {
+                  "type": "object",
+                  "required": ["from"],
+                  "properties": {
+                    "from": {
+                      "type": "integer"
+                    },
+                    "to": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
