@@ -17,14 +17,16 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 # TODO: move to a properties file?
+
 NAME       = 'ltx2any'.freeze
 VERSION    = '0.9b'.freeze
 YEAR       = '2018'.freeze
 AUTHOR     = 'Raphael Reitzig'.freeze
 TMPSUFFIX  = '_tmp'.freeze
 HASHFILE   = '.hashes'.freeze # relative to tmp directory
-# TODO: move this constant to HashManager?
 
+WORKDIR = Dir.pwd.freeze
+BASEDIR = File.expand_path(__dir__).freeze
 LIBDIR  = 'lib'.freeze
 EXTDIR  = 'extensions'.freeze
 ENGDIR  = 'engines'.freeze

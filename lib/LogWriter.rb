@@ -17,32 +17,39 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 # TODO: document
+# @abstract
 class LogWriter
   @@list = {}
   @@dependencies = DependencyManager.list(source: [:core, 'LogWriter'])
 
+  # @param [LogWriter] lw
   def self.add(lw)
     @@list[lw.to_sym] = lw
   end
 
+  # @return [Array<LogWriter>]
   def self.list
     @@list.values
   end
 
+  # @return [LogWriter]
   def self.[](key)
     @@list[key]
   end
 
+  # @return [String]
   def self.name
-    raise 'subclass this!'
+    raise NotImplementedError
   end
 
+  # @return [String]
   def self.description
-    raise 'Subclass this!'
+    raise NotImplementedError
   end
 
+  # @return [Symbol]
   def self.to_sym
-    raise 'Subclass this!'
+    raise NotImplementedError
   end
 
   def self.to_s
@@ -50,8 +57,11 @@ class LogWriter
   end
 
   # Returns the name of the written file, or raises an exception
+  # @param [Log] log
+  # @param [:error,:warning,:info]
+  # @return [String]
   def self.write(log, level = :warning)
-    raise 'Subclass this!'
+    raise NotImplementedError
   end
 
   protected

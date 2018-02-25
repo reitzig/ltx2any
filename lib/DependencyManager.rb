@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-require 'rubygems'
-
 class DependencyManager
   private
     @@dependencies = []
@@ -40,6 +38,7 @@ class DependencyManager
     def self.which(cmd)
       raise ArgumentError.new("Argument not a string: #{cmd.inspect}") unless cmd.is_a?(String)
       return nil if cmd.empty?
+
       case RbConfig::CONFIG['host_os']
       when /cygwin/
         exts = nil
@@ -49,40 +48,40 @@ class DependencyManager
       else
         exts = nil
       end
-      if cmd[File::SEPARATOR] or (File::ALT_SEPARATOR and cmd[File::ALT_SEPARATOR])
+      if cmd[File::SEPARATOR] || (File::ALT_SEPARATOR && cmd[File::ALT_SEPARATOR])
         if exts
           ext = File.extname(cmd)
-          if not ext.empty? and exts.any?{ |e| e.casecmp(ext).zero? } \
-          and File.file?(cmd) and File.executable?(cmd)
+          if (not ext.empty?) && exts.any?{ |e| e.casecmp(ext).zero? } \
+          && File.file?(cmd) && File.executable?(cmd)
             return File.absolute_path(cmd)
           end
           exts.each do |ext|
             exe = "#{cmd}#{ext}"
-            return File.absolute_path(exe) if File.file?(exe) and File.executable?(exe)
+            return File.absolute_path(exe) if File.file?(exe) && File.executable?(exe)
           end
         else
-          return File.absolute_path(cmd) if File.file?(cmd) and File.executable?(cmd)
+          return File.absolute_path(cmd) if File.file?(cmd) && File.executable?(cmd)
         end
       else
         paths = ENV['PATH']
         paths = paths ? paths.split(File::PATH_SEPARATOR).select{ |e| File.directory?(e) } : []
         if exts
           ext = File.extname(cmd)
-          has_valid_ext = (not ext.empty? and exts.any?{ |e| e.casecmp(ext).zero? })
+          has_valid_ext = ((not ext.empty?) && exts.any?{ |e| e.casecmp(ext).zero? })
           paths.unshift('.').each do |path|
             if has_valid_ext
               exe = File.join(path, "#{cmd}")
-              return File.absolute_path(exe) if File.file?(exe) and File.executable?(exe)
+              return File.absolute_path(exe) if File.file?(exe) && File.executable?(exe)
             end
             exts.each do |ext|
               exe = File.join(path, "#{cmd}#{ext}")
-              return File.absolute_path(exe) if File.file?(exe) and File.executable?(exe)
+              return File.absolute_path(exe) if File.file?(exe) && File.executable?(exe)
             end
           end
         else
           paths.each do |path|
             exe = File.join(path, cmd)
-            return File.absolute_path(exe) if File.file?(exe) and File.executable?(exe)
+            return File.absolute_path(exe) if File.file?(exe) && File.executable?(exe)
           end
         end
       end
@@ -91,28 +90,26 @@ class DependencyManager
 
   public
 
-  
-  def self.add(dep)
-    if dep.kind_of?(Dependency)
-      @@dependencies.push(dep)
-    else
-      raise "Illegal parameter #{dep.to_s}"
-    end
-  end
-  
-  
-  def self.list(type: :all, source: :all, relevance: :all)
-    @@dependencies.select { |d|     
-         (type == :all      || d.type == type           || (type.kind_of?(Array) && type.include?(d.type)))\
-      && (source == :all    || d.source == source       || (d.source.kind_of?(Array) && d.source.include?(source)))\
-      && (relevance == :all || d.relevance == relevance || (relevance.kind_of?(Array) && relevance.include?(d.relevance)))
-    }
-  end 
-  
 
-  def self.to_s
-    @@dependencies.map { |d| d.to_s }.join("\n")
-  end
+    def self.add(dep)
+      raise "Illegal parameter #{dep.to_s}" unless dep.is_a?(Dependency)
+
+      @@dependencies.push(dep)
+    end
+
+
+    def self.list(type: :all, source: :all, relevance: :all)
+      @@dependencies.select { |d|
+           (type == :all      || d.type == type           || (type.is_a?(Array) && type.include?(d.type)))\
+        && (source == :all    || d.source == source       || (d.source.is_a?(Array) && d.source.include?(source)))\
+        && (relevance == :all || d.relevance == relevance || (relevance.is_a?(Array) && relevance.include?(d.relevance)))
+      }
+    end
+
+
+    def self.to_s
+      @@dependencies.map { |d| d.to_s }.join("\n")
+    end
 end
 
 
@@ -123,66 +120,65 @@ class MissingDependencyError < StandardError; end
 
 class Dependency
   def initialize(name, type, source, relevance, reason = '', version = nil)
-    if ![:gem, :binary, :file].include?(type)
+    unless [:binary, :file].include?(type)
       raise "Illegal dependency type #{type.to_s}"
-    elsif source != :core && (!source.kind_of?(Array) || ![:core, :extension, :engine, :logwriter].include?(source[0]) )
+    end
+
+    if source != :core && (!source.is_a?(Array) || ![:core, :extension, :engine, :logwriter].include?(source[0]) )
       raise "Illegal source #{source.to_s}"
-    elsif ![:recommended, :essential].include?(relevance)
+    end
+
+    unless [:recommended, :essential].include?(relevance)
       raise "Illegal relevance #{relevance.to_s}"
     end
-    if type != :gem && !(version.nil? || version.empty?)
+    
+    unless version.nil? || version.empty?
       # Should not happen in production
+      # TODO: add version command to dependency?
       puts 'Developer warning: versions of binaries and files are not checked!'
     end
-    
+
     @name = name
     @type = type
-    @source = source.kind_of?(Array) ? source : [source, '']
+    @source = source.is_a?(Array) ? source : [source, '']
     @relevance = relevance
     @reason = reason
     @version = version
     @available = nil
-    
+
     DependencyManager.add(self)
   end
-  
+
   public
-  
+
   def available?
     if @available.nil?
-      @available = case @type
-        when :gem 
-          begin
-            gem "#{@name}"
-            require @name
-            true
-          rescue Gem::LoadError
-            false
-          end
+      @available =
+        case @type
         when :binary
           DependencyManager.which(@name) != nil
-        when :file 
-          File.exists?(@name)
+        when :file
+          File.exist?(@name)
         else
           # Should not happen in production
           raise "Illegal dependency type #{@type}"
         end
     end
-    
+
     @available
   end
-  
+
   def to_s
     "#{@type} #{@name} is #{@relevance} for #{@source.join(' ').strip}"
   end
-  
+
   attr_reader :name, :type, :source, :relevance, :reason, :version
-  
+
   def relevance=(value)
-    if ![:recommended, :essential].include?(value)
+    unless [:recommended, :essential].include?(value)
       raise "Illegal relevance #{value.to_s}"
     end
-    
+
     @relevance = value
   end
 end

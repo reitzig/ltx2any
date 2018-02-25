@@ -16,10 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-require 'singleton'
-
-Dependency.new('ruby-progressbar', :gem, [:core, 'Output'], :recommended, 'nice progress indicators', '>=1.7.5')
-
 # TODO: document
 class Output
   include Singleton
@@ -73,13 +69,12 @@ class Output
 
   def start(msg, count = 1)
     @running = true
-    if count > 1 && @dependencies.all?(&:available?)
+    if count > 1 
       # Set up progress bar if needed
-      require 'ruby-progressbar'
-      progress = ProgressBar.create(:title => "#{@shortcode} #{msg} ...",
-                                    :total => count,
-                                    :format => '%t [%c/%C]',
-                                    :autofinish => false)
+      progress = ProgressBar.create(title: "#{@shortcode} #{msg} ...",
+                                    total: count,
+                                    format: '%t [%c/%C]',
+                                    autofinish: false)
       return [-> { progress.increment },
               lambda { |state, *msgs|
                 progress.format("#{@shortcode} #{msg} ... #{instance_variable_get("@#{state}".intern)}" + (' ' * 5)) # Add some spaces to hide all for up to 999 steps

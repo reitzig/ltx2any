@@ -16,9 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-require 'digest'
-require 'singleton'
-
 # TODO: Document
 class HashManager
   include Singleton

@@ -1,6 +1,6 @@
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
-# Version 0.9 alpha
+# Version 0.9 beta
 #
 # This file is part of ltx2any.
 #
@@ -17,22 +17,33 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+# Add the base directory to the load path
+$LOAD_PATH.unshift(File.expand_path(__dir__)) unless
+  $LOAD_PATH.include?(__dir__) || $LOAD_PATH.include?(File.expand_path(__dir__))
+
+require 'constants.rb'
+
 # Set process name to something less cumbersome
-$0='ltx2any'
+$0=NAME
 
-BASEDIR = File.dirname(__FILE__)
-require "#{BASEDIR}/constants.rb"
-
-# Load stuff from standard library
-require 'io/console'
+# Load stuff from the standard library
+require 'digest'
 require 'fileutils'
+require 'io/console'
+require 'singleton'
 require 'yaml'
 
-# Load these first so other classes can add their dependencies and hooks
+# Load gems
+require 'bundler'
+Dir.chdir(BASEDIR)
+Bundler.require(:default)
+Dir.chdir(WORKDIR)
+
+# Load Managers first so other classes can add their dependencies and hooks
 Dir["#{BASEDIR}/#{LIBDIR}/*Manager.rb"].each { |f| require f }
 # Set up core parameters
 PARAMS = ParameterManager.instance
-require "#{BASEDIR}/parameters.rb"
+require 'parameters.rb'
 # Load rest of the utility classes
 Dir["#{BASEDIR}/#{LIBDIR}/*.rb"].each { |f| require f }
 
@@ -103,6 +114,9 @@ begin
   begin # daemon loop
     begin # inner block that can be cancelled by user
       # Reset
+      # @type [Engine] engine The engine we're running
+      # @type [Log] log The main log
+      # @type [Time] start_time The time at which the current run started
       engine = Engine[PARAMS[:engine]].new
       log = Log.new
       log.level = PARAMS[:loglevel]

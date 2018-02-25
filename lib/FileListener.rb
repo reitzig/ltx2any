@@ -16,10 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-require 'singleton'
-
-Dependency.new('listen', :gem, [:core, 'FileListener'], :recommended, 'Listening to files for automatic recompilation.', '>=3.1.5')
-
 ParameterManager.instance.addParameter(Parameter.new(
     :daemon, 'd', Boolean, false, 'Re-compile automatically when files change.'))
 ParameterManager.instance.addParameter(Parameter.new(

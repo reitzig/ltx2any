@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-Dependency.new('parallel', :gem, [:core, 'Extension'], :recommended, 'Faster execution for some extensions', '>=1.9.0')
-
 class Extension
   @@list = {}
   @@dependencies = DependencyManager.list(source: [:core, 'Extension'])
@@ -71,11 +69,6 @@ class Extension
 
   # Wrap execution of many items
   def self.execute_parts(jobs, when_done, &block)
-    if @@dependencies.all?(&:available?)
-      require 'system'
-      require 'parallel'
-    end
-
     Parallel.map(jobs, finish: ->(_, _, _) { when_done.call }) do |job|
       begin
         block.call(job)
@@ -102,7 +95,13 @@ class Extension
       dependencies = DependencyManager.list(source: [:extension, e.name], relevance: :essential)
       if dependencies.all?(&:available?)
         progress, stop = output.start("#{e.name} running", e.job_size)
-        r = e.exec(time, progress)
+        r = begin
+          e.exec(time, progress)
+        rescue NotImplementedError
+          { success: true,
+            messages: ['No execution code, need to overwrite!'],
+            log: 'No execution code, need to overwrite!' }
+        end
         stop.call(r[:success] ? :success : :error)
         log.add_messages(e.name, :extension, r[:messages], r[:log])
       else
@@ -114,16 +113,19 @@ class Extension
 
   public
 
+  # @abstract
   def do?(time)
     false
   end
 
+  # @abstract
   def job_size
     1
   end
 
+  # @abstract
   def exec(time, progress)
-    { success: true, messages: ['No execution code, need to overwrite!'], log: 'No execution code, need to overwrite!' }
+    raise NotImplementedError
   end
 
   def to_s
