@@ -75,7 +75,7 @@ class LogWriter
   end
 
   def self.indent(s, indent)
-    s.split("\n").map { |line| (' ' * indent) + line }.join("\n")
+    s.split(/\n+/).map { |line| (' ' * indent) + line }.join("\n")
   end
 
   def self.break_at_spaces(s, length, indent)

@@ -95,17 +95,22 @@ class BibTeX < Extension
     lastline = ''
     log.each { |line|
       if /^Warning--(.*)$/ =~ line
-        msgs.push(LogMessage.new(:warning, nil, nil, [linectr], $~[1]))
+        msgs.push(TexLogParser::Message.new(message: $~[1],
+                                            log_lines: { from: linectr, to: linectr},
+                                            level: :warning))
       elsif /^(.*?)---line (\d+) of file (.*)$/ =~ line
         msg = $~[1].strip
-        logline = [linectr]
+        loglines = { from: linectr, to: linectr }
         if msg == ''
           # Sometimes the message can be on the last line
           msg = lastline
-          logline = [linectr - 1, linectr]
+          loglines = { from: linectr - 1, to: linectr }
         end
 
-        msgs.push(LogMessage.new(:error, $~[3], [Integer($~[2])], logline, msg))
+        srclines = { from: Integer($~[2]), to: Integer($~[2]) }
+        msgs.push(TexLogParser::Message.new(message: msg, source_file: $~[3],
+                                            source_lines: srclines, log_lines: loglines,
+                                            level: :error))
         errors = true
       end
       linectr += 1

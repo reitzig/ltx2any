@@ -1,5 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'ruby-progressbar'
-gem 'parallel'
 gem 'listen'
+gem 'parallel'
+gem 'ruby-progressbar'
+gem 'tex_log_parser'

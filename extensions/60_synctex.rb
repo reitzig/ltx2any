@@ -64,7 +64,7 @@ class SyncTeX < Extension
 
     unless File.exist?("#{params[:jobname]}.synctex")
       return { success: false,
-               messages: [LogMessage.new(:error, nil, nil, nil, 'SyncTeX file not found.')],
+               messages: [TexLogParser::Message.new(message: 'SyncTeX file not found.', level: :error)],
                log: 'SyncTeX file not found.' }
     end
 

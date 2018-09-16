@@ -60,33 +60,39 @@ class TikZExt < Extension
     # whole tikzext block, not those inside.
     offset = 0
     (0..(log[0].size - 1)).each do |i|
+      msg = ""
       if !log[0][i].empty?
         internal_offset = 5 # Stuff we print per figure before log excerpt (see :compile)
         log[0][i].map! do |m|
-          LogMessage.new(m.type, m.srcfile, m.srcline,
-                         if m.logline != nil 
-                           m.logline.map { |ll| ll + offset + internal_offset - 1} # -1 because we drop first line!
-                         else
-                           nil
-                         end,
-                         m.msg, m.formatted? ? :fixed : :none)
+          unless m.log_lines.nil?
+            m.log_lines.update(m.log_lines) { |_, ll| ll + offset + internal_offset - 1 }
+          end
+          m
         end
 
-        log[0][i] = [LogMessage.new(:info, nil, nil, nil,
-                                    "The following messages refer to figure\n  #{figures[i]}.\n" \
-                                    "See\n  #{params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
-                    ] + log[0][i]
+        msg = <<~MSG
+                The following messages refer to figure
+                  #{figures[i]}.
+
+              MSG
       else
-        log[0][i] += [LogMessage.new(:info, nil, nil, nil,
-                                     "No messages for figure\n  #{figures[i]}.\nfound. " \
-                                     "See\n  #{params[:tmpdir]}/#{figures[i]}.log\nfor the full log.", :fixed)
-                     ]
+        msg = <<~MSG
+                No messages for figure
+                  #{figures[i]}
+                found.
+              MSG
       end
-      offset += log[1][i].count(?\n)
+      msg += <<~MSG
+               See
+                 #{params[:tmpdir]}/#{figures[i]}.log
+               for the full log.
+             MSG
+      log[0][i].unshift(TexLogParser::Message.new(message: msg, level: :info, preformatted: true))
+      offset += log[1][i].count("\n")
     end
 
     log[0].flatten!
-    errors = log[0].count { |m| m.type == :error }
+    errors = log[0].count { |m| m.level == :error }
     { success: errors <= 0, messages: rebuildlog[0] + log[0], log: rebuildlog[1] + log[1].join }
   end
 
@@ -116,7 +122,7 @@ class TikZExt < Extension
             rebuild.push(fig)
           else
             msg = "User requested rebuild of figure `#{fig}` which does not exist."
-            rebuildlog[0].push(LogMessage.new(:warning, nil, nil, nil, msg))
+            rebuildlog[0].push(TexLogParser::Message.new(message: msg, level: :warning))
             rebuildlog[1] += "#{msg}\n\n"
           end
         end
@@ -147,21 +153,22 @@ class TikZExt < Extension
 
     # These seems to describe reliable boundaries of that part in the log
     # which deals with the processed TikZ figure.
-    startregexp = /^\\openout5 = `#{fig}\.dpth'\.\s*$/
-    endregexp = /^\[\d+\s*$/
+    startregexp = /^\\openout\d+ = `#{fig}\.dpth'\.\s*$/
+    endregexp = /^\[\d+\s*\]?$/
 
     # Cut out relevant part for raw log (heuristic)
-    string = output.drop_while do |line|
+    relevant_lines = output.drop_while do |line|
       startregexp !~ line
     end.take_while do |line|
       endregexp !~ line
-    end.drop(1).join('').strip
+    end.drop(1)
+    string = relevant_lines.join('').strip
 
     log << (string != '' ? "<snip>\n\n#{string}\n\n<snip>" : 'No errors detected.')
 
     # Parse whole log for messages (needed for filenames) but restrict
     # to messages from interesting part
-    msgs = TeXLogParser.parse(output, startregexp, endregexp)
+    msgs = TexLogParser.new(relevant_lines).parse
 
     # Still necessary? Should get *some* error from the recursive call.
     # if ( !File.exist?("#{fig}.pdf") )

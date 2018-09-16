@@ -64,20 +64,17 @@ class Gnuplot < Extension
       unless log[0][i].empty?
         internal_offset = 2 # Stuff we print per plot before log excerpt (see :compile)
         log[0][i].map! { |m|
-          LogMessage.new(m.type, m.srcfile, m.srcline,
-                         if !m.logline.nil? 
-                           m.logline.map { |ll| ll + offset + internal_offset}
-                         else
-                           nil
-                         end,
-                         m.msg, m.formatted? ? :fixed : :none)
+           unless m.log_lines.nil?
+             m.log_lines.update(m.log_lines) { |_, ll| ll + offset + internal_offset }
+           end
+           m
         }
       end
-      offset += log[1][i].count(?\n)
+      offset += log[1][i].count("\n")
     }
 
     log[0].flatten!
-    errors = log[0].count { |m| m.type == :error }
+    errors = log[0].count { |m| m.level == :error }
     { success: errors <= 0, messages: log[0], log: log[1].join }
   end
 
@@ -119,9 +116,14 @@ class Gnuplot < Extension
       # So I'm going to assume that multiple error messages
       # are separated by empty lines.
       if /^"(.+?)", line (\d+): (.*)$/ =~ line
-        msgs.push(LogMessage.new(:error, "#{ParameterManager.instance[:tmpdir]}/#{$~[1]}",
-                                 [Integer($~[2])], [[contextline, linectr].min, linectr],
-                                 "#{context}#{$~[3].strip}", :fixed))
+        msgs.push(TexLogParser::Message.new(
+           message: "#{context}#{$~[3].strip}",
+           source_file: "#{ParameterManager.instance[:tmpdir]}/#{$~[1]}",
+           source_lines: { from: Integer($~[2]), to: Integer($~[2])},
+           log_lines: { from: [contextline, linectr].min, to: linectr },
+           preformatted: true,
+           level: :error
+        ))
       elsif line.strip == ''
         context = ''
         contextline = strings.size + 1 # Larger than every line number

@@ -51,25 +51,29 @@ class SageTeX < Extension
     messages = []
 
     lines << ''
+    # @type [TexLogParser::Message] msg
     msg = nil
     linectr = 1
     lines.each { |line|
       if !msg.nil? && line.strip.empty?
-        msg.logline << linectr - 1
+        msg.log_lines[:to] = linectr - 1
         msg = nil
       elsif msg.nil? && line =~ /File "(.+)",\s+line (\d+)/
-        msg = LogMessage.new(:warning, $~[1], [$~[2].to_i], [linectr], '', :fixed)
+        msg = TexLogParser::Message.new(message: '',
+                                        source_file: $~[1], source_lines: { from: $~[2].to_i, to: $~[2].to_i },
+                                        log_lines: { from: linectr, to: linectr }, level: :warning,
+                                        preformatted: true)
         messages << msg
       elsif line =~ /SyntaxError: \w+/
-        msg.type = :error
-        msg.logline << linectr
-        msg.msg += line
+        msg.level = :error
+        msg.log_lines[:to] = linectr
+        msg.message += line
         msg = nil
       elsif line =~ /sagetex\.VersionError:/
-        msg.type = :error
+        msg.level = :error
       # TODO: what are other patterns?
       elsif !msg.nil?
-        msg.msg += line
+        msg.message += line
       end
 
       linectr += 1

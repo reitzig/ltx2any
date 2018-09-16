@@ -68,18 +68,17 @@ class MetaPost < Extension
       unless log[0][i].empty?
         internal_offset = 3 # Stuff we print per plot before log excerpt (see :compile)
         log[0][i].map! do |m|
-          LogMessage.new(m.type, m.srcfile, m.srcline,
-                         unless m.logline.nil?
-                           m.logline.map { |ll| ll + offset + internal_offset}
-                         end,
-                         m.msg, m.formatted? ? :fixed : :none)
+          unless m.log_lines.nil?
+            m.log_lines.update(m.log_lines) { |_, ll| ll + offset + internal_offset}
+          end
+          m
         end
       end
       offset += log[1][i].count("\n")
     end
 
     log[0].flatten!
-    errors = log[0].count { |m| m.type == :error }
+    errors = log[0].count { |m| m.level == :error }
     { success: errors <= 0, messages: log[0], log: log[1].join }
   end
 
@@ -123,9 +122,15 @@ class MetaPost < Extension
         curmsg = $LAST_MATCH_INFO[1].strip
         curline = linectr
       elsif !curmsg.nil? && /^l\.(\d+)/ =~ line
-        msgs.push(LogMessage.new(:error, "#{ParameterManager.instance[:tmpdir]}/#{file}",
-                                 [Integer($LAST_MATCH_INFO[1])], [curline, linectr],
-                                 curmsg, :none))
+        msgs.push(
+          TexLogParser::Message.new(
+            message: curmsg,
+            source_file: "#{ParameterManager.instance[:tmpdir]}/#{file}",
+            source_lines: { from: Integer($LAST_MATCH_INFO[1]), to: Integer($LAST_MATCH_INFO[1]) },
+            log_lines: { from: curline, to: linectr },
+            level: :error)
+        )
+
         curmsg = nil
         curline = -1
       end

@@ -48,7 +48,8 @@ class XeLaTeX < Engine
     f = IO.popen(eval(xelatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
-    { success: File.exist?(@target_file), messages: TeXLogParser.parse(log), log: log.join('').strip! }
+    parsed_log = TexLogParser.new(log).parse
+    { success: File.exist?(@target_file), messages: parsed_log, log: log.join('').strip! }
   end
 end
 

@@ -76,34 +76,8 @@ class Json < LogWriter
           warning: log.count(:warning, source),
           info: log.count(:info, source)
         },
-        messages: messages.map { |m| convert_message(m) }
+        messages: messages # TexLogParser::Message converts reasonably
       }
-    end
-
-    # @param [LogMessage] message
-    # @return [Hash]
-    def convert_message(message)
-      result = {
-        type: message.type.to_s,
-        message: message.msg,
-        logLines: {
-          from: message.logline[0]
-        },
-        formatted: message.formatted?
-      }
-
-      result[:sourceFile] = message.srcfile unless message.srcfile.nil?
-      result[:logLines][:to] = message.logline[1] if message.logline.count > 1
-
-      unless message.srcline.nil?
-        source_lines = {
-          from: message.srcline[0]
-        }
-        source_lines[:to] = message.srcline[1] if message.srcline.count > 1
-        result[:sourceLines] = source_lines
-      end
-
-      result
     end
   end
 end

@@ -77,20 +77,25 @@ class MakeIndex < Extension
     errors = false
     log.each do |line|
       if /^!! (.*?) \(file = (.+?), line = (\d+)\):$/ =~ line
-        current = [:error, $~[2], [Integer($~[3])], [linectr], "#{$~[1]}: "]
+        current = [:error, $~[2], { from: Integer($~[3]), to: Integer($~[3]) },
+                   { from: linectr, to: linectr }, "#{$~[1]}: "]
         errors = true
       elsif /^## (.*?) \(input = (.+?), line = (\d+); output = .+?, line = \d+\):$/ =~ line
-        current = [:warning, $~[2], [Integer($~[3])], [linectr], "#{$~[1]}: "]
+        current = [:warning, $~[2], { from: Integer($~[3]), to: Integer($~[3]) },
+                   { from: linectr, to: linectr }, "#{$~[1]}: "]
       elsif current != [] && /^\s+-- (.*)$/ =~ line
-        current[3][1] = linectr
-        msgs.push(LogMessage.new(current[0], current[1], current[2],
-                                 current[3], current[4] + $~[1].strip))
+        current[3][:to] = linectr
+        msgs.push(TexLogParser::Message.new(message: current[4] + $~[1].strip,
+                                            source_file: current[1], source_lines: current[2],
+                                            log_lines: current[3], level: current[0]))
         current = []
       elsif /Option -g invalid/ =~ line
-        msgs.push(LogMessage.new(:error, nil, nil, [linectr], line.strip))
+        msgs.push(TexLogParser::Message.new(message: line.strip,
+                                            log_lines: { from: linectr, to: linectr }, level: :error))
         errors = true
       elsif /Can't create output index file/ =~ line
-        msgs.push(LogMessage.new(:error, nil, nil, [linectr], line.strip))
+        msgs.push(TexLogParser::Message.new(message: line.strip,
+                                            log_lines: { from: linectr, to: linectr }, level: :error))
         errors = true
       end
       linectr += 1

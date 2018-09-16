@@ -76,15 +76,18 @@ class Biber < Extension
     errors = false
     linectr = 1
     log.each { |line|
+      loglines = { from: linectr, to: linectr }
       if /^INFO - (.*)$/ =~ line
-        msgs.push(LogMessage.new(:info, nil, nil, [linectr], $~[1]))
+        msgs.push(TexLogParser::Message.new(message: $~[1], log_lines: loglines, level: :info))
       elsif /^WARN - (.*)$/ =~ line
-        msgs.push(LogMessage.new(:warning, nil, nil, [linectr], $~[1]))
+        msgs.push(TexLogParser::Message.new(message: $~[1], log_lines: loglines, level: :warning))
       elsif /^ERROR - BibTeX subsystem: .*?(#{@sources.map { |s| Regexp.escape(s) }.join('|')}).*?, line (\d+), (.*)$/ =~ line
-        msgs.push(LogMessage.new(:error, $~[1], [Integer($~[2])], [linectr], $~[3].strip))
+        srclines = { from: Integer($~[2]), to: Integer($~[2]) }
+        msgs.push(TexLogParser::Message.new(message: $~[3].strip, source_file: $~[1], source_lines: srclines,
+                                            log_lines: loglines, level: :error))
         errors = true
       elsif /^ERROR - (.*)$/ =~ line
-        msgs.push(LogMessage.new(:error, nil, nil, [linectr], $~[1]))
+        msgs.push(TexLogParser::Message.new(message: $~[1], log_lines: loglines, level: error))
         errors = true
       end
       linectr += 1

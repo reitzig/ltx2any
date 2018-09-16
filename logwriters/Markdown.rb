@@ -85,29 +85,38 @@ class Markdown < LogWriter
             result << ' *  ' +
                       { error: '**Error**',
                         warning: '*Warning*',
-                        info: 'Info     ' }[m.type]
-            unless m.srcfile.nil?
+                        info: 'Info     ' }[m.level]
+            unless m.source_file.nil?
               srcline = nil
-              srcline = m.srcline.join('--') unless m.srcline.nil?
+              unless m.source_lines.nil?
+                srcline = m.source_lines[:from].to_s
+                unless m.source_lines[:to].nil? || m.source_lines[:to] == m.source_lines[:from]
+                  srcline += "--#{m.source_lines[:to]}"
+                end
+              end
+
               srcfilelength = 76 - 9 - (!srcline.nil? ? srcline.length + 1 : 0) - 2
-              result << if m.srcfile.length > srcfilelength
-                          "  `...#{m.srcfile[m.srcfile.length - srcfilelength + 5, m.srcfile.length]}"
+              result << if m.source_file.length > srcfilelength
+                          "  `...#{m.source_file[m.source_file.length - srcfilelength + 5, m.source_file.length]}"
                         else
-                          (' ' * (srcfilelength - m.srcfile.length)) + "`#{m.srcfile}"
+                          (' ' * (srcfilelength - m.source_file.length)) + "`#{m.source_file}"
                         end
               result << ":#{srcline}" unless srcline.nil?
               result << '`'
             end
             result << "\n\n"
-            result << if m.formatted?
-                        indent(m.msg.strip, 8) + "\n\n"
+            result << if m.preformatted
+                        indent(m.message.strip, 8) + "\n\n"
                       else
-                        break_at_spaces(m.msg.strip, 68, 8) + "\n\n"
+                        break_at_spaces(m.message.strip, 68, 8) + "\n\n"
                       end
-            next if m.logline.nil?
+            next if m.log_lines.nil?
             # We have line offset in the raw log!
-            logline = m.logline.join('--')
-            result << (' ' * (80 - (6 + logline.length))) + '`log:' + logline + "`\n\n\n"
+            logline = m.log_lines[:from].to_s
+            unless m.log_lines[:to].nil? || m.log_lines[:to] == m.log_lines[:from]
+              logline += "--#{m.log_lines[:to]}"
+            end
+            result << (' ' * (80 - (6 + logline.length))) + '`log:' + logline + "`\n\n"
           end
         end
       end

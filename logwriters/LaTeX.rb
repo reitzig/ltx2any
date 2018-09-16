@@ -72,31 +72,29 @@ class LaTeX < LogWriter
               f.write("\n\n\\item\\blockitem\n")
 
               # Write the error type and source file reference
-              if m.type == :error && params[:loglevel] != :error
+              if m.level == :error && params[:loglevel] != :error
                 f.write("\\linkederror{")
               else
-                f.write("\\#{m.type.to_s}{")
+                f.write("\\#{m.level}{")
               end
 
-              srcline = m.srcline || ['', '']
-              srcline.push('') if srcline.length < 2
-              f.write("#{makeFileref(m.srcfile, srcline[0], srcline[1])}}\n\n")
+              to_line = m.source_lines[:from] == m.source_lines[:to] ? '' : m.source_lines[:to]
+              f.write("#{makeFileref(m.source_file, m.source_lines[:from], to_line)}}\n\n")
 
               # Write the log message itself
               f.write("\\begin{verbatim}\n")
-              if m.formatted?
-                f.write(indent(m.msg.strip, 0))
+              if m.preformatted
+                f.write(indent(m.message.strip, 0))
               else
-                f.write(break_at_spaces(m.msg.strip, 68, 1))
+                f.write(break_at_spaces(m.message.strip, 68, 1))
               end
               f.write("\n\\end{verbatim}")
 
               # Write the raw log reference
-              unless m.logline.nil?
+              unless m.log_lines.nil?
                 # We have line offsets in the raw log!
-                logline = m.logline
-                logline.push('') if logline.length < 2
-                f.write("\n\n\\logref{#{logline[0]}}{#{logline[1]}}")
+                to_line = m.log_lines[:from] == m.log_lines[:to] ? '' : m.log_lines[:to]
+                f.write("\n\n\\logref{#{m.log_lines[:from]}}{#{to_line}}")
               end
 
               f.write("\n\\endblockitem\n\n")
