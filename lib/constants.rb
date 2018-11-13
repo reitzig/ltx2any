@@ -1,4 +1,6 @@
-# Copyright 2010-2017, Raphael Reitzig
+# frozen_string_literal: true
+
+# Copyright 2016, Raphael Reitzig
 # <code@verrech.net>
 #
 # This file is part of ltx2any.
@@ -16,29 +18,18 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
-# TODO: document
-class Raw < LogWriter
-  class << self
-    def name
-      'Original Log'
-    end
+# TODO: move to a properties file? module?
 
-    def description
-      'Prints the original log files/outputs into a single file.'
-    end
+NAME       = 'chew'
+VERSION    = '1.0.0-beta'
+YEAR       = '2018'
+AUTHOR     = 'Raphael Reitzig'
+TMPSUFFIX  = '_tmp'
+HASHFILE   = '.hashes' # relative to tmp directory
 
-    def to_sym
-      :raw
-    end
-
-    # Returns the name of the written file, or raises an exception
-    # @override
-    def write(log, _level = :warning)
-      target_file = "#{ParameterManager.instance[:log]}.full"
-      File.open(target_file, 'w') { |f| f.write(log.to_s) }
-      target_file
-    end
-  end
-end
-
-LogWriter.add Raw
+WORKDIR = Dir.pwd.freeze
+BASEDIR = File.expand_path(__dir__).freeze
+LIBDIR  = 'util'
+EXTDIR  = 'extensions'
+ENGDIR  = 'engines'
+LOGWDIR = 'logwriters'

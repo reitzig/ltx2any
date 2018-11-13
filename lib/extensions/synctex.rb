@@ -19,7 +19,7 @@
 require 'zlib'
 
 ParameterManager.instance.addParameter(Parameter.new(
-    :synctex, 'synctex', Boolean, false, 'Set to make engines create SyncTeX files.'))
+  :synctex, 'synctex', Boolean, false, 'Set to make engines create SyncTeX files.'))
 
 # Add hook that adapts the :enginepar parameter whenever :synctex changes (including startup)
 ParameterManager.instance.addHook(:synctex) do |key, val|
@@ -48,40 +48,44 @@ ParameterManager.instance.addHook(:synctex) do |key, val|
   end
 end
 
-class SyncTeX < Extension
-  def initialize
-    super
-    @name = 'SyncTeX'
-    @description = 'Provides support for SyncTeX'
-  end
+module Chew
+  module Extensions
+    class SyncTeX
+      include Extension
 
-  def do?(time)
-    ParameterManager.instance[:synctex] && time == :after
-  end
+      def initialize
+        super
+        @name        = 'SyncTeX'
+        @description = 'Provides support for SyncTeX'
+      end
 
-  def exec(time, progress)
-    params = ParameterManager.instance
+      def do?(time)
+        ParameterManager.instance[:synctex] && time == :after
+      end
 
-    unless File.exist?("#{params[:jobname]}.synctex")
-      return { success: false,
-               messages: [TexLogParser::Message.new(message: 'SyncTeX file not found.', level: :error)],
-               log: 'SyncTeX file not found.' }
-    end
+      def exec(time, progress)
+        params = ParameterManager.instance
 
-    # Fix paths in synctex file, gzip it and put result in main directory
-    Zlib::GzipWriter.open("#{params[:jobpath]}/#{params[:jobname]}.synctex.gz") do |gz|
-      File.open("#{params[:jobname]}.synctex", 'r') do |f|
-        f.readlines.each do |line|
-          # Replace tmp path with job path.
-          # Catch absolute tmp paths first, then try to match paths relative to job path.
-          gz.write line.sub("#{params[:jobpath]}/#{params[:tmpdir]}", params[:jobpath])\
-                       .sub(params[:tmpdir], params[:jobpath])
+        unless File.exist?("#{params[:jobname]}.synctex")
+          return { success:  false,
+                   messages: [TexLogParser::Message.new(message: 'SyncTeX file not found.', level: :error)],
+                   log:      'SyncTeX file not found.' }
         end
+
+        # Fix paths in synctex file, gzip it and put result in main directory
+        Zlib::GzipWriter.open("#{params[:jobpath]}/#{params[:jobname]}.synctex.gz") do |gz|
+          File.open("#{params[:jobname]}.synctex", 'r') do |f|
+            f.readlines.each do |line|
+              # Replace tmp path with job path.
+              # Catch absolute tmp paths first, then try to match paths relative to job path.
+              gz.write line.sub("#{params[:jobpath]}/#{params[:tmpdir]}", params[:jobpath])\
+                       .sub(params[:tmpdir], params[:jobpath])
+            end
+          end
+        end
+
+        { success: true, messages: [], log: '' }
       end
     end
-
-    { success: true, messages: [], log: '' }
   end
 end
-
-Extension.add SyncTeX

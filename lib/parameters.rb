@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+# TODO: migrate to util/option_parser.rb
+
 [
   Parameter.new(:user_jobname, 'j', String, '"#{self[:jobname]}"',
                 'Job name, in particular name of the resulting file'),

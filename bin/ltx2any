@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+# TODO: remove eventually
+
+puts 'Deprecation warning: ltx2any is called chew now.'
+`chew #{ARGV.join(' ')}`

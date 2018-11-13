@@ -1,6 +1,4 @@
-source 'https://rubygems.org'
+# frozen_string_literal: true
 
-gem 'listen'
-gem 'parallel'
-gem 'ruby-progressbar'
-gem 'tex_log_parser'
+source 'https://rubygems.org'
+gemspec

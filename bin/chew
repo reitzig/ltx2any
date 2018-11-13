@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+
+require 'chew'
+
+Chew::setup_opts
+
+# TODO: Implement something reasonably clear
+puts "Doing things!"
