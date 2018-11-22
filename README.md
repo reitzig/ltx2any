@@ -1,49 +1,61 @@
-chew
-====
+# chew
 
-Yet another LaTeX build wrapper, with one or two nifty features:
+[![Gem Version](https://badge.fury.io/rb/chew.svg)](https://badge.fury.io/rb/chew) 
+[![Circle CI](https://circleci.com/gh/reitzig/chew.svg?style=svg)](https://circleci.com/gh/reitzig/workflows/chew/tree/master) **˙**
+[![Test Coverage](https://api.codeclimate.com/v1/badges/???/test_coverage)](https://codeclimate.com/github/reitzig/chew/test_coverage)
+[![Maintainability](https://api.codeclimate.com/v1/badges/???/maintainability)](https://codeclimate.com/github/reitzig/chew/maintainability) 
+
+Yet another LaTeX build tool, with a couple of nifty features:
 
  * Automatically compiles as often as necessary.
  * Executes additional programs as necessary and aggregates their output into
    a single log file.
  * Does not require user intervention or annotations to do either of the above.
- * Work-intensive extensions (e.g. TikZ externalization) can work in parallel to
-   speed up compilation on multi-core machines.
- * Can run as daemon, recompiling when files change.
+ * Keeps your work directory clean by default.
+ * Work-intensive tasks (e.g. TikZ externalization) run in parallel.
+ * Recompiles automatically when files change.
  * Aggregates error messages and warnings from all tools into a nicely formatted 
    log (Markdown or [PDF](https://cloud.githubusercontent.com/assets/1488534/11242606/06ed381a-8e03-11e5-99be-7b1312d59420.png)) 
    with references to source files and original logs.
- * Adding additional phases is easy due to modular design.
- * Keeps your main directory clean by default.
  
-It is easy to extend chew with additional LaTeX engines and secondary tools.
-Currently, we provide the following functionality:
+chew is designed to be easily extensible with support additional LaTeX engines 
+and secondary tools.
+Currently, the following is included:
 
  * Engines `pdflatex` (default), `xelatex` and `lualatex` for creating PDFs.
- * Extensions for `bibtex`, `biber`, `makeindex`, SyncTex support, TikZ externalization, `gnuplot` and Metapost.
+ * Extensions for `bibtex`, `biber`, `gnuplot`, `makeindex`, Metapost, SageTeX,
+   SyncTex, and TikZ externalization.
  
-Pull requests with new engines or extensions are appreciated. Please make sure
-to adhere to the specs (upcoming) and include test cases.
+Pull requests with new engines or extensions are appreciated. 
+Find out
+    [here](https://github.com/reitzig/chew/wiki/Contributing)
+how to contribute.
 
-**Note:** This is still *prerelease* code. It is by no means considered nicely written, 
-bug-free or reliable. Take care!
 
-### Requirements ###
+## Requirements ###
 
 For using chew without any bells and whistles, you should have
 
  * Ruby 2.3.0 or higher and
  * LaTeX and friends.
 
-Any of the major (La)TeX distributions should provide the binaries you need.
+Any of the major (La)TeX distributions should provide the binaries you need;
+we recommend [TeX Live](http://tug.org/texlive/).
 
-You can print a complete list of useful but optional gems and binaries by calling 
-chew with the `--dependencies` option; some provide improved speed or usability, 
-others are necessary for only some engines or extensions.
+Obviously, some extensions require additional binaries.
+<!-- TODO: refer to CLI option and/or error message -->
 
-See [here](https://github.com/reitzig/chew/wiki) for slightly more elaborate installation instructions.
 
-### Basic Use ###
+## Installation
+
+Install chew by executing:
+
+    gem install chew 
+
+See [here](https://github.com/reitzig/chew/wiki#installation) for some tips.
+
+
+## Basic Use ###
 
 Once `chew` is in your PATH, run `chew <file>` to compile the specified file.
 Find out about available parameters by running `chew --help`.
@@ -151,34 +163,24 @@ ready for other tools to use.
 
 No additional `-ep` parameter is necessary.
 
+
 ## Advanced Use ##
-
-### Parallel Compilation ###
-
-Alas, LaTeX engines themselves can not run in parallel. But some extensions can, namely
-such that create many small, independent jobs (e.g. TikZ externalization).
-You only have to install Ruby gem [parallel](https://github.com/grosser/parallel/) for
-making the best out of your multicore CPU.
 
 ### Daemon Mode ###
 
-Install Ruby gem [listen](https://github.com/guard/listen) to make daemon mode available.
-Option `-d` then causes `chew` to wait for files in the working directory to change;
+If option `-d` is given, `chew` waits for files in the working directory to change;
 if that happens, the compilation process starts over.
 
+<!-- TODO change with issue #115 -->
 By default, `chew` will ignore changes to files it creates itself (even across instances).
 Everything else in the current tree *is* listened to, though -- with some restrictions
 around symlinks -- so take care if there is lots of stuff.  
 As a general rule, `chew` works best if the document you want to compile resides in
 its own directory; use symlinks for shared resources.
 
+<!-- TODO change with issue #97 -->
 While `chew` waits for files to change, you can hit ENTER to get an interactive prompt;
 hit ENTER again (with empty command) to close the prompt and recompile.  
 Command `help` will tell you what you can do in the prompt; right now the most relevant use is
 probably to force recompilation.
 This feature is still subject to development and far from finished.
-
-## For Developers
-
-TODO: describe Extension and Engine interfaces -- once they have stabilized and 
-are less likely to hurt people.
