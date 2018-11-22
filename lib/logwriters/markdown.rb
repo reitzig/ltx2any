@@ -1,20 +1,19 @@
-# Copyright 2010-2017, Raphael Reitzig
-# <code@verrech.net>
+# Copyright 2010-2018, Raphael Reitzig
 #
-# This file is part of ltx2any.
+# This file is part of chew.
 #
-# ltx2any is free software: you can redistribute it and/or modify
+# chew is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# ltx2any is distributed in the hope that it will be useful,
+# chew is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
+# along with chew. If not, see <http://www.gnu.org/licenses/>.
 
 module Chew
   module LogWriters
@@ -45,7 +44,7 @@ module Chew
           result << "**Disclaimer:**  \nThis is but a digest of the original log file.\n" \
                 "For full detail, check out `#{params[:tmpdir]}/#{params[:log]}.full`.\n" \
                 'In case we failed to pick up an error or warning, please ' \
-                "[report it to us](https://github.com/akerbos/ltx2any/issues/new).\n\n"
+                "[report it to us](https://github.com/reitzig/chew/issues/new).\n\n"
 
           result << "We found **#{log.count(:error)} error#{pls(log.count(:error))}**, " \
                 "*#{log.count(:warning)} warning#{pls(log.count(:warning))}* " \

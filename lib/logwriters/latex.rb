@@ -1,20 +1,19 @@
-# Copyright 2010-2017, Raphael Reitzig
-# <code@verrech.net>
+# Copyright 2010-2018, Raphael Reitzig
 #
-# This file is part of ltx2any.
+# This file is part of chew.
 #
-# ltx2any is free software: you can redistribute it and/or modify
+# chew is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# ltx2any is distributed in the hope that it will be useful,
+# chew is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
+# along with chew. If not, see <http://www.gnu.org/licenses/>.
 
 module Chew
   module LogWriters
@@ -44,7 +43,7 @@ module Chew
             File.open("#{File.dirname(__FILE__)}/logtemplate.tex", 'r') { |template|
               f.write(template.read)
             }
-            f.write("\\def\\author{ltx2any}\n\\def\\title{Log for #{params[:user_jobname]}}\n" \
+            f.write("\\def\\author{chew}\n\\def\\title{Log for #{params[:user_jobname]}}\n" \
                 "\\def\\fulllog{#{File.join(params[:tmpdir], "#{params[:log]}.full")}}\n" \
                 "\n\n\\begin{document}")
 
@@ -54,7 +53,7 @@ module Chew
             f.write("\\textbf{Disclaimer:} This is but a digest of the original log file. " \
                 "For full detail, check out \\loglink. " \
                 'In case we failed to pick up an error or warning, please ' \
-                "\\href{https://github.com/akerbos/ltx2any/issues/new}{report it to us}.\n\n")
+                "\\href{https://github.com/reitzig/chew/issues/new}{report it to us}.\n\n")
 
             f.write("We found \\errlink{\\textbf{#{log.count(:error)}~error#{pls(log.count(:error))}}}, " \
                 "\\textsl{#{log.count(:warning)}~warning#{pls(log.count(:warning))}} " \

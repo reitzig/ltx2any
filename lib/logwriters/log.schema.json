@@ -1,5 +1,5 @@
 {
-  "title": "ltx2any Log File",
+  "title": "chew Log File",
   "$schema": "http://json-schema.org/draft-06/schema#",
   "type": "object",
   "required": [
@@ -13,7 +13,7 @@
       "required": ["version", "call", "document", "counts"],
       "properties": {
         "version": {
-          "description": "The version of ltx2any that produced this log.",
+          "description": "The version of chew that produced this log.",
           "type": "string",
           "pattern": "[0-9]+\\.[0-9]+\\.[0-9]+(-[a-z]+)?"
         },
