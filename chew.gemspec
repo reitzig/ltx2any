@@ -5,19 +5,19 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'constants'
 
 Gem::Specification.new do |s|
-  s.name        = 'chew'
-  s.version     = VERSION
+  s.name        = Chew::NAME
+  s.version     = Chew::VERSION
   s.date        = Time.now.strftime('%Y-%m-%d')
   s.summary     = 'Yet another LaTeX build wrapper, with one or two nifty features'
   s.description = s.summary
-  s.authors     = ['Raphael Reitzig']
+  s.authors     = Chew::AUTHORS
   s.email       = '4246780+reitzig@users.noreply.github.com'
   s.homepage    = 'http://github.com/reitzig/chew'
   s.license     = 'MIT'
   s.required_ruby_version = '>= 2.3.0'
 
   s.executables = ['chew', 'ltx2any']
-  s.files       = Dir['lib/**/*.rb', 'bin/*', 'LICENSE', '*.md']
+  s.files       = Dir['bin/*', 'lib/**/*.rb', 'resources/*', 'LICENSE', '*.md']
 
   #s.add_development_dependency 'github-markup', '~> 2.0'
   #s.add_development_dependency 'json-schema', '~> 2.8'

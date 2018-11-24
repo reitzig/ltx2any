@@ -2,7 +2,7 @@
 
 require 'chew'
 
-Chew::setup_opts
+Chew.setup_opts
 
 # TODO: Implement something reasonably clear
 puts "Doing things!"

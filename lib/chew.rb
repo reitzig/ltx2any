@@ -1,25 +1,24 @@
 require 'constants'
 
-# Load Managers first so other classes can add their dependencies and hooks
-Dir["#{BASEDIR}/#{LIBDIR}/*Manager.rb"].each { |f| require f }
-# Load rest of the utility classes
-Dir["#{BASEDIR}/#{LIBDIR}/*.rb"].each { |f| require f }
-
-# Load active components
-require "#{ENGDIR}/engine.rb"
-Dir["#{BASEDIR}/#{ENGDIR}/*.rb"].each { |f| require f }
-require "#{EXTDIR}/extension.rb"
-Dir["#{BASEDIR}/#{EXTDIR}/*.rb"].each { |f| require f }
-require "#{LOGWDIR}/log_writer.rb"
-Dir["#{BASEDIR}/#{LOGWDIR}/*.rb"].each { |f| require f }
-
 module Chew
-  ENGINES =
-    [
-      Engines::LuaLaTeX,
-      Engines::PdfLaTeX,
-      Engines::XeLaTeX
-    ]
+  # Load Managers first so other classes can add their dependencies and hooks
+  Dir["#{BASEDIR}/#{LIBDIR}/*Manager.rb"].each { |f| require f }
+  # Load rest of the utility classes
+  Dir["#{BASEDIR}/#{LIBDIR}/*.rb"].each { |f| require f }
+
+  # Load active components
+  require "#{BASEDIR}/#{ENGDIR}/engine.rb"
+  Dir["#{BASEDIR}/#{ENGDIR}/*.rb"].each { |f| require f }
+  require "#{BASEDIR}/#{EXTDIR}/extension.rb"
+  Dir["#{BASEDIR}/#{EXTDIR}/*.rb"].each { |f| require f }
+  require "#{BASEDIR}/#{LOGWDIR}/log_writer.rb"
+  Dir["#{BASEDIR}/#{LOGWDIR}/*.rb"].each { |f| require f }
+
+  ENGINES = [
+    Engines::LuaLaTeX,
+    Engines::PdfLaTeX,
+    Engines::XeLaTeX
+  ].freeze
 
   EXTENSIONS = [
     Extensions::Biber,
@@ -30,7 +29,7 @@ module Chew
     Extensions::TikZExt,
     Extensions::Gnuplot,
     Extensions::SyncTeX
-  ]
+  ].freeze
 
   LOG_FORMATS = [
     LogWriters::Json,
@@ -38,7 +37,7 @@ module Chew
     LogWriters::Markdown,
     LogWriters::PDF,
     LogWriters::Raw
-  ]
+  ].freeze
 end
 
 # TODO: refactor

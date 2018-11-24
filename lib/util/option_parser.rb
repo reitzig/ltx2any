@@ -31,7 +31,7 @@ module Chew
         end
         opts.on_tail('-v', '--version', 'Show version') do
           puts "#{NAME} #{VERSION}"
-          puts "Copyright \u00A9 #{AUTHOR} #{YEAR}".encode('utf-8')
+          puts "Copyright \u00A9 #{AUTHORS.join(', ')} #{YEAR}".encode('utf-8')
           puts 'This is free software; see the source for copying conditions.'
           puts 'There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.'
           exit

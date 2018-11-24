@@ -3,4 +3,4 @@
 # TODO: remove eventually
 
 puts 'Deprecation warning: ltx2any is called chew now.'
-`chew #{ARGV.join(' ')}`
+load "#{__dir__}/chew"
