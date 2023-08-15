@@ -17,12 +17,12 @@
 
 require 'zlib'
 
-ParameterManager.instance.addParameter(Parameter.new(
-  :synctex, 'synctex', Boolean, false, 'Set to make engines create SyncTeX files.'))
+Chew::ParameterManager.instance.addParameter(Chew::Parameter.new(
+  :synctex, 'synctex', Chew::Boolean, false, 'Set to make engines create SyncTeX files.'))
 
 # Add hook that adapts the :enginepar parameter whenever :synctex changes (including startup)
-ParameterManager.instance.addHook(:synctex) do |key, val|
-  params = ParameterManager.instance
+Chew::ParameterManager.instance.addHook(:synctex) do |key, val|
+  params = Chew::ParameterManager.instance
 
   # Set engine parameter
   # TODO: make nicer with array parameters

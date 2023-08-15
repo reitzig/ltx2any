@@ -20,7 +20,7 @@
 module Chew
   NAME       = 'chew'
   VERSION    = '1.0.0-beta'
-  YEAR       = '2018'
+  YEAR       = '2019'
   AUTHORS    = ['Raphael Reitzig'].freeze
   TMPSUFFIX  = '_tmp'
   HASHFILE   = '.hashes' # relative to tmp directory

@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with chew. If not, see <http://www.gnu.org/licenses/>.
 
-ParameterManager.instance.addParameter(Parameter.new(
+Chew::ParameterManager.instance.addParameter(Chew::Parameter.new(
   :imagerebuild, 'ir', String, '', "Specify externalised TikZ images to rebuild, separated by ':'. Set to 'all' to rebuild all."))
 
 module Chew

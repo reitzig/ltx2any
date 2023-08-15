@@ -2,5 +2,5 @@
 
 # TODO: remove eventually
 
-puts 'Deprecation warning: ltx2any is called chew now.'
+warn 'Deprecation warning: ltx2any is called chew now.'
 load "#{__dir__}/chew"

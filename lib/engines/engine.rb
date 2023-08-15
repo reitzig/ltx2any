@@ -18,34 +18,36 @@
 module Chew
   module Engines
     class Engine
-      def self.to_sym
-        self.new.to_sym
-      end
+      class << self
+        def to_sym
+          to_s.downcase.to_sym
+        end
 
-      # Hacky hack? Need to refactor this
-      def self.description
-        self.new.description
-      end
+        def to_s
+          name.split('::').last
+        end
 
-      def self.binary
-        self.new.binary
-      end
+        # @return [String]
+        def description
+          raise 'Need to override `description`'
+        end
 
-      def self.extension
-        self.new.extension
-      end
+        # @return [String]
+        def binary
+          raise 'Need to override `binary`'
+        end
 
-      def initialize
-        @binary      = 'dummy'
-        @extension   = 'dummy'
-        @description = 'Dummy Description'
+        # @return [String]
+        def extension
+          raise 'Need to override `extension`'
+        end
       end
-
-      public
 
       # Returns true iff this engine needs to run (again)
+      #
+      # @return [true,false]
       def do?
-        false
+        raise 'Need to override `do?`'
       end
 
       # Executes this engine
@@ -53,27 +55,11 @@ module Chew
       #  - sucess: true iff there were no fatal errors
       #  - messages: A list of log messages (cf LogMessage)
       #  - log: The raw output of the external program
+      #
+      # @return [Hash]
       def exec
-        { success: true, messages: ['No execution code, need to overwrite!'], log: 'No execution code, need to overwrite!' }
+        raise 'Need to override `exec?`'
       end
-
-      def name
-        self.class.name
-      end
-
-      def to_s
-        @name
-      end
-
-      def to_sym
-        @binary.to_sym
-      end
-
-      attr_reader :binary, :extension, :description
-
-      protected
-
-      attr_writer :binary, :extension, :description
     end
   end
 end

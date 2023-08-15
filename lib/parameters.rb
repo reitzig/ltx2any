@@ -18,8 +18,6 @@
 # TODO: migrate to util/option_parser.rb
 
 [
-  Parameter.new(:user_jobname, 'j', String, '"#{self[:jobname]}"',
-                'Job name, in particular name of the resulting file'),
   Parameter.new(:clean, 'c', Boolean, false,
                 'Delete temporary files'),
   Parameter.new(:cleanall, 'ca', Boolean, false,

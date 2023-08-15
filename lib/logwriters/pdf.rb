@@ -17,13 +17,13 @@
 
 Dependency.new('xelatex', :binary, [:logwriter, 'pdf'], :essential, 'Compilation of PDF logs')
 
-ParameterManager.instance.addHook(:logformat) { |_, new_value|
+Chew::ParameterManager.instance.addHook(:logformat) { |_, new_value|
   if new_value == :pdf
     DependencyManager.list(type: :all, source: [:logwriter, 'pdf'], relevance: :essential).each { |dep|
       next if dep.available?
 
       Output.instance.warn("#{dep.name} is not available to build PDF logs.", 'Falling back to Markdown log.')
-      ParameterManager.instance[:logformat] = :md
+      Chew::ParameterManager.instance[:logformat] = :md
       break
     }
   end

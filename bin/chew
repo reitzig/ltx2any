@@ -2,7 +2,14 @@
 
 require 'chew'
 
-Chew.setup_opts
+options = Chew.setup_opts
+include Chew::Options
 
-# TODO: Implement something reasonably clear
-puts "Doing things!"
+# TODO: Implement The Loop in a reasonably clear way
+puts "Compiling #{options[:input]} with #{options[:engine]}!"
+
+result = Chew::ENGINES.find { |e| e.to_sym == options[:engine] }.new.exec
+puts params[:jobfile]
+puts result[:success]
+puts result[:messages]
+puts result[:log]

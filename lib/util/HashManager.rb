@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with chew. If not, see <http://www.gnu.org/licenses/>.
 
+require 'digest'
+
 # TODO: Document
 class HashManager
   include Singleton
@@ -22,8 +24,6 @@ class HashManager
   def initialize
     @hashes = {}
   end
-
-  public
 
   # Hashes the given string
   def self.hash(string)

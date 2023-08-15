@@ -15,213 +15,215 @@
 # You should have received a copy of the GNU General Public License
 # along with chew. If not, see <http://www.gnu.org/licenses/>.
 
-ParameterManager.instance.addParameter(Parameter.new(
-    :daemon, 'd', Boolean, false, 'Re-compile automatically when files change.'))
-ParameterManager.instance.addParameter(Parameter.new(
+Chew::ParameterManager.instance.addParameter(Chew::Parameter.new(
+    :daemon, 'd', Chew::Boolean, false, 'Re-compile automatically when files change.'))
+Chew::ParameterManager.instance.addParameter(Chew::Parameter.new(
     :listeninterval, 'di', Float, 0.5,
     'Time after which daemon mode checks for changes (in seconds).'))
 
-class FileListener
-  include Singleton
+module Chew
+  class FileListener
+    include Singleton
 
-  private
+    private
 
-  def ignoreFileName(jobname = '')
-    ".#{NAME}ignore_#{jobname}"
-  end
-
-  public
-
-  def initialize
-    @ignore = []
-    # ParameterManager.instance.addHook(:listeninterval) { |_,v|
-    # TODO implement hook that catches changes to listen interval
-    # }
-    @jobfilelistener = nil
-    @ignfilelistener = nil
-    @dependencies = DependencyManager.list(source: [:core, self.class.to_s])
-  end
-
-  def ignored
-    @ignore.clone
-  end
-
-  # Function that reads the ignorefile fo another process and
-  # adds the contained files to the ignore list.
-  def readIgnoreFile(ignoreFile)
-    if File.exist?(ignoreFile)
-      IO.foreach(ignoreFile) do |line|
-        @ignore.push(line.strip)
-      end
-    end
-  end
-
-  def start(jobname, ignores = [])
-    # Make sure that the listen gem is available
-    @dependencies.each do |d|
-      unless d.available?
-        raise MissingDependencyError.new(d.to_s)
-      end
+    def ignoreFileName(jobname = '')
+      ".#{NAME}ignore_#{jobname}"
     end
 
-    unless @jobfilelistener.nil?
-      # Should never happen unless I programmed crap
-      raise StandardError.new('Listener already running, what are you doing?!')
+    public
+
+    def initialize
+      @ignore = []
+      # ParameterManager.instance.addHook(:listeninterval) { |_,v|
+      # TODO implement hook that catches changes to listen interval
+      # }
+      @jobfilelistener = nil
+      @ignfilelistener = nil
+      @dependencies = DependencyManager.list(source: [:core, self.class.to_s])
     end
 
-    params = ParameterManager.instance
-
-    # Add the files to ignore from this process
-    @ignore += ignores
-    @ignorefile = ignoreFileName(jobname)
-    @ignore.push(@ignorefile)
-
-    # Write ignore list for other processes
-    File.open("#{params[:jobpath]}/#{@ignorefile}", 'w') do |file|
-      file.write(@ignore.join("\n"))
-      # TODO: make sure this file gets deleted!
+    def ignored
+      @ignore.clone
     end
 
-    # Collect all existing ignore files
-    Dir.entries('.') \
-       .select { |f| /(\.\/)?#{Regexp.escape(ignoreFileName(''))}[^\/]+/ =~ f } \
-       .each do |f|
-      readIgnoreFile(f)
-    end
-
-
-    # Setup daemon mode
-    @vanishedfiles = []
-    # Main listener: this one checks job files for changes and prompts recompilation.
-    #                (indirectly: The Loop below checks $changetime.)
-    @jobfilelistener =
-      Listen.to('.',
-                latency: params[:listeninterval] * 0.25,
-                ignore: [ /(\.\/)?#{Regexp.escape(ignoreFileName())}[^\/]+/,
-                          #/(\.\/)?\..*/, # ignore hidden files, e.g. .git
-                          /\A(\.\/)?(#{@ignore.map { |s| Regexp.escape(s) }.join('|')})/ ],
-               ) \
-      do |modified, added, removed|
-        # TODO: cruel hack; can we do better?
-        removed.each do |r|
-          @vanishedfiles.push File.path(r.to_s).sub(params[:jobpath], params[:tmpdir])
+    # Function that reads the ignorefile fo another process and
+    # adds the contained files to the ignore list.
+    def readIgnoreFile(ignoreFile)
+      if File.exist?(ignoreFile)
+        IO.foreach(ignoreFile) do |line|
+          @ignore.push(line.strip)
         end
-        @changetime = Time.now
+      end
+    end
+
+    def start(jobname, ignores = [])
+      # Make sure that the listen gem is available
+      @dependencies.each do |d|
+        unless d.available?
+          raise MissingDependencyError.new(d.to_s)
+        end
       end
 
-    params.addHook(:listeninterval) do |key,val|
-      # jobfilelistener.latency = val
-      # TODO tell change to listener; in worst case, restart?
-    end
-    # TODO: need hook on -i parameter?
+      unless @jobfilelistener.nil?
+        # Should never happen unless I programmed crap
+        raise StandardError.new('Listener already running, what are you doing?!')
+      end
 
-    # Secondary listener: this one checks for (new) ignore files, i.e. other
-    #                     jobs in the same directory. It then updates the main
-    #                     listener so that it does not react to changes in files
-    #                     generated by the other process.
-    @ignfilelistener =
-      Listen.to('.',
-                only: /\A(\.\/)?#{Regexp.escape(ignoreFileName())}[^\/]+/,
-                latency: 0.1
-               ) \
-      do |modified, added, removed|
+      params = ParameterManager.instance
+
+      # Add the files to ignore from this process
+      @ignore += ignores
+      @ignorefile = ignoreFileName(jobname)
+      @ignore.push(@ignorefile)
+
+      # Write ignore list for other processes
+      File.open("#{params[:jobpath]}/#{@ignorefile}", 'w') do |file|
+        file.write(@ignore.join("\n"))
+        # TODO: make sure this file gets deleted!
+      end
+
+      # Collect all existing ignore files
+      Dir.entries('.') \
+         .select { |f| /(\.\/)?#{Regexp.escape(ignoreFileName(''))}[^\/]+/ =~ f } \
+         .each do |f|
+        readIgnoreFile(f)
+      end
+
+
+      # Setup daemon mode
+      @vanishedfiles = []
+      # Main listener: this one checks job files for changes and prompts recompilation.
+      #                (indirectly: The Loop below checks $changetime.)
+      @jobfilelistener =
+        Listen.to('.',
+                  latency: params[:listeninterval] * 0.25,
+                  ignore: [ /(\.\/)?#{Regexp.escape(ignoreFileName())}[^\/]+/,
+                            #/(\.\/)?\..*/, # ignore hidden files, e.g. .git
+                            /\A(\.\/)?(#{@ignore.map { |s| Regexp.escape(s) }.join('|')})/ ],
+                 ) \
+        do |modified, added, removed|
+          # TODO: cruel hack; can we do better?
+          removed.each do |r|
+            @vanishedfiles.push File.path(r.to_s).sub(params[:jobpath], params[:tmpdir])
+          end
+          @changetime = Time.now
+        end
+
+      params.addHook(:listeninterval) do |key,val|
+        # jobfilelistener.latency = val
+        # TODO tell change to listener; in worst case, restart?
+      end
+      # TODO: need hook on -i parameter?
+
+      # Secondary listener: this one checks for (new) ignore files, i.e. other
+      #                     jobs in the same directory. It then updates the main
+      #                     listener so that it does not react to changes in files
+      #                     generated by the other process.
+      @ignfilelistener =
+        Listen.to('.',
+                  only: /\A(\.\/)?#{Regexp.escape(ignoreFileName())}[^\/]+/,
+                  latency: 0.1
+                 ) \
+        do |modified, added, removed|
+          @jobfilelistener.pause
+
+          added.each do |ignf|
+            files = ignoremore(ignf)
+            @jobfilelistener.ignore(/\A(\.\/)?(#{files.map { |s| Regexp.escape(s) }.join('|')})/)
+          end
+
+          # TODO: If another daemon terminates we keep its ignorefiles. Potential leak!
+          #      If this turns out to be a problem, update list & listener (from scratch)
+
+          @jobfilelistener.unpause
+        end
+
+      @ignfilelistener.start
+      @changetime = Time.now
+      @lastraise  = @changetime
+      @jobfilelistener.start
+    end
+
+    def waitForChanges(output)
+      output.start('Waiting for file changes (press ENTER to pause)')
+      @jobfilelistener.start if @jobfilelistener.paused?
+      params = ParameterManager.instance
+
+      files = Thread.new do
+        while @changetime <= @lastraise || Time.now - @changetime < params[:listeninterval]
+          sleep(params[:listeninterval] * 0.5)
+        end
+
+        @lastraise = Time.now
+        Thread.current[:raisetarget].raise(FilesChanged.new('Files have changed'))
+      end
+      files[:raisetarget] = Thread.current
+
+      begin
+        files.run
+        STDIN.noecho(&:gets)
+        # User wants to enter prompt, so stop listening
+        files.kill
         @jobfilelistener.pause
+        output.stop(:cancel)
 
-        added.each do |ignf|
-          files = ignoremore(ignf)
-          @jobfilelistener.ignore(/\A(\.\/)?(#{files.map { |s| Regexp.escape(s) }.join('|')})/)
-        end
-
-        # TODO: If another daemon terminates we keep its ignorefiles. Potential leak!
-        #      If this turns out to be a problem, update list & listener (from scratch)
-
-        @jobfilelistener.unpause
+        # Delegate. The method returns if the user
+        # prompts a rerun. It throws a SystemExit
+        # exception if the user wants to quit.
+        DaemonPrompt.run
+      rescue FilesChanged => e
+        # Rerun!
+        output.stop(:success)
+        @jobfilelistener.pause
+      rescue Interrupt => e
+        # User hit CTRL+C while waiting
+        raise e
+      rescue SystemExit => e
+        # User issued :quit in DaemonPrompt. So it shall be!
+        raise e
       end
 
-    @ignfilelistener.start
-    @changetime = Time.now
-    @lastraise  = @changetime
-    @jobfilelistener.start
-  end
+      # Remove files reported missing since last run from tmp (so we don't hide errors)
+      # Be extra careful, we don't want to delete non-tmp files!
+      @vanishedfiles.each { |f| FileUtils.rm_rf(f) if f.start_with?(params[:tmpdir]) && File.exist?(f) }
+      @vanishedfiles = []
+    end
 
-  def waitForChanges(output)
-    output.start('Waiting for file changes (press ENTER to pause)')
-    @jobfilelistener.start if @jobfilelistener.paused?
-    params = ParameterManager.instance
+    def pause
+      @jobfilelistener.pause
+    end
 
-    files = Thread.new do
-      while @changetime <= @lastraise || Time.now - @changetime < params[:listeninterval]
-        sleep(params[:listeninterval] * 0.5)
+
+    def stop
+      begin
+        @jobfilelistener.stop
+      rescue Exception, Error
+        # Apparently, stopping throws exceptions.
       end
-
-      @lastraise = Time.now
-      Thread.current[:raisetarget].raise(FilesChanged.new('Files have changed'))
-    end
-    files[:raisetarget] = Thread.current
-
-    begin
-      files.run
-      STDIN.noecho(&:gets)
-      # User wants to enter prompt, so stop listening
-      files.kill
-      @jobfilelistener.pause
-      output.stop(:cancel)
-
-      # Delegate. The method returns if the user
-      # prompts a rerun. It throws a SystemExit
-      # exception if the user wants to quit.
-      DaemonPrompt.run
-    rescue FilesChanged => e
-      # Rerun!
-      output.stop(:success)
-      @jobfilelistener.pause
-    rescue Interrupt => e
-      # User hit CTRL+C while waiting
-      raise e
-    rescue SystemExit => e
-      # User issued :quit in DaemonPrompt. So it shall be!
-      raise e
+      begin
+        @ignfilelistener.stop
+      rescue Exception, Error
+        # Apparently, stopping throws exceptions.
+      end
+      cleanup
     end
 
-    # Remove files reported missing since last run from tmp (so we don't hide errors)
-    # Be extra careful, we don't want to delete non-tmp files!
-    @vanishedfiles.each { |f| FileUtils.rm_rf(f) if f.start_with?(params[:tmpdir]) && File.exist?(f) }
-    @vanishedfiles = []
-  end
-
-  def pause
-    @jobfilelistener.pause
-  end
-
-
-  def stop
-    begin
-      @jobfilelistener.stop
-    rescue Exception, Error
-      # Apparently, stopping throws exceptions.
+    def runs?
+      !@jobfile.nil?
     end
-    begin
-      @ignfilelistener.stop
-    rescue Exception, Error
-      # Apparently, stopping throws exceptions.
+
+
+    private
+
+    # Removes temporary files outside of the tmp folder,
+    # closes file handlers, etc.
+    def cleanup
+      # TODO: this really needs to be done via CLEAN
+      FileUtils.rm("#{ParameterManager.instance[:jobpath]}/#{@ignorefile}")
     end
-    cleanup
+
+
+    class FilesChanged < StandardError; end
   end
-
-  def runs?
-    !@jobfile.nil?
-  end
-
-
-  private
-
-  # Removes temporary files outside of the tmp folder,
-  # closes file handlers, etc.
-  def cleanup
-    # TODO: this really needs to be done via CLEAN
-    FileUtils.rm("#{ParameterManager.instance[:jobpath]}/#{@ignorefile}")
-  end
-
-
-  class FilesChanged < StandardError; end
 end

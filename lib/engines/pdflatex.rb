@@ -15,21 +15,33 @@
 # You should have received a copy of the GNU General Public License
 # along with chew. If not, see <http://www.gnu.org/licenses/>.
 
-# TODO: refactor
-Dependency.new('pdflatex', :binary, [:engine, 'pdflatex'], :essential)
+Dependency.new('pdflatex', :binary, [:engine, 'pdflatex'], :essential) # TODO: refactor
+
+require 'open3'
+require 'tex_log_parser'
 
 module Chew
   module Engines
     # TODO: document
     class PdfLaTeX < Engine
+      class << self
+        def binary
+          'pdflatex'
+        end
+
+        def extension
+          'pdf'
+        end
+
+        def description
+          'Uses PdfLaTeX to create a PDF'
+        end
+      end
+
+      include Options
 
       def initialize
-        super
-        @binary = 'pdflatex'
-        @extension = 'pdf'
-        @description = 'Uses PdfLaTeX to create a PDF'
-
-        @target_file = "#{ParameterManager.instance[:jobname]}.#{extension}"
+        @target_file = "#{ParameterManager.instance[:jobname]}.#{PdfLaTeX.extension}"
         @old_hash = hash_result
       end
 
@@ -37,22 +49,40 @@ module Chew
         !File.exist?(@target_file) || hash_result != @old_hash
       end
 
-      def hash_result
-        HashManager.hash_file(@target_file, without: /\/CreationDate|\/ModDate|\/ID/)
-      end
-
       def exec
         @old_hash = hash_result
 
-        # Command for the main LaTeX compilation work
-        params = ParameterManager.instance
-        pdflatex = '"pdflatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} \"#{params[:jobfile]}\""'
+        raw_log, parsed_log, status = Open3.popen3(
+          PdfLaTeX.binary,
+          '-file-line-error',
+          '-interaction=nonstopmode',
+          *params[:enginepar],
+          params[:jobfile]
+        ) do |_stdin, stdout, stderr, wait_thr|
+          pid = wait_thr.pid
 
-        f = IO.popen(eval(pdflatex))
-        log = f.readlines.map! { |s| Log.fix(s) }
+          log = stdout.readlines.map! { |s| Log.fix(s) }
+          # TODO: incorporate stderr
+          parsed_log = TexLogParser.new(log).parse
 
-        parsed_log = TexLogParser.new(log).parse
-        { success: File.exist?(@target_file), messages: parsed_log, log: log.join('').strip! }
+          exit_status = wait_thr.value # Process::Status object returned.
+
+          [log, parsed_log, exit_status]
+        end
+
+        # TODO: incorporate `status`
+        # TODO: create class RunResult
+        {
+          success: File.exist?(@target_file),
+          messages: parsed_log,
+          log: raw_log.join('').strip!
+        }
+      end
+
+      private
+
+      def hash_result
+        HashManager.hash_file(@target_file, without: /\/CreationDate|\/ModDate|\/ID/)
       end
     end
   end
