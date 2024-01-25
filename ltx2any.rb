@@ -149,9 +149,7 @@ begin
             File.symlink("#{PARAMS[:jobpath]}/#{f}", "#{PARAMS[:tmpdir]}/#{f}")
           elsif File.directory?(f)
             FileUtils.mkdir_p("#{PARAMS[:tmpdir]}/#{f}")
-            copy2tmp(Dir.entries(f)\
-                        .delete_if do |s| ['.', '..', ]\
-                        .include?(s) end.map { |s| "#{f}/#{s}" })
+            copy2tmp(Dir.children(f).map { |s| "#{f}/#{s}" })
             # TODO: Is this necessary? Why not just copy? (For now, safer and more adaptable.)
           else
             FileUtils.cp(f,"#{PARAMS[:tmpdir]}/#{f}")
@@ -168,7 +166,7 @@ begin
       end
 
       # (Re-)Copy content to tmp
-      copy2tmp(Dir.entries('.').delete_if { |f| exceptions.include?(f) })
+      copy2tmp(Dir.children('.').reject { |f| exceptions.include?(f) })
       OUTPUT.stop(:success)
 
       # Move into temporary directory
