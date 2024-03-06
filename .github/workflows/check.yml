@@ -39,8 +39,7 @@ jobs:
             latex-bin scheme-basic
       - name: ltx2any
         run: |
-          cd test
-          ruby ../ltx2any.rb test.tex
+          ruby ltx2any.rb test/test.tex
   test-pdflatex-win:
     strategy:
       matrix:
@@ -75,5 +74,4 @@ jobs:
           initexmf --report > miktex-report.txt
       - name: ltx2any
         run: |
-          cd test
-          ruby ../ltx2any.rb test.tex
+          ruby ltx2any.rb test/test.tex
