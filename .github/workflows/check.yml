@@ -13,7 +13,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         ruby: [ '2.3', '2.4', '2.5' ]
-    name: "Linux / ruby ${{ matrix.ruby }}"
+    name: "${{ matrix.os }} / ruby ${{ matrix.ruby }}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
