@@ -26,14 +26,7 @@ jobs:
         run: |
           bundle update --bundler
           bundle install
-      - name: Install TeX Live (Linux)
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        uses: zauguin/install-texlive@v3.4
-        with:
-          packages: >
-            latex-bin scheme-basic
-      - name: Install TeX Live (macOS)
-        if: ${{ matrix.os == 'macos-latest' }}
+      - name: Install TeX Live
         uses: zauguin/install-texlive@v3
         with:
           packages: >
