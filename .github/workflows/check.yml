@@ -1,9 +1,15 @@
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
 concurrency:
   group: ${{ github.ref }}
   cancel-in-progress: true
 jobs:
   test-minimal:
+    name: smoke test
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -17,22 +23,64 @@ jobs:
           bundler-cache: true
       - run: |
           ruby ltx2any.rb
-  test-pdflatex:
-    runs-on: ubuntu-20.04
+  test-pdflatex-linux:
+    strategy:
+      matrix:
+        ruby: [ '2.3', '2.4', '2.5' ]
+    name: "Linux / ruby ${{ matrix.ruby }}"
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Setup dependencies
+        run: |
+          bundle update --bundler
+          bundle install
       - name: Install TeX Live
         uses: zauguin/install-texlive@v3
         with:
           packages: >
             latex-bin scheme-basic
-      - name: ltex2any
+      - name: ltx2any
         run: |
           cd test
           ruby ../ltx2any.rb test.tex
-      - uses: actions/upload-artifact@v4
+  test-pdflatex-win:
+    strategy:
+      matrix:
+        ruby: [ '2.3', '2.4', '2.5' ]
+    name: "Windows / ruby ${{ matrix.ruby }}"
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
         with:
-          name: test-result
-          path: |
-            test/test.pdf
-            test/test.log.md
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Setup dependencies
+        run: |
+          bundle update --bundler
+          bundle install
+      - name: Install MiKTeX
+        run: |
+          choco install miktex --no-progress
+          echo "C:\Program Files\MiKTeX\miktex\bin\x64" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+      - name: Configure MiKTeX
+        run: |
+          initexmf --admin --set-config-value=[MPM]AutoInstall=1
+          miktex --admin packages update-package-database
+          miktex --admin packages update
+          miktex packages update
+          miktex --admin packages install cm-super
+          miktex --admin fndb refresh
+          initexmf --admin --update-fndb
+          initexmf --admin --mklinks --force
+          updmap --admin
+          initexmf --report > miktex-report.txt
+      - name: ltx2any
+        run: |
+          cd test
+          ruby ../ltx2any.rb test.tex
