@@ -36,13 +36,13 @@ class Gnuplot < Extension
     # Check whether there are any _.gnuplot files that have changed
     # Store because check for changed hashes in exec later would give false!
     # Append because job_size may be called multiple times before exec
-    @gnuplot_files += Dir.entries('.').delete_if { |f|
+    @gnuplot_files += Dir.entries('.').delete_if do |f|
       (/\.gnuplot$/ !~ f) || !HashManager.instance.files_changed?(f)
-    }
+    end
     @gnuplot_files.size
   end
 
-  def exec(time, progress)
+  def exec(_time, progress)
     # Command to process gnuplot files if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
@@ -51,27 +51,25 @@ class Gnuplot < Extension
     # Run gnuplot for each remaining file
     log = [[], []]
     unless @gnuplot_files.empty?
-      log = self.class.execute_parts(@gnuplot_files, progress) { |f|
-              compile(gnuplot, f)
-            }.transpose
+      log = self.class.execute_parts(@gnuplot_files, progress) do |f|
+        compile(gnuplot, f)
+      end.transpose
     end
 
     # Log line numbers are wrong since every compile determines log line numbers
     # w.r.t. its own contribution. Later steps will only add the offset of the
     # whole gnuplot block, not those inside.
     offset = 0
-    (0..(log[0].size - 1)).each { |i|
+    (0..(log[0].size - 1)).each do |i|
       unless log[0][i].empty?
         internal_offset = 2 # Stuff we print per plot before log excerpt (see :compile)
-        log[0][i].map! { |m|
-           unless m.log_lines.nil?
-             m.log_lines.update(m.log_lines) { |_, ll| ll + offset + internal_offset }
-           end
-           m
-        }
+        log[0][i].map! do |m|
+          m.log_lines.update(m.log_lines) { |_, ll| ll + offset + internal_offset } unless m.log_lines.nil?
+          m
+        end
       end
       offset += log[1][i].count("\n")
-    }
+    end
 
     log[0].flatten!
     errors = log[0].count { |m| m.level == :error }
@@ -90,11 +88,11 @@ class Gnuplot < Extension
     output = lines.join('').strip
 
     log << "# #\n# #{f}\n\n"
-    if output != ''
+    if output == ''
+      log << 'No output from gnuplot, so apparently everything went fine!'
+    else
       log << output
       msgs += parse(lines)
-    else
-      log << 'No output from gnuplot, so apparently everything went fine!'
     end
     log << "\n\n"
 
@@ -107,7 +105,7 @@ class Gnuplot < Extension
     context = ''
     contextline = 1
     linectr = 1
-    strings.each { |line|
+    strings.each do |line|
       # Messages have the format
       #  * context (at least one line)
       #  * ^ marking the point of issue in its own line
@@ -117,13 +115,13 @@ class Gnuplot < Extension
       # are separated by empty lines.
       if /^"(.+?)", line (\d+): (.*)$/ =~ line
         msgs.push(TexLogParser::Message.new(
-           message: "#{context}#{$~[3].strip}",
-           source_file: "#{ParameterManager.instance[:tmpdir]}/#{$~[1]}",
-           source_lines: { from: Integer($~[2]), to: Integer($~[2])},
-           log_lines: { from: [contextline, linectr].min, to: linectr },
-           preformatted: true,
-           level: :error
-        ))
+                    message: "#{context}#{$~[3].strip}",
+                    source_file: "#{ParameterManager.instance[:tmpdir]}/#{$~[1]}",
+                    source_lines: { from: Integer($~[2]), to: Integer($~[2]) },
+                    log_lines: { from: [contextline, linectr].min, to: linectr },
+                    preformatted: true,
+                    level: :error
+                  ))
       elsif line.strip == ''
         context = ''
         contextline = strings.size + 1 # Larger than every line number
@@ -134,7 +132,7 @@ class Gnuplot < Extension
       linectr += 1
       # TODO: break/strip long lines? Should be able to figure out relevant parts by position of circumflex
       # TODO: drop context here and instead give log line numbers?
-    }
+    end
 
     msgs
   end

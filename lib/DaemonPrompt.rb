@@ -27,7 +27,7 @@ class DaemonPrompt
           if command.size < 3
             respond 'Please supply a parameter name and a value.'
           else
-            value = command[2,command.size-1].join(' ')
+            value = command[2, command.size - 1].join(' ')
             params[command[1].to_sym] = value
             respond "Set parameter '#{command[1]}' to '#{params[command[1].to_sym]}'."
           end
@@ -35,19 +35,19 @@ class DaemonPrompt
           if command.size < 3
             respond 'Please supply a parameter name and a value.'
           else
-            value = command[2,command.size-1].join(' ') # TODO join with `:` instead?
+            value = command[2, command.size - 1].join(' ') # TODO: join with `:` instead?
             params.add(command[1].to_sym, value)
             respond "Changed parameter '#{command[1]}' to '#{params[command[1].to_sym]}'."
           end
         when :show
           respond "#{command[1]} = #{params[command[1].to_sym]}"
         when :clean
-          FileUtils::rm_rf(params[:tmpdir])
+          FileUtils.rm_rf(params[:tmpdir])
           respond 'Temporary files deleted'
           if command.size > 1 && command[1].to_sym == :all
-            FileUtils::rm("#{params[:log]}.#{params[:logformat].to_s}") # TODO may fail when MD fallback?
+            FileUtils.rm("#{params[:log]}.#{params[:logformat]}") # TODO: may fail when MD fallback?
             respond 'Log file deleted'
-            # TODO remove result
+            # TODO: remove result
           end
         when :run
           break
@@ -56,17 +56,17 @@ class DaemonPrompt
         when :help
           respond 'Work in progress. Supports commands set, show, clean (partial), run and quit.'
         else
-          respond "Command #{command[0].to_s} unknown"
+          respond "Command #{command[0]} unknown"
         end
       rescue ParameterException => e
         respond "Error: #{e.message}"
       end
 
-      # TODO process commands/options:
+      # TODO: process commands/options:
       #  open (log|result|source) -- open specified files
       #  set/add once <name> <value> -- sets parameter to value for one run
       #  listen -- commence listening for file changes (?)
-      
+
       command = getCommand
     end
 
@@ -75,20 +75,19 @@ class DaemonPrompt
     # TODO should we allow to return to listening? --> other Exception or return value
   end
 
-  private
-    def self.respond(msg)
-      puts "\t#{msg}"
-      # TODO add line breaking?
-    end
-  
-    def self.getCommand
-      print '> '
-      command = gets.strip.split(/\s+/) # User may quit by hitting ^C at this point
-      if command.size > 0
-        command[0] = command[0].to_sym
-      else
-        command[0] = :run
-      end
-      return command
-    end
+  def self.respond(msg)
+    puts "\t#{msg}"
+    # TODO: add line breaking?
+  end
+
+  def self.getCommand
+    print '> '
+    command = gets.strip.split(/\s+/) # User may quit by hitting ^C at this point
+    command[0] = if command.size > 0
+                   command[0].to_sym
+                 else
+                   :run
+                 end
+    command
+  end
 end

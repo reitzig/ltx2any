@@ -35,11 +35,11 @@ class LaTeX < LogWriter
       params = ParameterManager.instance
 
       target_file = "#{params[:log]}.tex"
-      File.open(target_file, 'w') { |f|
+      File.open(target_file, 'w') do |f|
         # Copy template
-        File.open("#{File.dirname(__FILE__)}/logtemplate.tex", 'r') { |template|
+        File.open("#{File.dirname(__FILE__)}/logtemplate.tex", 'r') do |template|
           f.write(template.read)
-        }
+        end
         f.write("\\def\\author{ltx2any}\n\\def\\title{Log for #{params[:user_jobname]}}\n" \
                 "\\def\\fulllog{#{File.join(params[:tmpdir], "#{params[:log]}.full")}}\n" \
                 "\n\n\\begin{document}")
@@ -47,8 +47,8 @@ class LaTeX < LogWriter
         f.write("\\section{Log for \\texttt{\\detokenize{#{params[:user_jobname]}}}}\n\n")
         messages = log.only_level(level)
 
-        f.write("\\textbf{Disclaimer:} This is but a digest of the original log file. " \
-                "For full detail, check out \\loglink. " \
+        f.write('\\textbf{Disclaimer:} This is but a digest of the original log file. ' \
+                'For full detail, check out \\loglink. ' \
                 'In case we failed to pick up an error or warning, please ' \
                 "\\href{https://github.com/akerbos/ltx2any/issues/new}{report it to us}.\n\n")
 
@@ -57,7 +57,7 @@ class LaTeX < LogWriter
                 "and #{log.count(:info)}~other message#{pls(log.count(:info))} in total.\n\n")
 
         # Write everything
-        messages.each_key { |name|
+        messages.each_key do |name|
           # We get one block per tool that ran
           msgs = messages[name][1]
 
@@ -68,12 +68,12 @@ class LaTeX < LogWriter
           else
             f.write("\n\\begin{itemize}\n")
 
-            msgs.each { |m|
+            msgs.each do |m|
               f.write("\n\n\\item\\blockitem\n")
 
               # Write the error type and source file reference
               if m.level == :error && params[:loglevel] != :error
-                f.write("\\linkederror{")
+                f.write('\\linkederror{')
               else
                 f.write("\\#{m.level}{")
               end
@@ -98,14 +98,14 @@ class LaTeX < LogWriter
               end
 
               f.write("\n\\endblockitem\n\n")
-            }
+            end
 
             f.write("\n\\end{itemize}")
           end
-        }
+        end
 
         f.write("\n\n\\end{document}")
-      }
+      end
 
       target_file
     end

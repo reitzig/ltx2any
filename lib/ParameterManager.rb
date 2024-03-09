@@ -32,36 +32,26 @@ class ParameterManager
     # frozenCopy()
   end
 
-  public
-
   def addParameter(p)
-    if @processed
-      raise ParameterException.new('Can not add parameters after CLI input has been processed.')
-    end
+    raise ParameterException.new('Can not add parameters after CLI input has been processed.') if @processed
 
-    unless p.is_a?(Parameter)
-      raise ParameterException.new("Can not add object of type #{p.class} as parameter.")
-    end
+    raise ParameterException.new("Can not add object of type #{p.class} as parameter.") unless p.is_a?(Parameter)
 
-    if @values.key?(p.key)
-      raise ParameterException.new("Parameter #{p.key} already exists.")
-    end
+    raise ParameterException.new("Parameter #{p.key} already exists.") if @values.key?(p.key)
 
     @values[p.key] = p
     @code2key[p.code] = p.key
     @hooks[p.key] = [] unless @hooks.key?(p.key)
   end
 
-  def processArgs(args)
+  def processArgs(_args)
     # Check for input file first
     # Try to find an existing file by attaching common endings
     original = ARGV.last
     endings = ['tex', 'ltx', 'latex', '.tex', '.ltx', '.latex']
     jobfile = original
     while !File.exist?(jobfile) || File.directory?(jobfile)
-      if endings.empty?
-        raise ParameterException.new("No input file fitting #{original} exists.")
-      end
+      raise ParameterException.new("No input file fitting #{original} exists.") if endings.empty?
 
       jobfile = "#{original}#{endings.pop}"
     end
@@ -69,7 +59,7 @@ class ParameterManager
 
     addParameter(Parameter.new(:jobpath, nil, String, File.dirname(File.expand_path(jobfile)),
                                'Absolute path of source directory'))
-    addHook(:tmpdir) do |key, val|
+    addHook(:tmpdir) do |_key, val|
       if self[:jobpath].start_with?(File.expand_path(val))
         raise ParameterException.new('Temporary directory may not contain job directory.')
       end
@@ -84,25 +74,19 @@ class ParameterManager
     i = 0
     while i < ARGV.length - 1
       p = /\A-(\w+)\z/.match(ARGV[i])
-      if p.nil?
-        raise ParameterException.new("Don't know what to do with parameter #{ARGV[i]}.")
-      end
+      raise ParameterException.new("Don't know what to do with parameter #{ARGV[i]}.") if p.nil?
 
       code = p[1]
       key = @code2key[code]
 
-      unless @values.key?(key)
-        raise ParameterException.new("Parameter -#{code} does not exist.")
-      end
+      raise ParameterException.new("Parameter -#{code} does not exist.") unless @values.key?(key)
 
       if @values[key].type == Boolean
         set(key, :true)
         i += 1
       else
-        val = ARGV[i+1]
-        unless i + 1 < ARGV.length - 1
-          raise ParameterException.new("No value for parameter -#{code}.")
-        end
+        val = ARGV[i + 1]
+        raise ParameterException.new("No value for parameter -#{code}.") unless i + 1 < ARGV.length - 1
 
         set(key, val) # Does all the checking and converting
         i += 2
@@ -123,9 +107,7 @@ class ParameterManager
       end
     end
 
-    if jobfile.nil?
-      raise ParameterException.new('Please provide an input file. Call with --help for details.')
-    end
+    raise ParameterException.new('Please provide an input file. Call with --help for details.') if jobfile.nil?
 
     @processed = true
   end
@@ -142,12 +124,11 @@ class ParameterManager
     set(key, val, false)
   end
 
-  def set(key, val, once = false) # TODO: implement "once" behaviour
+  def set(key, val, _once = false) # TODO: implement "once" behaviour
     # TODO allow for proper validation functions?
     # TODO fall back to defaults instead of killing?
-    unless @values.key?(key)
-      raise ParameterException.new("Parameter #{key} does not exist.")
-    end
+    raise ParameterException.new("Parameter #{key} does not exist.") unless @values.key?(key)
+
     code = @values[key].code
 
     if @values[key].type == String
@@ -172,7 +153,7 @@ class ParameterManager
       if val.is_a?(Boolean)
         @values[key].value = val
       elsif val.to_s.to_sym == :true || val.to_s.to_sym == :false
-        @values[key].value = ( val.to_s.to_sym == :true )
+        @values[key].value = (val.to_s.to_sym == :true)
       else
         raise ParameterException.new("Parameter -#{code} requires a boolean ('#{val}' given).")
       end
@@ -180,11 +161,13 @@ class ParameterManager
       if @values[key].type.include?(val.to_sym)
         @values[key].value = val.to_sym
       else
-        raise ParameterException.new("Invalid value '#{val}' for parameter -#{code}\nChoose one of [#{@values[key].type.map { |e| e.to_s }.join(', ')}].")
+        raise ParameterException.new("Invalid value '#{val}' for parameter -#{code}\nChoose one of [#{@values[key].type.map do |e|
+                                                                                                        e.to_s
+                                                                                                      end.join(', ')}].")
       end
     else
       # This should never happen
-      raise RuntimeError.new("Parameter -#{code} has unknown type #{@values[key].type}.")
+      raise "Parameter -#{code} has unknown type #{@values[key].type}."
     end
 
     @hooks[key].each do |b|
@@ -194,14 +177,10 @@ class ParameterManager
     # @copy_dirty = true
   end
 
-  def add(key, val, once = false) # TODO: implement "once" behaviour
-    unless @values.key?(key)
-      raise ParameterException.new("Parameter #{key} does not exist.")
-    end
+  def add(key, val, _once = false) # TODO: implement "once" behaviour
+    raise ParameterException.new("Parameter #{key} does not exist.") unless @values.key?(key)
 
-    unless @values[key].type == String
-      raise ParameterException.new("Parameter #{key} does not support extension.")
-    end
+    raise ParameterException.new("Parameter #{key} does not support extension.") unless @values[key].type == String
 
     @values[key].value += val.to_s # TODO: should we add separating `:`?
 
@@ -276,8 +255,6 @@ class Parameter
     @value = default
     @help = help
   end
-
-  public
 
   def value=(val)
     unless (@type.is_a?(Array) && val.is_a?(@type[0].class)) || val.is_a?(@type)

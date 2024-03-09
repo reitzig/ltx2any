@@ -41,8 +41,8 @@ class BibTeX < Extension
     bibdata = []
     grepdata = []
     if File.exist?("#{params[:jobname]}.aux")
-      File.open("#{params[:jobname]}.aux", 'r') { |file|
-        while ( line = file.gets )
+      File.open("#{params[:jobname]}.aux", 'r') do |file|
+        while (line = file.gets)
           if /^\\bibdata{(.+?)}$/ =~ line
             # If commas occur, add both a split version (multiple files)
             # and the hole string (filename with comma), to be safe.
@@ -55,29 +55,25 @@ class BibTeX < Extension
             grepdata.push line.strip
           end
         end
-      }
+      end
     end
 
     # Check whether bibtex is necessary at all
     usesbib = !bibdata.empty?
 
     # Write relevant part of the _.aux file into a separate file for hashing
-    if usesbib
-      File.open(@grepfile, 'w') { |f|
-        f.write grepdata.join("\n")
-      }
-    end
+    File.write(@grepfile, grepdata.join("\n")) if usesbib
 
     # Check whether a (re)run is needed
     needsrerun = !File.exist?("#{params[:jobname]}.bbl") | # Is result still there?
                  HashManager.instance.files_changed?(*stylefile, *bibdata, @grepfile)
-                 # Note: non-strict OR so that hashes get computed and stored
-                 #       for next run!
+    # NOTE: non-strict OR so that hashes get computed and stored
+    #       for next run!
 
     usesbib && needsrerun
   end
 
-  def exec(time, progress)
+  def exec(_time, _progress)
     params = ParameterManager.instance
 
     # Command to process bibtex bibliography if necessary.
@@ -93,10 +89,10 @@ class BibTeX < Extension
     errors = false
     linectr = 1
     lastline = ''
-    log.each { |line|
+    log.each do |line|
       if /^Warning--(.*)$/ =~ line
         msgs.push(TexLogParser::Message.new(message: $~[1],
-                                            log_lines: { from: linectr, to: linectr},
+                                            log_lines: { from: linectr, to: linectr },
                                             level: :warning))
       elsif /^(.*?)---line (\d+) of file (.*)$/ =~ line
         msg = $~[1].strip
@@ -115,7 +111,7 @@ class BibTeX < Extension
       end
       linectr += 1
       lastline = line
-    }
+    end
 
     { success: !errors, messages: msgs, log: log.join('').strip! }
   end

@@ -35,7 +35,7 @@ class Raw < LogWriter
     # @override
     def write(log, _level = :warning)
       target_file = "#{ParameterManager.instance[:log]}.full"
-      File.open(target_file, 'w') { |f| f.write(log.to_s) }
+      File.write(target_file, log.to_s)
       target_file
     end
   end

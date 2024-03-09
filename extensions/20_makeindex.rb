@@ -32,14 +32,14 @@ class MakeIndex < Extension
 
     params = ParameterManager.instance
 
-    File.exist?("#{params[:jobname]}.idx") && 
+    File.exist?("#{params[:jobname]}.idx") &&
       (!File.exist?("#{params[:jobname]}.ind") |
        HashManager.instance.files_changed?("#{params[:jobname]}.idx")
-    # Note: non-strict OR so that hashes are computed for next run
-  )
+        # NOTE: non-strict OR so that hashes are computed for next run
+      )
   end
 
-  def exec(time, progress)
+  def exec(_time, _progress)
     params = ParameterManager.instance
 
     # Command to create the index if necessary. Provide two versions,
@@ -69,7 +69,7 @@ class MakeIndex < Extension
       log2 = f.readlines
     end
 
-    log = [log2[0]] + log1 + log2[1,log2.length]
+    log = [log2[0]] + log1 + log2[1, log2.length]
 
     msgs = []
     current = []

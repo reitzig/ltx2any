@@ -26,11 +26,11 @@
   Parameter.new(:tmpdir, 't', String, '"#{self[:user_jobname]}#{TMPSUFFIX}"',
                 'Directory for temporary files'),
   Parameter.new(:ignore, 'i', String, '',
-                'Files to ignore, separated by colons'),
-].each { |p|
+                'Files to ignore, separated by colons')
+].each do |p|
   ParameterManager.instance.addParameter(p)
-}
+end
 
-ParameterManager.instance.addHook(:cleanall) { |_, v|
+ParameterManager.instance.addHook(:cleanall) do |_, v|
   ParameterManager.instance[:clean] = true if v
-}
+end

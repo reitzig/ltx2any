@@ -17,121 +17,107 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 class DependencyManager
-  private
-    @@dependencies = []
+  @@dependencies = []
 
-    def self.more_recent(v1, v2)
-      v1i = v1.gsub(/[^\d]/, '').to_i
-      v2i = v2.gsub(/[^\d]/, '').to_i
-      return v1i > v2i ? v1 : v2
+  def self.more_recent(v1, v2)
+    v1i = v1.gsub(/[^\d]/, '').to_i
+    v2i = v2.gsub(/[^\d]/, '').to_i
+    v1i > v2i ? v1 : v2
+  end
+
+  # which(cmd) :: string or nil
+  #
+  # Multi-platform implementation of "which".
+  # It may be used with UNIX-based and DOS-based platforms.
+  #
+  # The argument can not only be a simple command name but also a command path
+  # may it be relative or complete.
+  #
+  # From: http://stackoverflow.com/a/25563129/539599
+  def self.which(cmd)
+    raise ArgumentError.new("Argument not a string: #{cmd.inspect}") unless cmd.is_a?(String)
+    return nil if cmd.empty?
+
+    case RbConfig::CONFIG['host_os']
+    when /cygwin/
+      exts = nil
+    when /dos|mswin|^win|mingw|msys/
+      pathext = ENV.fetch('PATHEXT', nil)
+      exts = pathext ? pathext.split(';').select { |e| e[0] == '.' } : ['.com', '.exe', '.bat']
+    else
+      exts = nil
     end
+    if cmd[File::SEPARATOR] || (File::ALT_SEPARATOR && cmd[File::ALT_SEPARATOR])
+      if exts
+        ext = File.extname(cmd)
+        if !ext.empty? && exts.any? { |e| e.casecmp(ext).zero? } && File.file?(cmd) && File.executable?(cmd)
+          return File.absolute_path(cmd)
+        end
 
-    # which(cmd) :: string or nil
-    #
-    # Multi-platform implementation of "which".
-    # It may be used with UNIX-based and DOS-based platforms.
-    #
-    # The argument can not only be a simple command name but also a command path
-    # may it be relative or complete.
-    #
-    # From: http://stackoverflow.com/a/25563129/539599
-    def self.which(cmd)
-      raise ArgumentError.new("Argument not a string: #{cmd.inspect}") unless cmd.is_a?(String)
-      return nil if cmd.empty?
-
-      case RbConfig::CONFIG['host_os']
-      when /cygwin/
-        exts = nil
-      when /dos|mswin|^win|mingw|msys/
-        pathext = ENV['PATHEXT']
-        exts = pathext ? pathext.split(';').select{ |e| e[0] == '.' } : ['.com', '.exe', '.bat']
-      else
-        exts = nil
+        exts.each do |ext|
+          exe = "#{cmd}#{ext}"
+          return File.absolute_path(exe) if File.file?(exe) && File.executable?(exe)
+        end
+      elsif File.file?(cmd) && File.executable?(cmd)
+        return File.absolute_path(cmd)
       end
-      if cmd[File::SEPARATOR] || (File::ALT_SEPARATOR && cmd[File::ALT_SEPARATOR])
-        if exts
-          ext = File.extname(cmd)
-          if (not ext.empty?) && exts.any?{ |e| e.casecmp(ext).zero? } \
-          && File.file?(cmd) && File.executable?(cmd)
-            return File.absolute_path(cmd)
+    else
+      paths = ENV.fetch('PATH', nil)
+      paths = paths ? paths.split(File::PATH_SEPARATOR).select { |e| File.directory?(e) } : []
+      if exts
+        ext = File.extname(cmd)
+        has_valid_ext = !ext.empty? && exts.any? { |e| e.casecmp(ext).zero? }
+        paths.unshift('.').each do |path|
+          if has_valid_ext
+            exe = File.join(path, "#{cmd}")
+            return File.absolute_path(exe) if File.file?(exe) && File.executable?(exe)
           end
           exts.each do |ext|
-            exe = "#{cmd}#{ext}"
+            exe = File.join(path, "#{cmd}#{ext}")
             return File.absolute_path(exe) if File.file?(exe) && File.executable?(exe)
           end
-        else
-          return File.absolute_path(cmd) if File.file?(cmd) && File.executable?(cmd)
         end
       else
-        paths = ENV['PATH']
-        paths = paths ? paths.split(File::PATH_SEPARATOR).select{ |e| File.directory?(e) } : []
-        if exts
-          ext = File.extname(cmd)
-          has_valid_ext = ((not ext.empty?) && exts.any?{ |e| e.casecmp(ext).zero? })
-          paths.unshift('.').each do |path|
-            if has_valid_ext
-              exe = File.join(path, "#{cmd}")
-              return File.absolute_path(exe) if File.file?(exe) && File.executable?(exe)
-            end
-            exts.each do |ext|
-              exe = File.join(path, "#{cmd}#{ext}")
-              return File.absolute_path(exe) if File.file?(exe) && File.executable?(exe)
-            end
-          end
-        else
-          paths.each do |path|
-            exe = File.join(path, cmd)
-            return File.absolute_path(exe) if File.file?(exe) && File.executable?(exe)
-          end
+        paths.each do |path|
+          exe = File.join(path, cmd)
+          return File.absolute_path(exe) if File.file?(exe) && File.executable?(exe)
         end
       end
-      nil
     end
+    nil
+  end
 
-  public
+  def self.add(dep)
+    raise "Illegal parameter #{dep}" unless dep.is_a?(Dependency)
 
+    @@dependencies.push(dep)
+  end
 
-    def self.add(dep)
-      raise "Illegal parameter #{dep.to_s}" unless dep.is_a?(Dependency)
-
-      @@dependencies.push(dep)
+  def self.list(type: :all, source: :all, relevance: :all)
+    @@dependencies.select do |d|
+      (type == :all      || d.type == type           || (type.is_a?(Array) && type.include?(d.type))) \
+   && (source == :all    || d.source == source       || (d.source.is_a?(Array) && d.source.include?(source))) \
+   && (relevance == :all || d.relevance == relevance || (relevance.is_a?(Array) && relevance.include?(d.relevance)))
     end
+  end
 
-
-    def self.list(type: :all, source: :all, relevance: :all)
-      @@dependencies.select { |d|
-           (type == :all      || d.type == type           || (type.is_a?(Array) && type.include?(d.type)))\
-        && (source == :all    || d.source == source       || (d.source.is_a?(Array) && d.source.include?(source)))\
-        && (relevance == :all || d.relevance == relevance || (relevance.is_a?(Array) && relevance.include?(d.relevance)))
-      }
-    end
-
-
-    def self.to_s
-      @@dependencies.map { |d| d.to_s }.join("\n")
-    end
+  def self.to_s
+    @@dependencies.map { |d| d.to_s }.join("\n")
+  end
 end
-
-
 
 class MissingDependencyError < StandardError; end
 
-
-
 class Dependency
   def initialize(name, type, source, relevance, reason = '', version = nil)
-    unless [:binary, :file].include?(type)
-      raise "Illegal dependency type #{type.to_s}"
+    raise "Illegal dependency type #{type}" unless %i[binary file].include?(type)
+
+    if source != :core && (!source.is_a?(Array) || !%i[core extension engine logwriter].include?(source[0]))
+      raise "Illegal source #{source}"
     end
 
-    if source != :core && (!source.is_a?(Array) || ![:core, :extension, :engine, :logwriter].include?(source[0]) )
-      raise "Illegal source #{source.to_s}"
-    end
+    raise "Illegal relevance #{relevance}" unless %i[recommended essential].include?(relevance)
 
-    unless [:recommended, :essential].include?(relevance)
-      raise "Illegal relevance #{relevance.to_s}"
-    end
-    
     unless version.nil? || version.empty?
       # Should not happen in production
       # TODO: add version command to dependency?
@@ -149,14 +135,12 @@ class Dependency
     DependencyManager.add(self)
   end
 
-  public
-
   def available?
     if @available.nil?
       @available =
         case @type
         when :binary
-          DependencyManager.which(@name) != nil
+          !DependencyManager.which(@name).nil?
         when :file
           File.exist?(@name)
         else
@@ -175,9 +159,7 @@ class Dependency
   attr_reader :name, :type, :source, :relevance, :reason, :version
 
   def relevance=(value)
-    unless [:recommended, :essential].include?(value)
-      raise "Illegal relevance #{value.to_s}"
-    end
+    raise "Illegal relevance #{value}" unless %i[recommended essential].include?(value)
 
     @relevance = value
   end

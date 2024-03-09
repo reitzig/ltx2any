@@ -20,7 +20,6 @@ Dependency.new('pdflatex', :binary, [:engine, 'pdflatex'], :essential)
 
 # TODO: document
 class PdfLaTeX < Engine
-
   def initialize
     super
     @binary = 'pdflatex'
@@ -36,7 +35,7 @@ class PdfLaTeX < Engine
   end
 
   def hash_result
-    HashManager.hash_file(@target_file, without: /\/CreationDate|\/ModDate|\/ID/)
+    HashManager.hash_file(@target_file, without: %r{/CreationDate|/ModDate|/ID})
   end
 
   def exec

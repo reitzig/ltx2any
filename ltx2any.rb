@@ -21,10 +21,10 @@
 $LOAD_PATH.unshift(File.expand_path(__dir__)) unless
   $LOAD_PATH.include?(__dir__) || $LOAD_PATH.include?(File.expand_path(__dir__))
 
-require 'constants.rb'
+require 'constants'
 
 # Set process name to something less cumbersome
-#$0=NAME
+# $0=NAME
 
 # Load stuff from the standard library
 require 'digest'
@@ -43,7 +43,7 @@ Dir.chdir(WORKDIR)
 Dir["#{BASEDIR}/#{LIBDIR}/*Manager.rb"].each { |f| require f }
 # Set up core parameters
 PARAMS = ParameterManager.instance
-require 'parameters.rb'
+require 'parameters'
 # Load rest of the utility classes
 Dir["#{BASEDIR}/#{LIBDIR}/*.rb"].each { |f| require f }
 
@@ -93,17 +93,15 @@ begin
     OUTPUT.separate.warn('Missing dependencies', *missing) unless missing.empty? # TODO: enter into log?
   end
 
-
   # Switch working directory to jobfile residence
   Dir.chdir(PARAMS[:jobpath])
   CLEAN.push(PARAMS[:tmpdir])
 
   # Some files we don't want to listen to
-  toignore = [ "#{PARAMS[:tmpdir]}",
-               "#{PARAMS[:user_jobname]}.#{Engine[PARAMS[:engine]].extension}",
-               "#{PARAMS[:log]}",
-               "#{PARAMS[:user_jobname]}.err"
-  ] + PARAMS[:ignore].split(':')
+  toignore = ["#{PARAMS[:tmpdir]}",
+              "#{PARAMS[:user_jobname]}.#{Engine[PARAMS[:engine]].extension}",
+              "#{PARAMS[:log]}",
+              "#{PARAMS[:user_jobname]}.err"] + PARAMS[:ignore].split(':')
 
   begin
     FileListener.instance.start(PARAMS[:user_jobname], toignore) if PARAMS[:daemon]
@@ -141,9 +139,7 @@ begin
             # remove the obsolete stuff.
             # If there already is a symlink, delete because it might have been
             # relinked.
-            if File.exist?("#{PARAMS[:tmpdir]}/#{f}")
-              FileUtils.rm("#{PARAMS[:tmpdir]}/#{f}")
-            end
+            FileUtils.rm("#{PARAMS[:tmpdir]}/#{f}") if File.exist?("#{PARAMS[:tmpdir]}/#{f}")
 
             # Create new symlink instead of copying
             File.symlink("#{PARAMS[:jobpath]}/#{f}", "#{PARAMS[:tmpdir]}/#{f}")
@@ -152,7 +148,7 @@ begin
             copy2tmp(Dir.children(f).map { |s| "#{f}/#{s}" })
             # TODO: Is this necessary? Why not just copy? (For now, safer and more adaptable.)
           else
-            FileUtils.cp(f,"#{PARAMS[:tmpdir]}/#{f}")
+            FileUtils.cp(f, "#{PARAMS[:tmpdir]}/#{f}")
           end
         end
       end
@@ -173,9 +169,7 @@ begin
       Dir.chdir(PARAMS[:tmpdir])
 
       # Delete former results in order not to pretend success
-      if File.exist?("#{PARAMS[:jobname]}.#{engine.extension}")
-        FileUtils.rm("#{PARAMS[:jobname]}.#{engine.extension}")
-      end
+      FileUtils.rm("#{PARAMS[:jobname]}.#{engine.extension}") if File.exist?("#{PARAMS[:jobname]}.#{engine.extension}")
 
       # Read hashes
       HashManager.instance.from_file("#{HASHFILE}")
@@ -199,7 +193,7 @@ begin
 
         run += 1
         break if (PARAMS[:engineruns] > 0 && run > PARAMS[:engineruns]) || # User set number of runs
-                 (PARAMS[:engineruns] <= 0 && !engine.do?)     # User set automatic mode
+                 (PARAMS[:engineruns] <= 0 && !engine.do?) # User set automatic mode
       end
 
       # Save log messages of last engine run
@@ -209,14 +203,14 @@ begin
       Extension.run_all(:after, OUTPUT, log)
 
       # Give error/warning counts to user
-      errorS = log.count(:error) != 1 ? 's' : ''
-      warningS = log.count(:warning) != 1 ? 's' : ''
+      errorS = log.count(:error) == 1 ? '' : 's'
+      warningS = log.count(:warning) == 1 ? '' : 's'
       OUTPUT.msg("There were #{log.count(:error)} error#{errorS} " +
                  "and #{log.count(:warning)} warning#{warningS}.")
 
       # Pick up output if present
       if File.exist?("#{PARAMS[:jobname]}.#{engine.extension}")
-        FileUtils.cp("#{PARAMS[:jobname]}.#{engine.extension}", 
+        FileUtils.cp("#{PARAMS[:jobname]}.#{engine.extension}",
                      "#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.#{engine.extension}")
         OUTPUT.msg("Output generated at #{PARAMS[:user_jobname]}.#{engine.extension}")
       else
@@ -229,8 +223,7 @@ begin
 
         # Manage messages from extensions
         Extension.list.each do |ext|
-          if !log.has_messages?(ext.name) \
-               && File.exist?(".#{NAME}_extensionmsg_#{ext.name}")
+          if !log.has_messages?(ext.name) && File.exist?(".#{NAME}_extensionmsg_#{ext.name}")
             # Extension did not run but has run before; load messages from then!
             old = File.open(".#{NAME}_extensionmsg_#{ext.name}", 'r') do |f|
               f.readlines.join
@@ -239,9 +232,7 @@ begin
             log.add_messages(ext.name, old[0], old[1], old[2])
           elsif log.has_messages?(ext.name)
             # Write new messages
-            File.open(".#{NAME}_extensionmsg_#{ext.name}", 'w') do |f|
-              f.write(YAML.dump(log.messages(ext.name)))
-            end
+            File.write(".#{NAME}_extensionmsg_#{ext.name}", YAML.dump(log.messages(ext.name)))
           end
         end
 
@@ -271,36 +262,32 @@ begin
       Dir.chdir(PARAMS[:jobpath])
     end
 
-    if PARAMS[:daemon] && PARAMS[:listeninterval] > 0
-      FileListener.instance.waitForChanges(OUTPUT)
-    end
+    FileListener.instance.waitForChanges(OUTPUT) if PARAMS[:daemon] && PARAMS[:listeninterval] > 0
 
     # Rerun!
     OUTPUT.separate
-  end while ( PARAMS[:daemon] )
+  end while (PARAMS[:daemon])
 rescue Interrupt, SystemExit
   OUTPUT.separate.msg('Shutdown')
 rescue Exception => e
-  if !PARAMS[:user_jobname].nil?
-    OUTPUT.separate.error(e.message, "See #{PARAMS[:user_jobname]}.err for details.")
-    File.open("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err", 'w') do |file|
-      file.write("#{e.inspect}\n\n#{e.backtrace.join("\n")}")
-    end
-    CLEANALL.push("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err")
-  else
-    # This is reached due to programming errors or if ltx2any quits early,
-    # i.e. if no feasible input file has been specified.
-    # Neither case warrants special action.
-    # For debugging purposes, reraise so we don't die silently.
-    raise e
-  end
+  raise e if PARAMS[:user_jobname].nil?
+
+  OUTPUT.separate.error(e.message, "See #{PARAMS[:user_jobname]}.err for details.")
+  File.write("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err", "#{e.inspect}\n\n#{e.backtrace.join("\n")}")
+  CLEANALL.push("#{PARAMS[:jobpath]}/#{PARAMS[:user_jobname]}.err")
+
+  # This is reached due to programming errors or if ltx2any quits early,
+  # i.e. if no feasible input file has been specified.
+  # Neither case warrants special action.
+  # For debugging purposes, reraise so we don't die silently.
+
   # Exit immediately. Don't clean up, logs may be necessary for debugging.
   # Kernel.exit!(FALSE) # Leads to inconsistent behaviour regarding -c/-ca
 end
 
 # Write current hashes
 HashManager.instance.to_file("#{PARAMS[:tmpdir]}/#{HASHFILE}") if !PARAMS[:clean] && !HashManager.instance.empty?
-# Note: old version stored hashes for *all* files. Now we only store such
+# NOTE: old version stored hashes for *all* files. Now we only store such
 #       that were needed earlier. Is that sufficient?
 
 # Stop file listeners

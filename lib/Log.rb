@@ -60,8 +60,6 @@ class Log
     only_level(lowest_level)[source][1]
   end
 
-  public
-
   attr_accessor :level # TODO: implement flat mode?
 
   # Parameters
@@ -79,7 +77,7 @@ class Log
 
     @messages[source][1] += msgs
     @messages[source][2] += (raw.nil? ? '' : raw) # TODO: how can this ever be nil?
-    [:error, :warning, :info].each do |type|
+    %i[error warning info].each do |type|
       cnt = msgs.count { |e| e.level == type }
       @counts[type][source] += cnt
       @counts[type][:total] += cnt
@@ -123,9 +121,7 @@ class Log
     # Adjust all log lines
     @messages.each_entry do |source, log_material|
       log_material[1].each do |msg|
-        unless msg.log_lines.nil?
-          msg.log_lines.update(msg.log_lines) { |_, i| i + @rawoffsets[source] }
-        end
+        msg.log_lines.update(msg.log_lines) { |_, i| i + @rawoffsets[source] } unless msg.log_lines.nil?
       end
     end
 
@@ -152,7 +148,7 @@ class Log
       result << "# Finished #{source}"
       result << "\n# # # # #\n\n"
 
-      offset += 10 + messages[source][2].count(?\n)
+      offset += 10 + messages[source][2].count("\n")
     end
 
     result

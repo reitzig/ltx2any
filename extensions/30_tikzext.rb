@@ -17,7 +17,8 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 ParameterManager.instance.addParameter(Parameter.new(
-    :imagerebuild, 'ir', String, '', "Specify externalised TikZ images to rebuild, separated by ':'. Set to 'all' to rebuild all."))
+                                         :imagerebuild, 'ir', String, '', "Specify externalised TikZ images to rebuild, separated by ':'. Set to 'all' to rebuild all."
+                                       ))
 
 # TODO: document
 class TikZExt < Extension
@@ -35,7 +36,7 @@ class TikZExt < Extension
     collect_pending[0].size
   end
 
-  def exec(time, progress)
+  def exec(_time, progress)
     params = ParameterManager.instance
 
     # Command to process externalised TikZ images if necessary.
@@ -45,14 +46,14 @@ class TikZExt < Extension
     pdflatex = '"#{params[:engine]} -shell-escape -file-line-error -interaction=batchmode -jobname \"#{fig}\" \"\\\def\\\tikzexternalrealjob{#{params[:jobname]}}\\\input{#{params[:jobname]}}\" 2>&1"'
 
     # Collect all externalised figures
-    figures,rebuildlog = collect_pending
+    figures, rebuildlog = collect_pending
 
     log = [[], []]
     unless figures.empty?
       # Run (latex) engine for each figure
       log = self.class.execute_parts(figures, progress) do |fig|
-              compile(pdflatex, fig)
-            end.transpose
+        compile(pdflatex, fig)
+      end.transpose
     end
 
     # Log line numbers are wrong since every compile determines log line numbers
@@ -60,33 +61,31 @@ class TikZExt < Extension
     # whole tikzext block, not those inside.
     offset = 0
     (0..(log[0].size - 1)).each do |i|
-      msg = ""
-      if !log[0][i].empty?
+      msg = ''
+      if log[0][i].empty?
+        msg = <<~MSG
+          No messages for figure
+            #{figures[i]}
+          found.
+        MSG
+      else
         internal_offset = 5 # Stuff we print per figure before log excerpt (see :compile)
         log[0][i].map! do |m|
-          unless m.log_lines.nil?
-            m.log_lines.update(m.log_lines) { |_, ll| ll + offset + internal_offset - 1 }
-          end
+          m.log_lines.update(m.log_lines) { |_, ll| ll + offset + internal_offset - 1 } unless m.log_lines.nil?
           m
         end
 
         msg = <<~MSG
-                The following messages refer to figure
-                  #{figures[i]}.
+          The following messages refer to figure
+            #{figures[i]}.
 
-              MSG
-      else
-        msg = <<~MSG
-                No messages for figure
-                  #{figures[i]}
-                found.
-              MSG
+        MSG
       end
       msg += <<~MSG
-               See
-                 #{params[:tmpdir]}/#{figures[i]}.log
-               for the full log.
-             MSG
+        See
+          #{params[:tmpdir]}/#{figures[i]}.log
+        for the full log.
+      MSG
       log[0][i].unshift(TexLogParser::Message.new(message: msg, level: :info, preformatted: true))
       offset += log[1][i].count("\n")
     end
@@ -105,10 +104,10 @@ class TikZExt < Extension
     rebuildlog = [[], '']
     if File.exist?("#{params[:jobname]}.figlist")
       figures = IO.readlines("#{params[:jobname]}.figlist").map do |fig|
-        if fig.strip != ''
-          fig.strip
-        else
+        if fig.strip == ''
           nil
+        else
+          fig.strip
         end
       end.compact
 
@@ -127,7 +126,6 @@ class TikZExt < Extension
           end
         end
       end
-
 
       figures.select! do |fig|
         !File.exist?("#{fig}.pdf") || rebuild.include?(fig)
@@ -164,7 +162,7 @@ class TikZExt < Extension
     end.drop(1)
     string = relevant_lines.join('').strip
 
-    log << (string != '' ? "<snip>\n\n#{string}\n\n<snip>" : 'No errors detected.')
+    log << (string == '' ? 'No errors detected.' : "<snip>\n\n#{string}\n\n<snip>")
 
     # Parse whole log for messages (needed for filenames) but restrict
     # to messages from interesting part

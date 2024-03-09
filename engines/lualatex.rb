@@ -20,7 +20,6 @@ Dependency.new('lualatex', :binary, [:engine, 'lualatex'], :essential)
 
 # TODO: document
 class LuaLaTeX < Engine
-
   def initialize
     super
     @binary = 'lualatex'
@@ -37,7 +36,7 @@ class LuaLaTeX < Engine
 
   def hash_result
     HashManager.hash_file(@target_file,
-                          without: /\/CreationDate|\/ModDate|\/ID|\/Type\/XRef\/Index/)
+                          without: %r{/CreationDate|/ModDate|/ID|/Type/XRef/Index})
   end
 
   def exec
