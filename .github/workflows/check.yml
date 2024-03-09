@@ -1,0 +1,72 @@
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test-pdflatex-linux-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        ruby: [ '3.1', '3.2', '3.3' ]
+    name: "${{ matrix.os }} / ruby ${{ matrix.ruby }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Setup dependencies
+        run: |
+          bundle update --bundler
+          bundle install
+      - name: Install TeX Live
+        uses: zauguin/install-texlive@v3
+        with:
+          packages: >
+            latex-bin scheme-basic
+      - name: ltx2any
+        run: |
+          ruby ltx2any.rb test/test.tex
+  test-pdflatex-win:
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [ '3.1', '3.2', '3.3' ]
+    name: "windows-latest / ruby ${{ matrix.ruby }}"
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Setup dependencies
+        run: |
+          bundle update --bundler
+          bundle install
+      - name: Install MiKTeX
+        run: |
+          choco install miktex --no-progress
+          echo "C:\Program Files\MiKTeX\miktex\bin\x64" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+      - name: Configure MiKTeX
+        run: |
+          initexmf --admin --set-config-value=[MPM]AutoInstall=1
+          miktex --admin packages update-package-database
+          miktex --admin packages update
+          miktex packages update
+          miktex --admin packages install cm-super
+          miktex --admin fndb refresh
+          initexmf --admin --update-fndb
+          initexmf --admin --mklinks --force
+          updmap --admin
+          initexmf --report > miktex-report.txt
+      - name: ltx2any
+        run: |
+          ruby ltx2any.rb test/test.tex
