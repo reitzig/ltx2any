@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -20,7 +22,7 @@ class DaemonPrompt
   def self.run
     params = ParameterManager.instance
     command = getCommand
-    while command.size > 0
+    while command.size.positive?
       begin
         case command[0]
         when :set
@@ -52,7 +54,7 @@ class DaemonPrompt
         when :run
           break
         when :quit
-          raise SystemExit.new('User issued quit command')
+          raise SystemExit, 'User issued quit command'
         when :help
           respond 'Work in progress. Supports commands set, show, clean (partial), run and quit.'
         else
@@ -83,7 +85,7 @@ class DaemonPrompt
   def self.getCommand
     print '> '
     command = gets.strip.split(/\s+/) # User may quit by hitting ^C at this point
-    command[0] = if command.size > 0
+    command[0] = if command.size.positive?
                    command[0].to_sym
                  else
                    :run

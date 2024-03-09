@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -45,7 +47,7 @@ class Output
     if !msg.empty? && !@running
       puts "#{@shortcode} #{msg[0]}"
       puts_indented(msg.drop(1)) if msg.size > 1
-      STDOUT.flush
+      $stdout.flush
     elsif !msg.empty?
       # Store message to be printed after the current
       # process finished
@@ -81,21 +83,21 @@ class Output
                 # TODO We *know* that we need 2*ceil(log_2(count)) - 1 spaces...
                 progress.stop
                 puts_indented(*msgs) unless msgs.empty?
-                STDOUT.flush
+                $stdout.flush
               }]
       # TODO: notify user of missing dependency?
     end
 
     # Fallback if progress bar not needed, or gem not available
     print "#{@shortcode} #{msg} ... "
-    STDOUT.flush
+    $stdout.flush
     [-> {}, ->(state, *msgs) { stop(state, *msgs) }]
   end
 
   def stop(state, *msg)
     puts instance_variable_get(:"@#{state}")
     puts_indented(msg) unless msg.empty?
-    STDOUT.flush
+    $stdout.flush
 
     # Print messages that were held back during the process
     # that just finished.

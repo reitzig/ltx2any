@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -16,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+require 'English'
 Dependency.new('makeindex', :binary, [:extension, 'makeindex'], :essential)
 
 # TODO: document
@@ -47,8 +50,8 @@ class MakeIndex < Extension
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
     # * mistyle -- name of the makeindex style file (with file ending)
-    makeindex = { default: '"makeindex -q \"#{params[:jobname]}\" 2>&1"',
-                  styled: '"makeindex -q -s \"#{mistyle}\" \"#{params[:jobname]}\" 2>&1"' }
+    makeindex = { default: %("makeindex -q "#{params[:jobname]}" 2>&1"),
+                  styled: %("makeindex -q -s "#{mistyle}" "#{params[:jobname]}" 2>&1") }
 
     version = :default
     mistyle = nil
@@ -77,15 +80,15 @@ class MakeIndex < Extension
     errors = false
     log.each do |line|
       if /^!! (.*?) \(file = (.+?), line = (\d+)\):$/ =~ line
-        current = [:error, $~[2], { from: Integer($~[3]), to: Integer($~[3]) },
-                   { from: linectr, to: linectr }, "#{$~[1]}: "]
+        current = [:error, $LAST_MATCH_INFO[2], { from: Integer($LAST_MATCH_INFO[3]), to: Integer($LAST_MATCH_INFO[3]) },
+                   { from: linectr, to: linectr }, "#{$LAST_MATCH_INFO[1]}: "]
         errors = true
       elsif /^## (.*?) \(input = (.+?), line = (\d+); output = .+?, line = \d+\):$/ =~ line
-        current = [:warning, $~[2], { from: Integer($~[3]), to: Integer($~[3]) },
-                   { from: linectr, to: linectr }, "#{$~[1]}: "]
+        current = [:warning, $LAST_MATCH_INFO[2], { from: Integer($LAST_MATCH_INFO[3]), to: Integer($LAST_MATCH_INFO[3]) },
+                   { from: linectr, to: linectr }, "#{$LAST_MATCH_INFO[1]}: "]
       elsif current != [] && /^\s+-- (.*)$/ =~ line
         current[3][:to] = linectr
-        msgs.push(TexLogParser::Message.new(message: current[4] + $~[1].strip,
+        msgs.push(TexLogParser::Message.new(message: current[4] + $LAST_MATCH_INFO[1].strip,
                                             source_file: current[1], source_lines: current[2],
                                             log_lines: current[3], level: current[0]))
         current = []
@@ -101,7 +104,7 @@ class MakeIndex < Extension
       linectr += 1
     end
 
-    { sucess: !errors, messages: msgs, log: log.join('').strip! }
+    { sucess: !errors, messages: msgs, log: log.join.strip! }
   end
 end
 
