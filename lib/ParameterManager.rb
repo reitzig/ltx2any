@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -33,11 +35,11 @@ class ParameterManager
   end
 
   def addParameter(p)
-    raise ParameterException.new('Can not add parameters after CLI input has been processed.') if @processed
+    raise ParameterException, 'Can not add parameters after CLI input has been processed.' if @processed
 
-    raise ParameterException.new("Can not add object of type #{p.class} as parameter.") unless p.is_a?(Parameter)
+    raise ParameterException, "Can not add object of type #{p.class} as parameter." unless p.is_a?(Parameter)
 
-    raise ParameterException.new("Parameter #{p.key} already exists.") if @values.key?(p.key)
+    raise ParameterException, "Parameter #{p.key} already exists." if @values.key?(p.key)
 
     @values[p.key] = p
     @code2key[p.code] = p.key
@@ -51,7 +53,7 @@ class ParameterManager
     endings = ['tex', 'ltx', 'latex', '.tex', '.ltx', '.latex']
     jobfile = original
     while !File.exist?(jobfile) || File.directory?(jobfile)
-      raise ParameterException.new("No input file fitting #{original} exists.") if endings.empty?
+      raise ParameterException, "No input file fitting #{original} exists." if endings.empty?
 
       jobfile = "#{original}#{endings.pop}"
     end
@@ -61,7 +63,7 @@ class ParameterManager
                                'Absolute path of source directory'))
     addHook(:tmpdir) do |_key, val|
       if self[:jobpath].start_with?(File.expand_path(val))
-        raise ParameterException.new('Temporary directory may not contain job directory.')
+        raise ParameterException, 'Temporary directory may not contain job directory.'
       end
     end
     addParameter(Parameter.new(:jobfile, nil, String, File.basename(jobfile), 'Name of the main input file'))
@@ -74,19 +76,19 @@ class ParameterManager
     i = 0
     while i < ARGV.length - 1
       p = /\A-(\w+)\z/.match(ARGV[i])
-      raise ParameterException.new("Don't know what to do with parameter #{ARGV[i]}.") if p.nil?
+      raise ParameterException, "Don't know what to do with parameter #{ARGV[i]}." if p.nil?
 
       code = p[1]
       key = @code2key[code]
 
-      raise ParameterException.new("Parameter -#{code} does not exist.") unless @values.key?(key)
+      raise ParameterException, "Parameter -#{code} does not exist." unless @values.key?(key)
 
       if @values[key].type == Boolean
-        set(key, :true)
+        set(key, true)
         i += 1
       else
         val = ARGV[i + 1]
-        raise ParameterException.new("No value for parameter -#{code}.") unless i + 1 < ARGV.length - 1
+        raise ParameterException, "No value for parameter -#{code}." unless i + 1 < ARGV.length - 1
 
         set(key, val) # Does all the checking and converting
         i += 2
@@ -101,13 +103,13 @@ class ParameterManager
 
       begin
         @values[key].value = eval(val)
-      rescue Exception => e
+      rescue Exception
         # Leave value unchanged
         # puts "From eval on #{key}: #{e.message}"
       end
     end
 
-    raise ParameterException.new('Please provide an input file. Call with --help for details.') if jobfile.nil?
+    raise ParameterException, 'Please provide an input file. Call with --help for details.' if jobfile.nil?
 
     @processed = true
   end
@@ -124,10 +126,11 @@ class ParameterManager
     set(key, val, false)
   end
 
-  def set(key, val, _once = false) # TODO: implement "once" behaviour
-    # TODO allow for proper validation functions?
+  # TODO: implement "once" behaviour
+  def set(key, val, _once = false)
+    # TODO: allow for proper validation functions?
     # TODO fall back to defaults instead of killing?
-    raise ParameterException.new("Parameter #{key} does not exist.") unless @values.key?(key)
+    raise ParameterException, "Parameter #{key} does not exist." unless @values.key?(key)
 
     code = @values[key].code
 
@@ -139,7 +142,7 @@ class ParameterManager
       elsif /\d+/ =~ val
         @values[key].value = val.to_i
       else
-        raise ParameterException.new("Parameter -#{code} requires an integer ('#{val}' given).")
+        raise ParameterException, "Parameter -#{code} requires an integer ('#{val}' given)."
       end
     elsif @values[key].type == Float
       if val.is_a?(Float)
@@ -147,23 +150,22 @@ class ParameterManager
       elsif /\d+(\.\d+)?/ =~ val
         @values[key].value = val.to_f
       else
-        raise ParameterException.new("Parameter -#{code} requires a number ('#{val}' given).")
+        raise ParameterException, "Parameter -#{code} requires a number ('#{val}' given)."
       end
     elsif @values[key].type == Boolean
       if val.is_a?(Boolean)
         @values[key].value = val
-      elsif val.to_s.to_sym == :true || val.to_s.to_sym == :false
-        @values[key].value = (val.to_s.to_sym == :true)
+      elsif val.to_s.to_sym == true || val.to_s.to_sym == false
+        @values[key].value = (val.to_s.to_sym == true)
       else
-        raise ParameterException.new("Parameter -#{code} requires a boolean ('#{val}' given).")
+        raise ParameterException, "Parameter -#{code} requires a boolean ('#{val}' given)."
       end
     elsif @values[key].type.is_a? Array
       if @values[key].type.include?(val.to_sym)
         @values[key].value = val.to_sym
       else
-        raise ParameterException.new("Invalid value '#{val}' for parameter -#{code}\nChoose one of [#{@values[key].type.map do |e|
-                                                                                                        e.to_s
-                                                                                                      end.join(', ')}].")
+        raise ParameterException,
+              "Invalid value '#{val}' for parameter -#{code}\nChoose one of [#{@values[key].type.map(&:to_s).join(', ')}]."
       end
     else
       # This should never happen
@@ -177,10 +179,11 @@ class ParameterManager
     # @copy_dirty = true
   end
 
-  def add(key, val, _once = false) # TODO: implement "once" behaviour
-    raise ParameterException.new("Parameter #{key} does not exist.") unless @values.key?(key)
+  # TODO: implement "once" behaviour
+  def add(key, val, _once = false)
+    raise ParameterException, "Parameter #{key} does not exist." unless @values.key?(key)
 
-    raise ParameterException.new("Parameter #{key} does not support extension.") unless @values[key].type == String
+    raise ParameterException, "Parameter #{key} does not support extension." unless @values[key].type == String
 
     @values[key].value += val.to_s # TODO: should we add separating `:`?
 
@@ -195,9 +198,7 @@ class ParameterManager
     # if ( @values.has_key?(key) )
     @hooks[key] = [] unless @hooks.key?(key)
 
-    unless block.arity == 2
-      raise ParameterException.new('Parameter hooks need to take two parameters (key, new value).')
-    end
+    raise ParameterException, 'Parameter hooks need to take two parameters (key, new value).' unless block.arity == 2
 
     @hooks[key].push(block)
   end
@@ -258,7 +259,7 @@ class Parameter
 
   def value=(val)
     unless (@type.is_a?(Array) && val.is_a?(@type[0].class)) || val.is_a?(@type)
-      raise ParameterException.new("Value if type #{val.class} is not compatible with parameter #{@key}.")
+      raise ParameterException, "Value if type #{val.class} is not compatible with parameter #{@key}."
     end
 
     @value = val
@@ -269,9 +270,6 @@ end
 
 # TODO: document
 class ParameterException < RuntimeError
-  def initialize(msg)
-    super(msg)
-  end
 end
 
 # For nice type checks on booleans

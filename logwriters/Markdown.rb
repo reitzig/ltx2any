@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2017, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -57,8 +59,8 @@ class Markdown < LogWriter
         if msgs.empty?
           result << "Lucky you, `#{name}` had nothing to complain about!\n\n"
 
-          if ((level == :warning && log.count(:info, name) > 0) ||
-             (level == :error && log.count(:info, name) + log.count(:warning, name) > 0)) && (level != :info)
+          if ((level == :warning && log.count(:info, name).positive?) ||
+             (level == :error && (log.count(:info, name) + log.count(:warning, name)).positive?)) && (level != :info)
             result << 'Note, though, that this log only lists errors'
             result << ' and warnings' if level == :warning
             result << '. There were '
@@ -102,16 +104,16 @@ class Markdown < LogWriter
             end
             result << "\n\n"
             result << if m.preformatted
-                        indent(m.message.strip, 8) + "\n\n"
+                        "#{indent(m.message.strip, 8)}\n\n"
                       else
-                        break_at_spaces(m.message.strip, 68, 8) + "\n\n"
+                        "#{break_at_spaces(m.message.strip, 68, 8)}\n\n"
                       end
             next if m.log_lines.nil?
 
             # We have line offset in the raw log!
             logline = m.log_lines[:from].to_s
             logline += "--#{m.log_lines[:to]}" unless m.log_lines[:to].nil? || m.log_lines[:to] == m.log_lines[:from]
-            result << ((' ' * (80 - (6 + logline.length))) + '`log:' + logline + "`\n\n")
+            result << ("#{' ' * (80 - (6 + logline.length))}`log:#{logline}`\n\n")
           end
         end
       end

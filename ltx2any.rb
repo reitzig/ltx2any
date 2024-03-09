@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 # Version 0.9 beta
@@ -98,9 +100,9 @@ begin
   CLEAN.push(PARAMS[:tmpdir])
 
   # Some files we don't want to listen to
-  toignore = ["#{PARAMS[:tmpdir]}",
+  toignore = [(PARAMS[:tmpdir]).to_s,
               "#{PARAMS[:user_jobname]}.#{Engine[PARAMS[:engine]].extension}",
-              "#{PARAMS[:log]}",
+              (PARAMS[:log]).to_s,
               "#{PARAMS[:user_jobname]}.err"] + PARAMS[:ignore].split(':')
 
   begin
@@ -110,8 +112,10 @@ begin
     PARAMS[:daemon] = false
   end
 
-  begin # daemon loop
-    begin # inner block that can be cancelled by user
+  # daemon loop
+  loop do
+    # inner block that can be cancelled by user
+    begin
       # Reset
       # @type [Engine] engine The engine we're running
       # @type [Log] log The main log
@@ -139,7 +143,7 @@ begin
             # remove the obsolete stuff.
             # If there already is a symlink, delete because it might have been
             # relinked.
-            FileUtils.rm("#{PARAMS[:tmpdir]}/#{f}") if File.exist?("#{PARAMS[:tmpdir]}/#{f}")
+            FileUtils.rm_f("#{PARAMS[:tmpdir]}/#{f}")
 
             # Create new symlink instead of copying
             File.symlink("#{PARAMS[:jobpath]}/#{f}", "#{PARAMS[:tmpdir]}/#{f}")
@@ -169,10 +173,10 @@ begin
       Dir.chdir(PARAMS[:tmpdir])
 
       # Delete former results in order not to pretend success
-      FileUtils.rm("#{PARAMS[:jobname]}.#{engine.extension}") if File.exist?("#{PARAMS[:jobname]}.#{engine.extension}")
+      FileUtils.rm_f("#{PARAMS[:jobname]}.#{engine.extension}")
 
       # Read hashes
-      HashManager.instance.from_file("#{HASHFILE}")
+      HashManager.instance.from_file(HASHFILE.to_s)
 
       # Run extensions that may need to do something before the engine
       Extension.run_all(:before, OUTPUT, log)
@@ -192,7 +196,7 @@ begin
         Extension.run_all(run, OUTPUT, log)
 
         run += 1
-        break if (PARAMS[:engineruns] > 0 && run > PARAMS[:engineruns]) || # User set number of runs
+        break if ((PARAMS[:engineruns]).positive? && run > PARAMS[:engineruns]) || # User set number of runs
                  (PARAMS[:engineruns] <= 0 && !engine.do?) # User set automatic mode
       end
 
@@ -205,7 +209,7 @@ begin
       # Give error/warning counts to user
       errorS = log.count(:error) == 1 ? '' : 's'
       warningS = log.count(:warning) == 1 ? '' : 's'
-      OUTPUT.msg("There were #{log.count(:error)} error#{errorS} " +
+      OUTPUT.msg("There were #{log.count(:error)} error#{errorS} " \
                  "and #{log.count(:warning)} warning#{warningS}.")
 
       # Pick up output if present
@@ -237,7 +241,7 @@ begin
         end
 
         log.finish
-        logfile = LogWriter[:raw].write(log)
+        LogWriter[:raw].write(log)
         logfile = LogWriter[PARAMS[:logformat]].write(log, PARAMS[:loglevel])
 
         FileUtils.cp(logfile, "#{PARAMS[:jobpath]}/#{logfile}")
@@ -262,11 +266,12 @@ begin
       Dir.chdir(PARAMS[:jobpath])
     end
 
-    FileListener.instance.waitForChanges(OUTPUT) if PARAMS[:daemon] && PARAMS[:listeninterval] > 0
+    FileListener.instance.waitForChanges(OUTPUT) if PARAMS[:daemon] && (PARAMS[:listeninterval]).positive?
 
     # Rerun!
     OUTPUT.separate
-  end while (PARAMS[:daemon])
+    break unless PARAMS[:daemon]
+  end
 rescue Interrupt, SystemExit
   OUTPUT.separate.msg('Shutdown')
 rescue Exception => e

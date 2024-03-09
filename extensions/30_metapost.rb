@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -29,7 +31,7 @@ class MetaPost < Extension
   end
 
   def do?(time)
-    time == 1 && job_size > 0
+    time == 1 && job_size.positive?
   end
 
   def job_size
@@ -45,10 +47,10 @@ class MetaPost < Extension
   end
 
   def exec(_time, progress)
-    params = ParameterManager.instance
+    ParameterManager.instance
 
     # Command to process metapost files if necessary.
-    mpost = '"mpost -tex=#{params[:engine]} -file-line-error -interaction=nonstopmode \"#{f}\" 2>&1"'
+    mpost = %("mpost -tex=#{params[:engine]} -file-line-error -interaction=nonstopmode "#{f}" 2>&1")
 
     # Run mpost for each job file
     log = [[], []]
@@ -68,7 +70,7 @@ class MetaPost < Extension
       unless log[0][i].empty?
         internal_offset = 3 # Stuff we print per plot before log excerpt (see :compile)
         log[0][i].map! do |m|
-          m.log_lines.update(m.log_lines) { |_, ll| ll + offset + internal_offset } unless m.log_lines.nil?
+          m.log_lines&.update(m.log_lines) { |_, ll| ll + offset + internal_offset }
           m
         end
       end
@@ -83,7 +85,7 @@ class MetaPost < Extension
   private
 
   def compile(cmd, f)
-    params = ParameterManager.instance
+    ParameterManager.instance
 
     log = ''
     msgs = []
@@ -91,7 +93,7 @@ class MetaPost < Extension
     # Run twice to get LaTeX bits right
     IO.popen(eval(cmd), &:readlines)
     lines = IO.popen(eval(cmd), &:readlines)
-    output = lines.join('').strip
+    output = lines.join.strip
 
     log << "# #\n# #{f}\n\n"
     if output == ''

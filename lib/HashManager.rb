@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2015, Raphael Reitzig
 # <code@verrech.net>
 #

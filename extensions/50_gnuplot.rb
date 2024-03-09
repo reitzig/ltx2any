@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -16,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+require 'English'
 Dependency.new('gnuplot', :binary, [:extension, 'Gnuplot'], :essential)
 
 # TODO: document
@@ -29,7 +32,7 @@ class Gnuplot < Extension
   end
 
   def do?(time)
-    time == 1 && job_size > 0
+    time == 1 && job_size.positive?
   end
 
   def job_size
@@ -46,7 +49,7 @@ class Gnuplot < Extension
     # Command to process gnuplot files if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
-    gnuplot = '"gnuplot \"#{f}\" 2>&1"'
+    gnuplot = %("gnuplot "#{f}" 2>&1")
 
     # Run gnuplot for each remaining file
     log = [[], []]
@@ -64,7 +67,7 @@ class Gnuplot < Extension
       unless log[0][i].empty?
         internal_offset = 2 # Stuff we print per plot before log excerpt (see :compile)
         log[0][i].map! do |m|
-          m.log_lines.update(m.log_lines) { |_, ll| ll + offset + internal_offset } unless m.log_lines.nil?
+          m.log_lines&.update(m.log_lines) { |_, ll| ll + offset + internal_offset }
           m
         end
       end
@@ -79,13 +82,13 @@ class Gnuplot < Extension
   private
 
   def compile(cmd, f)
-    params = ParameterManager.instance
+    ParameterManager.instance
 
     log = ''
     msgs = []
 
     lines = IO.popen(eval(cmd), &:readlines)
-    output = lines.join('').strip
+    output = lines.join.strip
 
     log << "# #\n# #{f}\n\n"
     if output == ''
@@ -115,9 +118,9 @@ class Gnuplot < Extension
       # are separated by empty lines.
       if /^"(.+?)", line (\d+): (.*)$/ =~ line
         msgs.push(TexLogParser::Message.new(
-                    message: "#{context}#{$~[3].strip}",
-                    source_file: "#{ParameterManager.instance[:tmpdir]}/#{$~[1]}",
-                    source_lines: { from: Integer($~[2]), to: Integer($~[2]) },
+                    message: "#{context}#{$LAST_MATCH_INFO[3].strip}",
+                    source_file: "#{ParameterManager.instance[:tmpdir]}/#{$LAST_MATCH_INFO[1]}",
+                    source_lines: { from: Integer($LAST_MATCH_INFO[2]), to: Integer($LAST_MATCH_INFO[2]) },
                     log_lines: { from: [contextline, linectr].min, to: linectr },
                     preformatted: true,
                     level: :error

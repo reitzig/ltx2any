@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -140,6 +142,6 @@ class Extension
 end
 
 # Load all extensions
-Dir["#{BASEDIR}/#{EXTDIR}/*.rb"].sort.each do |f|
+Dir["#{BASEDIR}/#{EXTDIR}/*.rb"].each do |f|
   load(f) if /^\d\d/ =~ File.basename(f)
 end

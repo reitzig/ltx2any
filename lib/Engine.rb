@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -89,13 +91,13 @@ class Engine
 end
 
 # Load all engines
-Dir["#{BASEDIR}/#{ENGDIR}/*.rb"].sort.each do |f|
+Dir["#{BASEDIR}/#{ENGDIR}/*.rb"].each do |f|
   load(f)
 end
 
 # Add engine-related parameters
 ParameterManager.instance.addParameter(Parameter.new(
-                                         :engine, 'e', Engine.list.map { |e| e.to_sym }, :pdflatex,
+                                         :engine, 'e', Engine.list.map(&:to_sym), :pdflatex,
                                          'The output engine. Call with --engines for a list.'
                                        ))
 ParameterManager.instance.addParameter(Parameter.new(

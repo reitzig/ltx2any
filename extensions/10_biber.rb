@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -16,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+require 'English'
 Dependency.new('biber', :binary, [:extension, 'Biber'], :essential)
 
 # TODO: document
@@ -38,9 +41,9 @@ class Biber < Extension
     if usesbib
       # Collect sources (needed for log parsing)
       @sources = []
-      IO.foreach("#{params[:jobname]}.bcf") do |line|
+      File.foreach("#{params[:jobname]}.bcf") do |line|
         if %r{<bcf:datasource[^>]*type="file"[^>]*>(.*?)</bcf:datasource>} =~ line
-          @sources.push($~[1])
+          @sources.push($LAST_MATCH_INFO[1])
         end
       end
       @sources.uniq!
@@ -60,12 +63,12 @@ class Biber < Extension
   end
 
   def exec(_time, _progress)
-    params = ParameterManager.instance
+    ParameterManager.instance
 
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
-    biber = '"biber \"#{params[:jobname]}\""'
+    biber = %("biber "#{params[:jobname]}"")
 
     f = IO.popen(eval(biber))
     log = f.readlines
@@ -76,25 +79,26 @@ class Biber < Extension
     linectr = 1
     log.each do |line|
       loglines = { from: linectr, to: linectr }
-      if /^INFO - (.*)$/ =~ line
-        msgs.push(TexLogParser::Message.new(message: $~[1], log_lines: loglines, level: :info))
-      elsif /^WARN - (.*)$/ =~ line
-        msgs.push(TexLogParser::Message.new(message: $~[1], log_lines: loglines, level: :warning))
-      elsif %r{^ERROR - BibTeX subsystem: .*?(#{@sources.map do |s|
-                                                  Regexp.escape(s)
-                                                end.join('|')}).*?, line (\d+), (.*)$} =~ line
-        srclines = { from: Integer($~[2]), to: Integer($~[2]) }
-        msgs.push(TexLogParser::Message.new(message: $~[3].strip, source_file: $~[1], source_lines: srclines,
+      case line
+      when /^INFO - (.*)$/
+        msgs.push(TexLogParser::Message.new(message: $LAST_MATCH_INFO[1], log_lines: loglines, level: :info))
+      when /^WARN - (.*)$/
+        msgs.push(TexLogParser::Message.new(message: $LAST_MATCH_INFO[1], log_lines: loglines, level: :warning))
+      when %r{^ERROR - BibTeX subsystem: .*?(#{@sources.map do |s|
+                                                 Regexp.escape(s)
+                                               end.join('|')}).*?, line (\d+), (.*)$}
+        srclines = { from: Integer($LAST_MATCH_INFO[2]), to: Integer($LAST_MATCH_INFO[2]) }
+        msgs.push(TexLogParser::Message.new(message: $LAST_MATCH_INFO[3].strip, source_file: $LAST_MATCH_INFO[1], source_lines: srclines,
                                             log_lines: loglines, level: :error))
         errors = true
-      elsif /^ERROR - (.*)$/ =~ line
-        msgs.push(TexLogParser::Message.new(message: $~[1], log_lines: loglines, level: error))
+      when /^ERROR - (.*)$/
+        msgs.push(TexLogParser::Message.new(message: $LAST_MATCH_INFO[1], log_lines: loglines, level: error))
         errors = true
       end
       linectr += 1
     end
 
-    { success: !errors, messages: msgs, log: log.join('').strip! }
+    { success: !errors, messages: msgs, log: log.join.strip! }
   end
 end
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2017, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -17,6 +19,7 @@
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
 # TODO: document
+require 'English'
 class SageTeX < Extension
   def initialize
     super
@@ -32,17 +35,17 @@ class SageTeX < Extension
   end
 
   def exec(_time, _progress)
-    params = ParameterManager.instance
+    ParameterManager.instance
 
     # Command to process SageMath code.
-    sagemath = '"sagemath \"#{params[:jobname]}.sagetex.sage\" 2>&1"'
+    sagemath = %("sagemath "#{params[:jobname]}.sagetex.sage" 2>&1")
 
     f = IO.popen(eval(sagemath))
     log = f.readlines
 
     errors = parse(log)
 
-    { success: errors.count <= 0, messages: errors, log: log.join('') }
+    { success: errors.count <= 0, messages: errors, log: log.join }
   end
 
   private
@@ -60,7 +63,7 @@ class SageTeX < Extension
         msg = nil
       elsif msg.nil? && line =~ /File "(.+)",\s+line (\d+)/
         msg = TexLogParser::Message.new(message: '',
-                                        source_file: $~[1], source_lines: { from: $~[2].to_i, to: $~[2].to_i },
+                                        source_file: $LAST_MATCH_INFO[1], source_lines: { from: $LAST_MATCH_INFO[2].to_i, to: $LAST_MATCH_INFO[2].to_i },
                                         log_lines: { from: linectr, to: linectr }, level: :warning,
                                         preformatted: true)
         messages << msg

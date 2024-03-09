@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2016, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -18,16 +20,16 @@
 
 # TODO: move to a properties file?
 
-NAME       = 'ltx2any'.freeze
-VERSION    = '1.0.0-beta'.freeze
-YEAR       = '2018'.freeze
-AUTHOR     = 'Raphael Reitzig'.freeze
-TMPSUFFIX  = '_tmp'.freeze
-HASHFILE   = '.hashes'.freeze # relative to tmp directory
+NAME       = 'ltx2any'
+VERSION    = '1.0.0-beta'
+YEAR       = '2018'
+AUTHOR     = 'Raphael Reitzig'
+TMPSUFFIX  = '_tmp'
+HASHFILE   = '.hashes' # relative to tmp directory
 
 WORKDIR = Dir.pwd.freeze
 BASEDIR = File.expand_path(__dir__).freeze
-LIBDIR  = 'lib'.freeze
-EXTDIR  = 'extensions'.freeze
-ENGDIR  = 'engines'.freeze
-LOGWDIR = 'logwriters'.freeze
+LIBDIR  = 'lib'
+EXTDIR  = 'extensions'
+ENGDIR  = 'engines'
+LOGWDIR = 'logwriters'

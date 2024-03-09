@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -42,14 +44,14 @@ class XeLaTeX < Engine
     @old_hash = hash_result
 
     # Command for the main LaTeX compilation work
-    params = ParameterManager.instance
-    xelatex = '"xelatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} \"#{params[:jobfile]}\""'
+    ParameterManager.instance
+    xelatex = %("xelatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} "#{params[:jobfile]}"")
 
     f = IO.popen(eval(xelatex))
     log = f.readlines.map! { |s| Log.fix(s) }
 
     parsed_log = TexLogParser.new(log).parse
-    { success: File.exist?(@target_file), messages: parsed_log, log: log.join('').strip! }
+    { success: File.exist?(@target_file), messages: parsed_log, log: log.join.strip! }
   end
 end
 

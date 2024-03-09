@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -27,7 +29,7 @@ class CliHelp
     params = ParameterManager.instance
 
     # Check for help/usage commands
-    if args.length == 0 || /--help|--h/ =~ args[0]
+    if args.empty? || /--help|--h/ =~ args[0]
       puts "\nUsage: "
       puts "  #{NAME} [options] inputfile\tNormal execution (see below)"
       puts "  #{NAME} --extensions\t\tList of extensions"
@@ -58,8 +60,8 @@ class CliHelp
     elsif args[0] == '--engines'
       puts 'Installed engines:'
       maxwidth = Engine.list.map { |e| e.to_sym.to_s.length }.max
-      Engine.list.sort_by { |e| e.name }.each do |e|
-        next unless DependencyManager.list(source: [:engine, e.binary], relevance: :essential).all? { |d| d.available? }
+      Engine.list.sort_by(&:name).each do |e|
+        next unless DependencyManager.list(source: [:engine, e.binary], relevance: :essential).all?(&:available?)
 
         print "  #{e.to_sym}#{' ' * (maxwidth - e.to_sym.to_s.length)}\t#{e.description}"
         print ' (default)' if e.to_sym == params[:engine]
@@ -69,12 +71,10 @@ class CliHelp
     elsif args[0] == '--logformats'
       puts 'Available log formats:'
       maxwidth = LogWriter.list.map { |lw| lw.to_sym.to_s.length }.max
-      LogWriter.list.sort_by { |lw| lw.name }.each do |lw|
-        next unless DependencyManager.list(source: [:logwriter, lw.to_sym], relevance: :essential).all? do |d|
-                      d.available?
-                    end
+      LogWriter.list.sort_by(&:name).each do |lw|
+        next unless DependencyManager.list(source: [:logwriter, lw.to_sym], relevance: :essential).all?(&:available?)
 
-        print "  #{lw.to_sym}#{' ' * (maxwidth - lw.to_sym.to_s.length)}" +
+        print "  #{lw.to_sym}#{' ' * (maxwidth - lw.to_sym.to_s.length)}" \
               "\t#{lw.description}"
         print ' (default)' if lw.to_sym == params[:logformat]
         puts ''

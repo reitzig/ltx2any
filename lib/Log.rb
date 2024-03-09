@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -121,7 +123,7 @@ class Log
     # Adjust all log lines
     @messages.each_entry do |source, log_material|
       log_material[1].each do |msg|
-        msg.log_lines.update(msg.log_lines) { |_, i| i + @rawoffsets[source] } unless msg.log_lines.nil?
+        msg.log_lines&.update(msg.log_lines) { |_, i| i + @rawoffsets[source] }
       end
     end
 

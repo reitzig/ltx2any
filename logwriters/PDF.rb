@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2017, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -52,7 +54,7 @@ class PDF < LogWriter
 
       latex_log = LogWriter[:latex].write(log, level)
       # TODO: which engine to use?
-      xelatex = '"xelatex -file-line-error -interaction=nonstopmode \"#{latex_log}\""'
+      xelatex = %("xelatex -file-line-error -interaction=nonstopmode "#{latex_log}"")
       IO.popen(eval(xelatex), &:readlines)
       IO.popen(eval(xelatex), &:readlines)
       # TODO: parse log and rewrite a readable version?

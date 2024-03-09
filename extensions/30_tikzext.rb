@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -29,7 +31,7 @@ class TikZExt < Extension
   end
 
   def do?(time)
-    time == 1 && job_size > 0
+    time == 1 && job_size.positive?
   end
 
   def job_size
@@ -43,7 +45,7 @@ class TikZExt < Extension
     # Uses the following variables:
     # * $params["engine"] -- Engine used by the main job.
     # * params[:jobname] -- name of the main LaTeX file (without file ending)
-    pdflatex = '"#{params[:engine]} -shell-escape -file-line-error -interaction=batchmode -jobname \"#{fig}\" \"\\\def\\\tikzexternalrealjob{#{params[:jobname]}}\\\input{#{params[:jobname]}}\" 2>&1"'
+    pdflatex = %("#{params[:engine]} -shell-escape -file-line-error -interaction=batchmode -jobname "#{fig}" "\\\def\\\tikzexternalrealjob{#{params[:jobname]}}\\\input{#{params[:jobname]}}" 2>&1")
 
     # Collect all externalised figures
     figures, rebuildlog = collect_pending
@@ -71,7 +73,7 @@ class TikZExt < Extension
       else
         internal_offset = 5 # Stuff we print per figure before log excerpt (see :compile)
         log[0][i].map! do |m|
-          m.log_lines.update(m.log_lines) { |_, ll| ll + offset + internal_offset - 1 } unless m.log_lines.nil?
+          m.log_lines&.update(m.log_lines) { |_, ll| ll + offset + internal_offset - 1 }
           m
         end
 
@@ -103,7 +105,7 @@ class TikZExt < Extension
     figures = []
     rebuildlog = [[], '']
     if File.exist?("#{params[:jobname]}.figlist")
-      figures = IO.readlines("#{params[:jobname]}.figlist").map do |fig|
+      figures = File.readlines("#{params[:jobname]}.figlist").map do |fig|
         if fig.strip == ''
           nil
         else
@@ -136,9 +138,7 @@ class TikZExt < Extension
   end
 
   def compile(cmd, fig)
-    params = ParameterManager.instance
-
-    msgs = []
+    ParameterManager.instance
     log = "# #\n# Figure: #{fig}\n#   See #{ParameterManager.instance[:tmpdir]}/#{fig}.log for full log.\n\n"
 
     # Run twice to clean up log?
@@ -160,7 +160,7 @@ class TikZExt < Extension
     end.take_while do |line|
       endregexp !~ line
     end.drop(1)
-    string = relevant_lines.join('').strip
+    string = relevant_lines.join.strip
 
     log << (string == '' ? 'No errors detected.' : "<snip>\n\n#{string}\n\n<snip>")
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright 2010-2018, Raphael Reitzig
 # <code@verrech.net>
 #
@@ -16,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ltx2any. If not, see <http://www.gnu.org/licenses/>.
 
+require 'English'
 Dependency.new('bibtex', :binary, [:extension, 'BibTeX'], :essential)
 
 # TODO: document
@@ -43,15 +46,16 @@ class BibTeX < Extension
     if File.exist?("#{params[:jobname]}.aux")
       File.open("#{params[:jobname]}.aux", 'r') do |file|
         while (line = file.gets)
-          if /^\\bibdata{(.+?)}$/ =~ line
+          case line
+          when /^\\bibdata{(.+?)}$/
             # If commas occur, add both a split version (multiple files)
             # and the hole string (filename with comma), to be safe.
-            bibdata += $~[1].split(',').map { |s| "#{s}.bib" } + [$~[1]]
+            bibdata += $LAST_MATCH_INFO[1].split(',').map { |s| "#{s}.bib" } + [$LAST_MATCH_INFO[1]]
             grepdata.push line.strip
-          elsif /^\\bibstyle{(.+?)}$/ =~ line
-            stylefile.push "#{$~[1]}.bst"
+          when /^\\bibstyle{(.+?)}$/
+            stylefile.push "#{$LAST_MATCH_INFO[1]}.bst"
             grepdata.push line.strip
-          elsif /^\\(bibcite|citation)/ =~ line
+          when /^\\(bibcite|citation)/
             grepdata.push line.strip
           end
         end
@@ -74,12 +78,12 @@ class BibTeX < Extension
   end
 
   def exec(_time, _progress)
-    params = ParameterManager.instance
+    ParameterManager.instance
 
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
-    bibtex = '"bibtex \"#{params[:jobname]}\""'
+    bibtex = %("bibtex "#{params[:jobname]}"")
 
     f = IO.popen(eval(bibtex))
     log = f.readlines
@@ -91,11 +95,11 @@ class BibTeX < Extension
     lastline = ''
     log.each do |line|
       if /^Warning--(.*)$/ =~ line
-        msgs.push(TexLogParser::Message.new(message: $~[1],
+        msgs.push(TexLogParser::Message.new(message: $LAST_MATCH_INFO[1],
                                             log_lines: { from: linectr, to: linectr },
                                             level: :warning))
       elsif /^(.*?)---line (\d+) of file (.*)$/ =~ line
-        msg = $~[1].strip
+        msg = $LAST_MATCH_INFO[1].strip
         loglines = { from: linectr, to: linectr }
         if msg == ''
           # Sometimes the message can be on the last line
@@ -103,8 +107,8 @@ class BibTeX < Extension
           loglines = { from: linectr - 1, to: linectr }
         end
 
-        srclines = { from: Integer($~[2]), to: Integer($~[2]) }
-        msgs.push(TexLogParser::Message.new(message: msg, source_file: $~[3],
+        srclines = { from: Integer($LAST_MATCH_INFO[2]), to: Integer($LAST_MATCH_INFO[2]) }
+        msgs.push(TexLogParser::Message.new(message: msg, source_file: $LAST_MATCH_INFO[3],
                                             source_lines: srclines, log_lines: loglines,
                                             level: :error))
         errors = true
@@ -113,7 +117,7 @@ class BibTeX < Extension
       lastline = line
     end
 
-    { success: !errors, messages: msgs, log: log.join('').strip! }
+    { success: !errors, messages: msgs, log: log.join.strip! }
   end
 end
 
