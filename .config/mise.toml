@@ -1,0 +1,5 @@
+[env]
+BUNDLE_APP_CONFIG = "{{- config_root -}}/bundle"
+
+[tools]
+ruby = '3.3'

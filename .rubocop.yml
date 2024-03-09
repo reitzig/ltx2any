@@ -1,5 +1,5 @@
 AllCops:
-  TargetRubyVersion: 2.3
+  TargetRubyVersion: 3.3
 
 Metrics/LineLength:
   # The default, 80, is a nice-to-have but not really all that relevant
