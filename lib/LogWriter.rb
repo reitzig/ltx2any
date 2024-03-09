@@ -64,8 +64,6 @@ class LogWriter
     raise NotImplementedError
   end
 
-  protected
-
   def self.pls(count)
     if count == 1
       ''
@@ -108,6 +106,6 @@ end
                 '(Base-)Name of log file'),
   Parameter.new(:logformat, 'lf', LogWriter.list.map(&:to_sym), :md,
                 'The log format. Call with --logformats for a list.'),
-  Parameter.new(:loglevel, 'll', [:error, :warning, :info], :warning,
+  Parameter.new(:loglevel, 'll', %i[error warning info], :warning,
                 "Set to 'error' to see only errors, to 'warning' to also see warnings, or to 'info' for everything.")
 ].each { |p| ParameterManager.instance.addParameter(p) }

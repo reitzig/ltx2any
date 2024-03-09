@@ -19,16 +19,17 @@
 require 'zlib'
 
 ParameterManager.instance.addParameter(Parameter.new(
-    :synctex, 'synctex', Boolean, false, 'Set to make engines create SyncTeX files.'))
+                                         :synctex, 'synctex', Boolean, false, 'Set to make engines create SyncTeX files.'
+                                       ))
 
 # Add hook that adapts the :enginepar parameter whenever :synctex changes (including startup)
-ParameterManager.instance.addHook(:synctex) do |key, val|
+ParameterManager.instance.addHook(:synctex) do |_key, val|
   params = ParameterManager.instance
 
   # Set engine parameter
   # TODO: make nicer with array parameters
   parameter = '--synctex=-1'
-  if val && params[:enginepar][parameter] == nil # TODO: what is the second access?
+  if val && params[:enginepar][parameter].nil? # TODO: what is the second access?
     params.add(:enginepar, parameter)
   elsif !val
     params[:enginepar] = params[:enginepar].gsub(parameter, '')
@@ -37,7 +38,7 @@ ParameterManager.instance.addHook(:synctex) do |key, val|
   # Add synctex file to those that should be ignored
   # TODO: make nicer with array parameters
   synctexfile = "#{params[:jobname]}.synctex.gz"
-  if val && params[:ignore] == nil
+  if val && params[:ignore].nil?
     params.add(:ignore, synctexfile)
   elsif val && params[:ignore].empty?
     params[:ignore] = synctexfile
@@ -59,7 +60,7 @@ class SyncTeX < Extension
     ParameterManager.instance[:synctex] && time == :after
   end
 
-  def exec(time, progress)
+  def exec(_time, _progress)
     params = ParameterManager.instance
 
     unless File.exist?("#{params[:jobname]}.synctex")
@@ -74,7 +75,7 @@ class SyncTeX < Extension
         f.readlines.each do |line|
           # Replace tmp path with job path.
           # Catch absolute tmp paths first, then try to match paths relative to job path.
-          gz.write line.sub("#{params[:jobpath]}/#{params[:tmpdir]}", params[:jobpath])\
+          gz.write line.sub("#{params[:jobpath]}/#{params[:tmpdir]}", params[:jobpath]) \
                        .sub(params[:tmpdir], params[:jobpath])
         end
       end

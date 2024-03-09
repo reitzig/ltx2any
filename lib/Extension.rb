@@ -70,14 +70,12 @@ class Extension
   # Wrap execution of many items
   def self.execute_parts(jobs, when_done, &block)
     Parallel.map(jobs, finish: ->(_, _, _) { when_done.call }) do |job|
-      begin
-        block.call(job)
-      rescue Interrupt
-        raise Interrupt unless parallel # Sequential fallback needs exception!
-      rescue => e
-        Output.instance.msg("\tAn error occurred: #{e.to_s}")
-        # TODO: Should we break? Let's see what kinds of errors we get...
-      end
+      block.call(job)
+    rescue Interrupt
+      raise Interrupt unless parallel # Sequential fallback needs exception!
+    rescue StandardError => e
+      Output.instance.msg("\tAn error occurred: #{e}")
+      # TODO: Should we break? Let's see what kinds of errors we get...
     end
     # TODO: do we have to care about Parallel::DeadWorker?
   end
@@ -111,10 +109,8 @@ class Extension
     end
   end
 
-  public
-
   # @abstract
-  def do?(time)
+  def do?(_time)
     false
   end
 

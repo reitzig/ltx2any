@@ -34,9 +34,9 @@ class Output
   private
 
   def puts_indented(msgs)
-    msgs.each { |m|
+    msgs.each do |m|
       puts "#{' ' * @shortcode.length} #{m}"
-    }
+    end
   end
 
   public
@@ -54,22 +54,22 @@ class Output
   end
 
   def warn(*msg)
-    unless msg.empty?
-      msg[0] = "#{@warning}: #{msg[0]}"
-      msg(*msg)
-    end
+    return if msg.empty?
+
+    msg[0] = "#{@warning}: #{msg[0]}"
+    msg(*msg)
   end
 
   def error(*msg)
-    unless msg.empty?
-      msg[0] = "#{@error}: #{msg[0]}"
-      msg(*msg)
-    end
+    return if msg.empty?
+
+    msg[0] = "#{@error}: #{msg[0]}"
+    msg(*msg)
   end
 
   def start(msg, count = 1)
     @running = true
-    if count > 1 
+    if count > 1
       # Set up progress bar if needed
       progress = ProgressBar.create(title: "#{@shortcode} #{msg} ...",
                                     total: count,
@@ -77,7 +77,7 @@ class Output
                                     autofinish: false)
       return [-> { progress.increment },
               lambda { |state, *msgs|
-                progress.format("#{@shortcode} #{msg} ... #{instance_variable_get("@#{state}".intern)}" + (' ' * 5)) # Add some spaces to hide all for up to 999 steps
+                progress.format("#{@shortcode} #{msg} ... #{instance_variable_get(:"@#{state}")}" + (' ' * 5)) # Add some spaces to hide all for up to 999 steps
                 # TODO We *know* that we need 2*ceil(log_2(count)) - 1 spaces...
                 progress.stop
                 puts_indented(*msgs) unless msgs.empty?
@@ -93,7 +93,7 @@ class Output
   end
 
   def stop(state, *msg)
-    puts instance_variable_get("@#{state}".intern).to_s
+    puts instance_variable_get(:"@#{state}")
     puts_indented(msg) unless msg.empty?
     STDOUT.flush
 

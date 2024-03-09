@@ -57,18 +57,14 @@ class Markdown < LogWriter
         if msgs.empty?
           result << "Lucky you, `#{name}` had nothing to complain about!\n\n"
 
-          if (level == :warning && log.count(:info, name) > 0) ||
-             (level == :error && log.count(:info, name) + log.count(:warning, name) > 0)
-            if level != :info
-              result << 'Note, though, that this log only lists errors'
-              result << ' and warnings' if level == :warning
-              result << '. There were '
-              if level == :error
-                result << "#{log.count(:warning, name)} warning#{pls(log.count(:warning, name))} and "
-              end
-              result << "#{log.count(:info, name)} information message#{pls(log.count(:info, name))} " \
-                        "which you find in the full log.\n\n"
-            end
+          if ((level == :warning && log.count(:info, name) > 0) ||
+             (level == :error && log.count(:info, name) + log.count(:warning, name) > 0)) && (level != :info)
+            result << 'Note, though, that this log only lists errors'
+            result << ' and warnings' if level == :warning
+            result << '. There were '
+            result << "#{log.count(:warning, name)} warning#{pls(log.count(:warning, name))} and " if level == :error
+            result << "#{log.count(:info, name)} information message#{pls(log.count(:info, name))} " \
+                      "which you find in the full log.\n\n"
           end
         else
           result << "**#{log.count(:error, name)} error#{pls(log.count(:error, name))}**, " \
@@ -82,10 +78,10 @@ class Markdown < LogWriter
             #  * file:line flushed to the right after
             #  * The message, indented to the type stands out
             #  * Log line, flushed right
-            result << ' *  ' +
+            result << (' *  ' +
                       { error: '**Error**',
                         warning: '*Warning*',
-                        info: 'Info     ' }[m.level]
+                        info: 'Info     ' }[m.level])
             unless m.source_file.nil?
               srcline = nil
               unless m.source_lines.nil?
@@ -95,7 +91,7 @@ class Markdown < LogWriter
                 end
               end
 
-              srcfilelength = 76 - 9 - (!srcline.nil? ? srcline.length + 1 : 0) - 2
+              srcfilelength = 76 - 9 - (srcline.nil? ? 0 : srcline.length + 1) - 2
               result << if m.source_file.length > srcfilelength
                           "  `...#{m.source_file[m.source_file.length - srcfilelength + 5, m.source_file.length]}"
                         else
@@ -111,18 +107,17 @@ class Markdown < LogWriter
                         break_at_spaces(m.message.strip, 68, 8) + "\n\n"
                       end
             next if m.log_lines.nil?
+
             # We have line offset in the raw log!
             logline = m.log_lines[:from].to_s
-            unless m.log_lines[:to].nil? || m.log_lines[:to] == m.log_lines[:from]
-              logline += "--#{m.log_lines[:to]}"
-            end
-            result << (' ' * (80 - (6 + logline.length))) + '`log:' + logline + "`\n\n"
+            logline += "--#{m.log_lines[:to]}" unless m.log_lines[:to].nil? || m.log_lines[:to] == m.log_lines[:from]
+            result << ((' ' * (80 - (6 + logline.length))) + '`log:' + logline + "`\n\n")
           end
         end
       end
 
       target_file = "#{params[:log]}.md"
-      File.open(target_file, 'w') { |f| f.write(result) }
+      File.write(target_file, result)
       target_file
     end
   end

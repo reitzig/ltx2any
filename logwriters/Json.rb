@@ -36,7 +36,7 @@ class Json < LogWriter
     # Returns the name of the written file, or raises an exception
     # @param [Log] log
     # @param [String] jobname
-    def write(log, jobname)
+    def write(log, _jobname)
       params = ParameterManager.instance
 
       json_log = {
@@ -57,7 +57,7 @@ class Json < LogWriter
       }
 
       target_file = "#{params[:log]}.json"
-      File.open(target_file, 'w') { |f| f.write(JSON.pretty_generate(json_log)) }
+      File.write(target_file, JSON.pretty_generate(json_log))
       target_file
     end
 
@@ -70,13 +70,13 @@ class Json < LogWriter
 
       {
         name: source,
-        call: "<not available yet>", # TODO
+        call: '<not available yet>', # TODO
         counts: {
           error: log.count(:error, source),
           warning: log.count(:warning, source),
           info: log.count(:info, source)
         },
-        messages: messages # TexLogParser::Message converts reasonably
+        messages: # TexLogParser::Message converts reasonably
       }
     end
   end

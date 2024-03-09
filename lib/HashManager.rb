@@ -24,8 +24,6 @@ class HashManager
     @hashes = {}
   end
 
-  public
-
   # Hashes the given string
   def self.hash(string)
     Digest::MD5.hexdigest(string)
@@ -44,11 +42,11 @@ class HashManager
   # Important: drop_from is applied first!
   def self.hash_file(filename, drop_from: nil, without: nil)
     if !File.exist?(filename)
-      return nil
-    elsif drop_from == nil && without == nil
+      nil
+    elsif drop_from.nil? && without.nil?
       Digest::MD5.file(filename).to_s
     else
-      string = File.open(filename, 'r', &:read)
+      string = File.read(filename)
 
       # Fix string encoding; regexp matching below may fail otherwise
       # TODO check if this is necessary with Ruby versions beyond 2.0.0
@@ -59,9 +57,7 @@ class HashManager
       end
 
       # Drop undesired prefix if necessary
-      if !drop_from.nil? && drop_from.is_a?(Regexp)
-        string = string.split(drop_from).first
-      end
+      string = string.split(drop_from).first if !drop_from.nil? && drop_from.is_a?(Regexp)
 
       # Drop undesired lines if necessary
       if !without.nil? && without.is_a?(Regexp)
@@ -82,16 +78,14 @@ class HashManager
 
     files.each do |f|
       # TODO: allow arrays with parameters for hash_file?
-      if !File.exist?(f)
-        if @hashes.key?(f)
-          @hashes.remove(f)
-          result = true
-        end
-      else
+      if File.exist?(f)
         hash = self.class.hash_file(f)
         result = result || !@hashes.key?(f) || hash != @hashes[f]
         # puts "new or changed file #{f}" if !@@hashes.has_key?(f) || hash != @@hashes[f]
         @hashes[f] = hash
+      elsif @hashes.key?(f)
+        @hashes.remove(f)
+        result = true
       end
     end
 
@@ -102,14 +96,14 @@ class HashManager
   #   filename,hash
   # Overwrites any hashes that are already known.
   def from_file(filename)
-    if File.exist?(filename)
-      File.open(filename, 'r') do |f|
-        f.readlines.each do |l|
-          parts = l.split(',')
-          # Comma may appear as filename, so we have to make sure to only
-          # use the last component as hash
-          @hashes[parts.take(parts.size - 1).join(',').strip] = parts.last.strip
-        end
+    return unless File.exist?(filename)
+
+    File.open(filename, 'r') do |f|
+      f.readlines.each do |l|
+        parts = l.split(',')
+        # Comma may appear as filename, so we have to make sure to only
+        # use the last component as hash
+        @hashes[parts.take(parts.size - 1).join(',').strip] = parts.last.strip
       end
     end
   end
@@ -119,7 +113,7 @@ class HashManager
   # Overwrites existing file.
   def to_file(filename)
     File.open(filename, 'w') do |f|
-      @hashes.each_pair do |k,v|
+      @hashes.each_pair do |k, v|
         f.write("#{k},#{v}\n")
       end
     end

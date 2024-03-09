@@ -44,7 +44,7 @@ class MetaPost < Extension
     # TODO: check for (non-)existing result? incorporate ir parameter?
   end
 
-  def exec(time, progress)
+  def exec(_time, progress)
     params = ParameterManager.instance
 
     # Command to process metapost files if necessary.
@@ -68,9 +68,7 @@ class MetaPost < Extension
       unless log[0][i].empty?
         internal_offset = 3 # Stuff we print per plot before log excerpt (see :compile)
         log[0][i].map! do |m|
-          unless m.log_lines.nil?
-            m.log_lines.update(m.log_lines) { |_, ll| ll + offset + internal_offset}
-          end
+          m.log_lines.update(m.log_lines) { |_, ll| ll + offset + internal_offset } unless m.log_lines.nil?
           m
         end
       end
@@ -96,11 +94,11 @@ class MetaPost < Extension
     output = lines.join('').strip
 
     log << "# #\n# #{f}\n\n"
-    if output != ''
+    if output == ''
+      log << 'No output from mpost, so apparently everything went fine!'
+    else
       log << output
       msgs += parse(lines, f)
-    else
-      log << 'No output from mpost, so apparently everything went fine!'
     end
     log << "\n\n"
 
@@ -128,7 +126,8 @@ class MetaPost < Extension
             source_file: "#{ParameterManager.instance[:tmpdir]}/#{file}",
             source_lines: { from: Integer($LAST_MATCH_INFO[1]), to: Integer($LAST_MATCH_INFO[1]) },
             log_lines: { from: curline, to: linectr },
-            level: :error)
+            level: :error
+          )
         )
 
         curmsg = nil

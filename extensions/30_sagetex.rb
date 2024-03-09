@@ -31,13 +31,13 @@ class SageTeX < Extension
       HashManager.instance.files_changed?("#{params[:jobname]}.sagetex.sage")
   end
 
-  def exec(time, progress)
+  def exec(_time, _progress)
     params = ParameterManager.instance
 
     # Command to process SageMath code.
     sagemath = '"sagemath \"#{params[:jobname]}.sagetex.sage\" 2>&1"'
 
-    f = IO::popen(eval(sagemath))
+    f = IO.popen(eval(sagemath))
     log = f.readlines
 
     errors = parse(log)
@@ -54,7 +54,7 @@ class SageTeX < Extension
     # @type [TexLogParser::Message] msg
     msg = nil
     linectr = 1
-    lines.each { |line|
+    lines.each do |line|
       if !msg.nil? && line.strip.empty?
         msg.log_lines[:to] = linectr - 1
         msg = nil
@@ -77,7 +77,7 @@ class SageTeX < Extension
       end
 
       linectr += 1
-    }
+    end
 
     messages
   end

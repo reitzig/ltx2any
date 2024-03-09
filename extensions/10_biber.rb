@@ -38,13 +38,12 @@ class Biber < Extension
     if usesbib
       # Collect sources (needed for log parsing)
       @sources = []
-      IO.foreach("#{params[:jobname]}.bcf") { |line|
-        if /<bcf:datasource[^>]*type="file"[^>]*>(.*?)<\/bcf:datasource>/ =~ line
+      IO.foreach("#{params[:jobname]}.bcf") do |line|
+        if %r{<bcf:datasource[^>]*type="file"[^>]*>(.*?)</bcf:datasource>} =~ line
           @sources.push($~[1])
         end
-      }
+      end
       @sources.uniq!
-
 
       # Aside from the first run (no bbl),
       # there are two things that prompt us to rerun:
@@ -54,13 +53,13 @@ class Biber < Extension
       needrerun =   !File.exist?("#{params[:jobname]}.bbl") | # Is this the first run?
                     HashManager.instance.files_changed?("#{params[:jobname]}.bcf",
                                                         *@sources)
-                    # Note: non-strict OR so that hashes are computed for next run
+      # NOTE: non-strict OR so that hashes are computed for next run
     end
 
     usesbib && needrerun
   end
 
-  def exec(time, progress)
+  def exec(_time, _progress)
     params = ParameterManager.instance
 
     # Command to process bibtex bibliography if necessary.
@@ -75,13 +74,15 @@ class Biber < Extension
     msgs = []
     errors = false
     linectr = 1
-    log.each { |line|
+    log.each do |line|
       loglines = { from: linectr, to: linectr }
       if /^INFO - (.*)$/ =~ line
         msgs.push(TexLogParser::Message.new(message: $~[1], log_lines: loglines, level: :info))
       elsif /^WARN - (.*)$/ =~ line
         msgs.push(TexLogParser::Message.new(message: $~[1], log_lines: loglines, level: :warning))
-      elsif /^ERROR - BibTeX subsystem: .*?(#{@sources.map { |s| Regexp.escape(s) }.join('|')}).*?, line (\d+), (.*)$/ =~ line
+      elsif %r{^ERROR - BibTeX subsystem: .*?(#{@sources.map do |s|
+                                                  Regexp.escape(s)
+                                                end.join('|')}).*?, line (\d+), (.*)$} =~ line
         srclines = { from: Integer($~[2]), to: Integer($~[2]) }
         msgs.push(TexLogParser::Message.new(message: $~[3].strip, source_file: $~[1], source_lines: srclines,
                                             log_lines: loglines, level: :error))
@@ -91,7 +92,7 @@ class Biber < Extension
         errors = true
       end
       linectr += 1
-    }
+    end
 
     { success: !errors, messages: msgs, log: log.join('').strip! }
   end
