@@ -1,13 +1,11 @@
 AllCops:
   TargetRubyVersion: 3.3
+  NewCops: enable
 
-Metrics/LineLength:
+Layout/LineLength:
   # The default, 80, is a nice-to-have but not really all that relevant
   # on today's wide screens. Use 120 as a "hard" cap and try to be shorter.
   Max: 120
-  # Ignore comments; in particular, we don't want to hard-wrap YARD comments
-  # as it keeps the line breaks.
-  IgnoredPatterns: ['\A\s*#']
 
 Metrics/MethodLength:
   # The default, 10, seems silly here.
