@@ -1,0 +1,24 @@
+\documentclass[a4paper,fleqn]{article}
+\usepackage{ngerman,graphicx,amsmath,amssymb,mathbbol,cite}
+\usepackage[utf8]{inputenc}
+
+\usepackage{hyperref}
+
+\begin{document}
+
+\tableofcontents
+
+\section{Test}
+\label{sec:test}
+
+\section{Tester}
+Test reference: \ref{sec:test}
+
+Test citation: \cite{Wilf1990}
+
+Missing key: \cite{r2d2}
+
+\bibliographystyle{test}
+\bibliography{references,morereferences}
+
+\end{document}

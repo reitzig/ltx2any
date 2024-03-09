@@ -1,0 +1,36 @@
+PATH
+  remote: .
+  specs:
+    chew (1.0.0.pre.beta)
+      json (~> 2.1)
+      listen (~> 3.1)
+      parallel (~> 1.12)
+      ruby-progressbar (~> 1.8)
+      tex_log_parser (~> 1)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ffi (1.9.25)
+    json (2.2.0)
+    listen (3.1.5)
+      rb-fsevent (~> 0.9, >= 0.9.4)
+      rb-inotify (~> 0.9, >= 0.9.7)
+      ruby_dep (~> 1.2)
+    parallel (1.12.1)
+    rb-fsevent (0.10.3)
+    rb-inotify (0.9.10)
+      ffi (>= 0.5.0, < 2)
+    ruby-progressbar (1.10.0)
+    ruby_dep (1.5.0)
+    tex_log_parser (1.1.0)
+      json (~> 2.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  chew!
+
+BUNDLED WITH
+   1.16.1

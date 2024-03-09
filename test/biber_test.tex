@@ -1,0 +1,18 @@
+\documentclass{article}
+
+\usepackage[backend=biber]{biblatex}
+\bibliography{references}
+\bibliography{morereferences} % or
+
+\usepackage{hyperref}
+
+\begin{document}
+
+\section{Test}
+Test citation: \cite{Wilf1990}
+
+Missing key: \cite{r2d2}
+
+\printbibliography
+
+\end{document}
