@@ -1,0 +1,4 @@
+---
+BUNDLE_PATH: "vendor/bundle"
+BUNDLE_CLEAN: "true"
+BUNDLE_FROZEN: "false"
