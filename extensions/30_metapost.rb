@@ -47,17 +47,12 @@ class MetaPost < Extension
   end
 
   def exec(_time, progress)
-    ParameterManager.instance
-
-    # Command to process metapost files if necessary.
-    mpost = %("mpost -tex=#{params[:engine]} -file-line-error -interaction=nonstopmode "#{f}" 2>&1")
-
     # Run mpost for each job file
     log = [[], []]
     unless @mp_files.empty?
       # Run (latex) engine for each figure
       log = self.class.execute_parts(@mp_files, progress) do |f|
-        compile(mpost, f)
+        compile(f)
       end.transpose
     end
     @mp_files = [] # reset for next round of checks
@@ -84,15 +79,18 @@ class MetaPost < Extension
 
   private
 
-  def compile(cmd, f)
-    ParameterManager.instance
+  def compile(f)
+    params = ParameterManager.instance
 
-    log = ''
+    # Command to process metapost files if necessary.
+    mpost = "mpost -tex=#{params[:engine]} -file-line-error -interaction=nonstopmode '#{f}' 2>&1"
+
+    log = String.new
     msgs = []
 
     # Run twice to get LaTeX bits right
-    IO.popen(eval(cmd), &:readlines)
-    lines = IO.popen(eval(cmd), &:readlines)
+    IO.popen(mpost, &:readlines)
+    lines = IO.popen(mpost, &:readlines)
     output = lines.join.strip
 
     log << "# #\n# #{f}\n\n"

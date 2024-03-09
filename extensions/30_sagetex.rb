@@ -35,12 +35,12 @@ class SageTeX < Extension
   end
 
   def exec(_time, _progress)
-    ParameterManager.instance
+    params = ParameterManager.instance
 
     # Command to process SageMath code.
-    sagemath = %("sagemath "#{params[:jobname]}.sagetex.sage" 2>&1")
+    sagemath = "sagemath '#{params[:jobname]}.sagetex.sage' 2>&1"
 
-    f = IO.popen(eval(sagemath))
+    f = IO.popen(sagemath)
     log = f.readlines
 
     errors = parse(log)

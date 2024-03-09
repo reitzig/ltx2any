@@ -41,12 +41,6 @@ class TikZExt < Extension
   def exec(_time, progress)
     params = ParameterManager.instance
 
-    # Command to process externalised TikZ images if necessary.
-    # Uses the following variables:
-    # * $params["engine"] -- Engine used by the main job.
-    # * params[:jobname] -- name of the main LaTeX file (without file ending)
-    pdflatex = %("#{params[:engine]} -shell-escape -file-line-error -interaction=batchmode -jobname "#{fig}" "\\\def\\\tikzexternalrealjob{#{params[:jobname]}}\\\input{#{params[:jobname]}}" 2>&1")
-
     # Collect all externalised figures
     figures, rebuildlog = collect_pending
 
@@ -54,7 +48,7 @@ class TikZExt < Extension
     unless figures.empty?
       # Run (latex) engine for each figure
       log = self.class.execute_parts(figures, progress) do |fig|
-        compile(pdflatex, fig)
+        compile(fig)
       end.transpose
     end
 
@@ -137,13 +131,23 @@ class TikZExt < Extension
     [figures, rebuildlog]
   end
 
-  def compile(cmd, fig)
-    ParameterManager.instance
-    log = "# #\n# Figure: #{fig}\n#   See #{ParameterManager.instance[:tmpdir]}/#{fig}.log for full log.\n\n"
+  def compile(fig)
+    params = ParameterManager.instance
+    log = String.new
+    log << "# #\n# Figure: #{fig}\n#   See #{params[:tmpdir]}/#{fig}.log for full log.\n\n"
+
+    # Command to process externalised TikZ images if necessary.
+    # Uses the following variables:
+    # * $params["engine"] -- Engine used by the main job.
+    # * params[:jobname] -- name of the main LaTeX file (without file ending)
+    pdflatex = "#{params[:engine]} -shell-escape -file-line-error -interaction=batchmode " +
+      "-jobname '#{fig}' " +
+      "'\\\def\\\tikzexternalrealjob{#{params[:jobname]}}\\\input{#{params[:jobname]}}' " +
+      '2>&1'
 
     # Run twice to clean up log?
-    # IO::popen(eval(cmd)).readlines
-    IO.popen(eval(cmd), &:readlines)
+    # IO::popen(pdflatex).readlines
+    IO.popen(pdflatex, &:readlines)
     # Shell output does not contain error messages -> read log
     output = File.open("#{fig}.log", 'r') do |f|
       f.readlines.map { |s| Log.fix(s) }

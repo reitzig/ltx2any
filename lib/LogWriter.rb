@@ -104,7 +104,7 @@ end
 
 # Add log-writer-related parameters
 [
-  Parameter.new(:log, 'l', String, %("#{self[:user_jobname]}.log"),
+  Parameter.new(:log, 'l', String, '"#{self[:user_jobname]}.log"',
                 '(Base-)Name of log file'),
   Parameter.new(:logformat, 'lf', LogWriter.list.map(&:to_sym), :md,
                 'The log format. Call with --logformats for a list.'),

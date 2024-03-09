@@ -45,14 +45,6 @@ class MakeIndex < Extension
   def exec(_time, _progress)
     params = ParameterManager.instance
 
-    # Command to create the index if necessary. Provide two versions,
-    # one without and one with stylefile
-    # Uses the following variables:
-    # * jobname -- name of the main LaTeX file (without file ending)
-    # * mistyle -- name of the makeindex style file (with file ending)
-    makeindex = { default: %("makeindex -q "#{params[:jobname]}" 2>&1"),
-                  styled: %("makeindex -q -s "#{mistyle}" "#{params[:jobname]}" 2>&1") }
-
     version = :default
     mistyle = nil
     Dir['*.ist'].each do |f|
@@ -60,10 +52,18 @@ class MakeIndex < Extension
       mistyle = f
     end
 
+    # Command to create the index if necessary. Provide two versions,
+    # one without and one with stylefile
+    # Uses the following variables:
+    # * jobname -- name of the main LaTeX file (without file ending)
+    # * mistyle -- name of the makeindex style file (with file ending)
+    makeindex = { default: "makeindex -q '#{params[:jobname]}' 2>&1",
+                  styled: "makeindex -q -s \"#{mistyle}\" '#{params[:jobname]}' 2>&1" }
     # Even in quiet mode, some critical errors (e.g. regarding -g)
     # only end up in the error stream, but not in the file. Doh.
+    #
     log1 = []
-    IO.popen(eval(makeindex[version])) do |f|
+    IO.popen(makeindex[version]) do |f|
       log1 = f.readlines
     end
 

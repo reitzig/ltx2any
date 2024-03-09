@@ -46,16 +46,11 @@ class Gnuplot < Extension
   end
 
   def exec(_time, progress)
-    # Command to process gnuplot files if necessary.
-    # Uses the following variables:
-    # * jobname -- name of the main LaTeX file (without file ending)
-    gnuplot = %("gnuplot "#{f}" 2>&1")
-
     # Run gnuplot for each remaining file
     log = [[], []]
     unless @gnuplot_files.empty?
       log = self.class.execute_parts(@gnuplot_files, progress) do |f|
-        compile(gnuplot, f)
+        compile(f)
       end.transpose
     end
 
@@ -82,12 +77,15 @@ class Gnuplot < Extension
   private
 
   def compile(cmd, f)
-    ParameterManager.instance
+    # Command to process gnuplot files if necessary.
+    # Uses the following variables:
+    # * jobname -- name of the main LaTeX file (without file ending)
+    gnuplot = "gnuplot '#{f}' 2>&1"
 
-    log = ''
+    log = String.new
     msgs = []
 
-    lines = IO.popen(eval(cmd), &:readlines)
+    lines = IO.popen(gnuplot, &:readlines)
     output = lines.join.strip
 
     log << "# #\n# #{f}\n\n"
