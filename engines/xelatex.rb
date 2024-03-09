@@ -44,10 +44,10 @@ class XeLaTeX < Engine
     @old_hash = hash_result
 
     # Command for the main LaTeX compilation work
-    ParameterManager.instance
-    xelatex = %("xelatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} "#{params[:jobfile]}"")
+    params = ParameterManager.instance
+    xelatex = "xelatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} '#{params[:jobfile]}'"
 
-    f = IO.popen(eval(xelatex))
+    f = IO.popen(xelatex)
     log = f.readlines.map! { |s| Log.fix(s) }
 
     parsed_log = TexLogParser.new(log).parse

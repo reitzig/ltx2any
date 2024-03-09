@@ -133,7 +133,7 @@ class Log
   # Creates a string with the raw log messages.
   def to_s
     # TODO: it should be possible to determine offsets without building the log
-    result = ''
+    result = String.new
     messages = only_level(:info)
 
     offset = 0

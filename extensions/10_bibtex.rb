@@ -78,14 +78,14 @@ class BibTeX < Extension
   end
 
   def exec(_time, _progress)
-    ParameterManager.instance
+    params = ParameterManager.instance
 
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
-    bibtex = %("bibtex "#{params[:jobname]}"")
+    bibtex = "bibtex '#{params[:jobname]}'"
 
-    f = IO.popen(eval(bibtex))
+    f = IO.popen(bibtex)
     log = f.readlines
 
     # Dig trough output and find errors

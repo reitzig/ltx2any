@@ -45,10 +45,10 @@ class LuaLaTeX < Engine
     @old_hash = hash_result
 
     # Command for the main LaTeX compilation work
-    ParameterManager.instance
-    lualatex = %("lualatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} "#{params[:jobfile]}"")
+    params = ParameterManager.instance
+    lualatex = "lualatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} '#{params[:jobfile]}'"
 
-    f = IO.popen(eval(lualatex))
+    f = IO.popen(lualatex)
     log = f.readlines.map! { |s| Log.fix(s) }
 
     parsed_log = TexLogParser.new(log).parse

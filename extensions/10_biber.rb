@@ -63,14 +63,14 @@ class Biber < Extension
   end
 
   def exec(_time, _progress)
-    ParameterManager.instance
+    params = ParameterManager.instance
 
     # Command to process bibtex bibliography if necessary.
     # Uses the following variables:
     # * jobname -- name of the main LaTeX file (without file ending)
-    biber = %("biber "#{params[:jobname]}"")
+    biber = "biber '#{params[:jobname]}'"
 
-    f = IO.popen(eval(biber))
+    f = IO.popen(biber)
     log = f.readlines
 
     # Dig trough output and find errors

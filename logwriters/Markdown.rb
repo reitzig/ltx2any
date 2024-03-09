@@ -38,7 +38,8 @@ class Markdown < LogWriter
     def write(log, level = :warning)
       params = ParameterManager.instance
 
-      result = "# Log for `#{params[:user_jobname]}`\n\n"
+      result = String.new
+      result << "# Log for `#{params[:user_jobname]}`\n\n"
       messages = log.only_level(level)
 
       result << "**Disclaimer:**  \nThis is but a digest of the original log file.\n" \

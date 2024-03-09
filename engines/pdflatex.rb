@@ -44,10 +44,10 @@ class PdfLaTeX < Engine
     @old_hash = hash_result
 
     # Command for the main LaTeX compilation work
-    ParameterManager.instance
-    pdflatex = %("pdflatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} "#{params[:jobfile]}"")
+    params = ParameterManager.instance
+    pdflatex = "pdflatex -file-line-error -interaction=nonstopmode #{params[:enginepar]} '#{params[:jobfile]}'"
 
-    f = IO.popen(eval(pdflatex))
+    f = IO.popen(pdflatex)
     log = f.readlines.map! { |s| Log.fix(s) }
 
     parsed_log = TexLogParser.new(log).parse
