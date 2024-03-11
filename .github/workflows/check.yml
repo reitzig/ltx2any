@@ -14,8 +14,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          # TODO: re-enable test on MacOS once we have a way to install TeXlive
-          #- macos-latest
+          - macos-14
           - windows-latest
         ruby:
          - '3.1'
