@@ -1,8 +1,13 @@
+[![No Maintenance Intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/)
+[![Test](https://github.com/reitzig/ltx2any/actions/workflows/check.yml/badge.svg)](https://github.com/reitzig/ltx2any/actions/workflows/check.yml)
+
+# ltx2any
+
+---
 ⚠ **Warning:** This project is _mostly_ abandoned, and
 certainly not well-maintained.  
 ⚠️ Use at your own risk!
-
-# ltx2any
+---
 
 Yet another LaTeX build wrapper, with one or two nifty features:
 
