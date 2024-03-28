@@ -1,3 +1,4 @@
+name: Test
 on:
   push:
     branches:
@@ -45,12 +46,14 @@ jobs:
           packages: >
             latex-bin scheme-basic
 
+      # Credits: https://stackoverflow.com/a/76953318/539599
       - name: Install MiKTeX
         if: matrix.os == 'windows-latest'
         run: |
           choco install miktex --no-progress
           echo "C:\Program Files\MiKTeX\miktex\bin\x64" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
 
+      # Credits: https://stackoverflow.com/a/76953318/539599
       - name: Configure MiKTeX
         if: matrix.os == 'windows-latest'
         run: |
