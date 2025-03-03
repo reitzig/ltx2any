@@ -41,7 +41,7 @@ jobs:
 
       - name: Install TeX Live
         if: matrix.os != 'windows-latest'
-        uses: zauguin/install-texlive@v3
+        uses: zauguin/install-texlive@v4
         with:
           packages: >
             latex-bin scheme-basic
